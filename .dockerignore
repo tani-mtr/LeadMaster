@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-error.log
+
+# テスト
+coverage
+.nyc_output
+
+# エディタの設定
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# その他
+README.md
+LICENSE
+*.md
