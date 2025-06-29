@@ -61,7 +61,8 @@ class BigQueryService {
             if (customQuery) {
                 query = customQuery;
             } else {
-                // 提供されたデフォルトSQLクエリ
+                // 提供されたデフォルトSQLクエリ（プロジェクトIDを環境変数から取得）
+                const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
                 query = `
                     WITH AddressCheck AS (
                          SELECT
@@ -74,7 +75,7 @@ class BigQueryService {
                                    )
                               ) AS unique_addresses
                          FROM
-                              \`m2m-core.zzz_taniguchi.lead_room_type\` ROOMTYPE
+                              \`${projectId}.zzz_taniguchi.lead_room_type\` ROOMTYPE
                          GROUP BY
                               lead_property_id
                     ),
@@ -83,7 +84,7 @@ class BigQueryService {
                               ROOMTYPE.lead_property_id,
                               COUNT(DISTINCT IFNULL (area_zoned_for_use, '')) AS unique_area_zoned_for_use
                          FROM
-                              \`m2m-core.zzz_taniguchi.lead_room_type\` ROOMTYPE
+                              \`${projectId}.zzz_taniguchi.lead_room_type\` ROOMTYPE
                          GROUP BY
                               lead_property_id
                     ),
@@ -92,7 +93,7 @@ class BigQueryService {
                               ROOMTYPE.lead_property_id,
                               COUNT(DISTINCT IFNULL (route_1, '')) AS unique_route_1
                          FROM
-                              \`m2m-core.zzz_taniguchi.lead_room_type\` ROOMTYPE
+                              \`${projectId}.zzz_taniguchi.lead_room_type\` ROOMTYPE
                          GROUP BY
                               lead_property_id
                     ),
@@ -101,7 +102,7 @@ class BigQueryService {
                               ROOMTYPE.lead_property_id,
                               COUNT(DISTINCT IFNULL (station_1, '')) AS unique_station_1
                          FROM
-                              \`m2m-core.zzz_taniguchi.lead_room_type\` ROOMTYPE
+                              \`${projectId}.zzz_taniguchi.lead_room_type\` ROOMTYPE
                          GROUP BY
                               lead_property_id
                     ),
@@ -112,9 +113,7 @@ class BigQueryService {
                                    DISTINCT IFNULL (CAST (walk_min_1 AS STRING), '')
                               ) AS unique_walk_min_1
                          FROM
-                              \`m2m-core.zzz_taniguchi.lead_room_type\` ROOMTYPE
-                         GROUP BY
-                              lead_property_id
+                              \`${projectId}.zzz_taniguchi.lead_room_type\` ROOMTYPE
                     ),
                     oldest_records AS (
                          SELECT
@@ -163,8 +162,8 @@ class BigQueryService {
                                         PROPERTY.create_date ASC
                               ) AS rn
                          FROM
-                              \`m2m-core.zzz_taniguchi.lead_property\` PROPERTY
-                              LEFT JOIN \`m2m-core.zzz_taniguchi.lead_room_type\` ROOMTYPE ON PROPERTY.id = ROOMTYPE.lead_property_id
+                              \`${projectId}.zzz_taniguchi.lead_property\` PROPERTY
+                              LEFT JOIN \`${projectId}.zzz_taniguchi.lead_room_type\` ROOMTYPE ON PROPERTY.id = ROOMTYPE.lead_property_id
                               LEFT JOIN AddressCheck ON PROPERTY.id = AddressCheck.lead_property_id
                               LEFT JOIN AreaZonedForUseCheck ON PROPERTY.id = AreaZonedForUseCheck.lead_property_id
                               LEFT JOIN routeOneCheck ON PROPERTY.id = routeOneCheck.lead_property_id

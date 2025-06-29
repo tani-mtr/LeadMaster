@@ -13,8 +13,9 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 const PageContainer = styled.div`
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
+  width: 95%;
 `;
 
 const TableContainer = styled.div`
@@ -173,14 +174,12 @@ const TopPage = () => {
             </HeaderSection>
 
             <TableContainer>
-                <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
+                <div className="ag-theme-alpine" style={{ width: '100%' }}>
                     <AgGridReact
                         rowData={buildings}
                         columnDefs={columnDefs}
                         defaultColDef={defaultColDef}
-                        pagination={true}
-                        paginationPageSize={10}
-                        paginationPageSizeSelector={[5, 10, 20, 50]}
+                        pagination={false}
                         rowSelection="single"
                         animateRows={true}
                         enableCellTextSelection={true}

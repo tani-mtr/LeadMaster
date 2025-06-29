@@ -1,0 +1,45 @@
+steps:
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/leadmaster:$COMMIT_SHA', '.']
+    
+  # Step 2: Push the Docker image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/leadmaster:$COMMIT_SHA']
+    
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'leadmaster'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/leadmaster:$COMMIT_SHA'
+      - '--platform'
+      - 'managed'
+      - '--region'
+      - 'asia-northeast1'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--cpu=1'
+      - '--memory=512Mi'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--concurrency=80'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID,BIGQUERY_DATASET=zzz_taniguchi,BIGQUERY_TABLE=lead_property,BIGQUERY_LOCATION=US'
+      - '--set-env-vars'
+      - 'BIGQUERY_BUILDINGS_QUERY=WITH AddressCheck AS (SELECT ROOMTYPE.lead_property_id, COUNT(DISTINCT CONCAT(IFNULL(prefectures, ""), IFNULL(city, ""), IFNULL(town, ""))) AS unique_addresses FROM `$PROJECT_ID.zzz_taniguchi.lead_room_type` ROOMTYPE GROUP BY lead_property_id), AreaZonedForUseCheck AS (SELECT ROOMTYPE.lead_property_id, COUNT(DISTINCT IFNULL(area_zoned_for_use, "")) AS unique_area_zoned_for_use FROM `$PROJECT_ID.zzz_taniguchi.lead_room_type` ROOMTYPE GROUP BY lead_property_id), routeOneCheck AS (SELECT ROOMTYPE.lead_property_id, COUNT(DISTINCT IFNULL(route_1, "")) AS unique_route_1 FROM `$PROJECT_ID.zzz_taniguchi.lead_room_type` ROOMTYPE GROUP BY lead_property_id), stationOneCheck AS (SELECT ROOMTYPE.lead_property_id, COUNT(DISTINCT IFNULL(station_1, "")) AS unique_station_1 FROM `$PROJECT_ID.zzz_taniguchi.lead_room_type` ROOMTYPE GROUP BY lead_property_id), walkMinOneCheck AS (SELECT ROOMTYPE.lead_property_id, COUNT(DISTINCT IFNULL(CAST(walk_min_1 AS STRING), "")) AS unique_walk_min_1 FROM `$PROJECT_ID.zzz_taniguchi.lead_room_type` ROOMTYPE GROUP BY lead_property_id), oldest_records AS (SELECT PROPERTY.id, PROPERTY.name, PROPERTY.tag, PROPERTY.mt_representative, PROPERTY.create_date, CASE WHEN AddressCheck.unique_addresses = 1 THEN CASE WHEN ROOMTYPE.prefectures IS NULL AND ROOMTYPE.city IS NULL AND ROOMTYPE.town IS NULL THEN NULL ELSE CONCAT(IFNULL(ROOMTYPE.prefectures, ""), IFNULL(ROOMTYPE.city, ""), IFNULL(ROOMTYPE.town, "")) END WHEN AddressCheck.unique_addresses IS NULL THEN NULL ELSE "部屋タイプ別" END AS adress, CASE WHEN AreaZonedForUseCheck.unique_area_zoned_for_use = 1 THEN ROOMTYPE.area_zoned_for_use WHEN AreaZonedForUseCheck.unique_area_zoned_for_use IS NULL THEN NULL ELSE "部屋タイプ別" END AS area_zoned_for_use, CASE WHEN routeOneCheck.unique_route_1 = 1 THEN ROOMTYPE.route_1 WHEN routeOneCheck.unique_route_1 IS NULL THEN NULL ELSE "部屋タイプ別" END AS route_1, CASE WHEN stationOneCheck.unique_station_1 = 1 THEN ROOMTYPE.station_1 WHEN stationOneCheck.unique_station_1 IS NULL THEN NULL ELSE "部屋タイプ別" END AS station_1, CASE WHEN walkMinOneCheck.unique_walk_min_1 = 1 THEN CAST(ROOMTYPE.walk_min_1 AS STRING) WHEN walkMinOneCheck.unique_walk_min_1 IS NULL THEN CAST(NULL AS STRING) ELSE "部屋タイプ別" END AS walk_min_1, ROW_NUMBER() OVER (PARTITION BY PROPERTY.name ORDER BY PROPERTY.create_date ASC) AS rn FROM `$PROJECT_ID.zzz_taniguchi.lead_property` PROPERTY LEFT JOIN `$PROJECT_ID.zzz_taniguchi.lead_room_type` ROOMTYPE ON PROPERTY.id = ROOMTYPE.lead_property_id LEFT JOIN AddressCheck ON PROPERTY.id = AddressCheck.lead_property_id LEFT JOIN AreaZonedForUseCheck ON PROPERTY.id = AreaZonedForUseCheck.lead_property_id LEFT JOIN routeOneCheck ON PROPERTY.id = routeOneCheck.lead_property_id LEFT JOIN stationOneCheck ON PROPERTY.id = stationOneCheck.lead_property_id LEFT JOIN walkMinOneCheck ON PROPERTY.id = walkMinOneCheck.lead_property_id WHERE PROPERTY.name IS NOT NULL) SELECT id, name, tag, mt_representative, create_date, adress, area_zoned_for_use, route_1, station_1, walk_min_1 FROM oldest_records WHERE rn = 1 ORDER BY create_date DESC'
+
+# Service account configuration for BigQuery access
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  
+# Timeout for the build
+timeout: '1200s'
+
+# Substitutions for environment variables
+substitutions:
+  _SERVICE_NAME: 'leadmaster'
+  _REGION: 'asia-northeast1'
