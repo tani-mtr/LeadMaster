@@ -29,9 +29,22 @@ apiClient.interceptors.request.use(
 // レスポンスインターセプター
 apiClient.interceptors.response.use(
     (response) => {
+        console.log('API Response Success:', response.status, response.data);
         return response;
     },
     (error) => {
+        console.error('API Response Error:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            message: error.message,
+            config: {
+                url: error.config?.url,
+                method: error.config?.method,
+                baseURL: error.config?.baseURL
+            }
+        });
+
         // エラー処理（認証エラーなど）
         if (error.response && error.response.status === 401) {
             // 認証切れの場合はログアウト処理など
@@ -48,7 +61,9 @@ export const apiService = {
     // 建物一覧の取得
     getBuildings: async () => {
         try {
+            console.log('API Request: GET /buildings');
             const response = await apiClient.get('/buildings');
+            console.log('API Response: buildings data received', response.data);
             return response.data;
         } catch (error) {
             console.error('Error fetching buildings:', error);
@@ -85,6 +100,17 @@ export const apiService = {
             return response.data;
         } catch (error) {
             console.error('Error logging button click:', error);
+            throw error;
+        }
+    },
+
+    // BigQuery接続テスト
+    testBigQueryConnection: async () => {
+        try {
+            const response = await apiClient.get('/bigquery/test');
+            return response.data;
+        } catch (error) {
+            console.error('Error testing BigQuery connection:', error);
             throw error;
         }
     },

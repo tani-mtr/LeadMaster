@@ -50,7 +50,67 @@ cd ..
 
 # 環境変数ファイルの作成
 cp .env.example .env
+
+# 必要に応じて.envファイルを編集
+# BigQueryを使用する場合は、以下の変数を設定してください:
+# GOOGLE_CLOUD_PROJECT_ID, BIGQUERY_DATASET, BIGQUERY_TABLE
 ```
+
+## BigQueryとの連携
+
+このアプリケーションはBigQueryからのデータ取得をサポートしています。
+
+### BigQuery設定
+
+1. `.env`ファイルに以下の環境変数を設定：
+
+```bash
+GOOGLE_CLOUD_PROJECT_ID=your-project-id
+BIGQUERY_DATASET=your_dataset_name
+BIGQUERY_TABLE=your_table_name
+BIGQUERY_LOCATION=US
+```
+
+2. カスタムSQLクエリの設定（オプション）：
+
+```bash
+# 建物一覧取得用のカスタムクエリ
+BIGQUERY_BUILDINGS_QUERY=SELECT id, name, address, build_year, description, updated_at FROM `project.dataset.table` WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1000
+
+# 建物詳細取得用のカスタムクエリ
+BIGQUERY_BUILDING_DETAIL_QUERY=SELECT id, name, address, build_year, description, updated_at FROM `project.dataset.table` WHERE id = @id AND deleted_at IS NULL LIMIT 1
+```
+
+3. Google Cloud認証の設定：
+
+```bash
+# サービスアカウントキーを使用する場合
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+
+# または、gcloud CLIでログインしている場合は自動で認証されます
+gcloud auth application-default login
+```
+
+4. BigQueryテーブルの想定スキーマ：
+
+```sql
+CREATE TABLE `your_project.your_dataset.your_table` (
+  id INT64,
+  name STRING,
+  address STRING,
+  build_year INT64,
+  description STRING,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+```
+
+### BigQuery接続のテスト
+
+アプリケーションの建物リストページで、右上にBigQuery接続状態が表示されます。
+また、`/api/bigquery/test`エンドポイントで接続テストが可能です。
+
+注意：BigQuery設定がない場合、自動的にモックデータが使用されます。
 
 ### 開発サーバーの起動
 
