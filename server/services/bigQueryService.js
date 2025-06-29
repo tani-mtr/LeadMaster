@@ -3,11 +3,18 @@ const { BigQuery } = require('@google-cloud/bigquery');
 class BigQueryService {
     constructor() {
         // BigQueryクライアントを初期化
-        // 環境変数またはサービスアカウントキーから自動で読み込まれます
-        this.bigquery = new BigQuery({
+        // Cloud Runではサービスアカウント認証が自動で適用されます
+        // ローカル開発では GOOGLE_APPLICATION_CREDENTIALS 環境変数でサービスアカウントキーを指定可能
+        const config = {
             projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-            keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS, // オプション
-        });
+        };
+
+        // ローカル開発環境でのみサービスアカウントキーファイルを使用
+        if (process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.NODE_ENV !== 'production') {
+            config.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        }
+
+        this.bigquery = new BigQuery(config);
     }
 
     /**

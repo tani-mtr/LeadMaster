@@ -83,11 +83,16 @@ BIGQUERY_BUILDING_DETAIL_QUERY=SELECT id, name, address, build_year, description
 
 3. Google Cloud認証の設定：
 
+**Cloud Run環境:**
+- Cloud Runサービスにサービスアカウントが設定されている場合、自動的に認証されます
+- 追加の環境変数設定は不要です
+
+**ローカル開発環境:**
 ```bash
-# サービスアカウントキーを使用する場合
+# 方法1: サービスアカウントキーを使用する場合
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 
-# または、gcloud CLIでログインしている場合は自動で認証されます
+# 方法2: gcloud CLIでログインしている場合は自動で認証されます
 gcloud auth application-default login
 ```
 
