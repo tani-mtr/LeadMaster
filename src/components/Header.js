@@ -32,6 +32,43 @@ const ServiceTitle = styled.div`
   }
 `;
 
+const Logo = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  text-decoration: none;
+  font-size: 1.3rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+    color: white;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const LogoIcon = styled.div`
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #ffffff, #f0f0f0);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--primary-color);
+  font-size: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
 const TitleWrapper = styled.div`
   display: flex;
   align-items: center;
@@ -51,52 +88,51 @@ const IconWrapper = styled.div`
 `;
 
 const Header = ({ title, deployURL }) => {
-    const location = useLocation();
-    const url = deployURL || "/";
+  const location = useLocation();
+  const url = deployURL || "/";
 
-    // トラッキング関数
-    const trackButtonClick = (action) => {
-        console.log(`Button click tracked: ${action}`);
-        // ここに実際のトラッキングコードを実装（例：Googleアナリティクスなど）
-    };
+  // トラッキング関数
+  const trackButtonClick = (action) => {
+    console.log(`Button click tracked: ${action}`);
+    // ここに実際のトラッキングコードを実装（例：Googleアナリティクスなど）
+  };
 
-    // SQL情報をコピーする機能
-    const handleCopyQuery = () => {
-        // この部分はGASのコードから移行する必要があります
-        console.log('Copy query functionality will be implemented here');
-        // TODO: SQLクエリのコピー機能を実装
-    };
+  // SQL情報をコピーする機能
+  const handleCopyQuery = () => {
+    // この部分はGASのコードから移行する必要があります
+    console.log('Copy query functionality will be implemented here');
+    // TODO: SQLクエリのコピー機能を実装
+  };
 
-    return (
-        <HeaderWrapper>
-            <div className="container">
-                <HeaderContent>
-                    <ServiceTitle>
-                        <Link to={url} onClick={() => trackButtonClick('topBack')}>
-                            WebApp版 LeadMaster
-                        </Link>
-                    </ServiceTitle>
+  return (
+    <HeaderWrapper>
+      <div className="container">
+        <HeaderContent>
+          <Logo to="/" onClick={() => trackButtonClick('logo-click')}>
+            <LogoIcon>LM</LogoIcon>
+            <span>LeadMaster</span>
+          </Logo>
 
-                    {title && (
-                        <TitleWrapper>
-                            <PageTitle>{title}</PageTitle>
+          {title && (
+            <TitleWrapper>
+              <PageTitle>{title}</PageTitle>
 
-                            {title === '建物詳細' && (
-                                <IconWrapper className="tooltip_top">
-                                    <FontAwesomeIcon
-                                        icon={faTableCellsLarge}
-                                        size="lg"
-                                        onClick={handleCopyQuery}
-                                    />
-                                    <span className="tooltiptext_top">【SQL実行】<br />表示内容：<strong>この建物に関するすべての情報</strong><br /></span>
-                                </IconWrapper>
-                            )}
-                        </TitleWrapper>
-                    )}
-                </HeaderContent>
-            </div>
-        </HeaderWrapper>
-    );
+              {title === '建物詳細' && (
+                <IconWrapper className="tooltip_top">
+                  <FontAwesomeIcon
+                    icon={faTableCellsLarge}
+                    size="lg"
+                    onClick={handleCopyQuery}
+                  />
+                  <span className="tooltiptext_top">【SQL実行】<br />表示内容：<strong>この建物に関するすべての情報</strong><br /></span>
+                </IconWrapper>
+              )}
+            </TitleWrapper>
+          )}
+        </HeaderContent>
+      </div>
+    </HeaderWrapper>
+  );
 };
 
 export default Header;
