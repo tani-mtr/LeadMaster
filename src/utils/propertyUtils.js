@@ -205,3 +205,96 @@ export const validateAddressFields = (data, addressFields) => {
 
     return errors;
 };
+
+// GASのconstants.jsから移植した機能
+
+// グローバル変数的な設定
+export const propertyPageConfig = {
+    itemsPerPage: 10,
+    addressFields: ["prefectures", "city", "town"]
+};
+
+// データ読み込み状態管理のためのデフォルト設定
+export const defaultDataLoaded = {
+    propertyData: false,
+    roomTypeList: false,
+    roomList: false,
+    schemas: false,
+    prefecturesAndCities: false,
+};
+
+// 入力タイプを取得する関数
+export const getInputType = (fieldType) => {
+    switch (fieldType) {
+        case "restricted":
+            return "text"; // AutoNumericで制御
+        case "number":
+            return "number";
+        case "email":
+            return "email";
+        case "date":
+            return "date";
+        case "url":
+            return "url";
+        default:
+            return "text";
+    }
+};
+
+// 入力値の検証
+export const validateInput = (value, fieldType, isRequired, header) => {
+    const errors = [];
+
+    // 必須フィールドのチェック
+    if (isRequired && (!value || value.toString().trim() === "")) {
+        errors.push("この項目は必須です");
+    }
+
+    // フィールドタイプ固有の検証
+    switch (fieldType) {
+        case "email":
+            if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                errors.push("有効なメールアドレスを入力してください");
+            }
+            break;
+        case "url":
+            if (value && !/^https?:\/\/.+/.test(value)) {
+                errors.push("有効なURLを入力してください");
+            }
+            break;
+        case "number":
+            if (value && isNaN(value)) {
+                errors.push("数値を入力してください");
+            }
+            break;
+    }
+
+    return errors;
+};
+
+// AutoNumericの設定を取得
+export const getAutoNumericConfig = (inputRestrictions) => {
+    const config = inputRestrictionsOptions[inputRestrictions];
+    if (!config) {
+        return null;
+    }
+
+    return {
+        ...config,
+        watchExternalChanges: true,
+        formatOnPageLoad: true,
+    };
+};
+
+// 修正された値かどうかを判定
+export const isModified = (currentValue, originalValue) => {
+    // null, undefined, 空文字の統一的な扱い
+    const normalizeValue = (val) => {
+        if (val === null || val === undefined || val === "") {
+            return "";
+        }
+        return val.toString();
+    };
+
+    return normalizeValue(currentValue) !== normalizeValue(originalValue);
+};

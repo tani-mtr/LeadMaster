@@ -40,7 +40,27 @@ const TopPage = () => {
     // AG Gridの列定義
     const columnDefs = useMemo(() => [
         { field: 'id', headerName: 'ID', minWidth: 70 },
-        { field: 'name', headerName: '建物名', minWidth: 200 },
+        {
+            field: 'name',
+            headerName: '建物名',
+            minWidth: 200,
+            cellRenderer: (params) => {
+                return (
+                    <Link
+                        to={`/property/${params.data.id}`}
+                        style={{
+                            color: '#007bff',
+                            textDecoration: 'none',
+                            fontWeight: '500'
+                        }}
+                        onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                        onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                    >
+                        {params.value}
+                    </Link>
+                );
+            }
+        },
         { field: '住所', headerName: '住所', minWidth: 300 },
         {
             field: '築年数',
