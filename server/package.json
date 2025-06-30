@@ -4,8 +4,8 @@
     "description": "LeadMaster WebApp バックエンドAPI",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js",
-        "dev": "nodemon index.js",
+        "start": "node --max-http-header-size=80000 index.js",
+        "dev": "nodemon --max-http-header-size=80000 index.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {

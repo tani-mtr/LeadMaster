@@ -236,6 +236,33 @@ const StatusBadge = styled.span`
     }};
 `;
 
+const RoomTypeTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+`;
+
+const RoomTypeTableHeader = styled.th`
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+`;
+
+const RoomTypeTableCell = styled.td`
+  border: 1px solid #dee2e6;
+  padding: 12px;
+  vertical-align: middle;
+`;
+
+const RoomTypeContainer = styled.div`
+  background: white;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+`;
+
 const PropertyPage = () => {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('info');
@@ -254,6 +281,12 @@ const PropertyPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRooms, setSelectedRooms] = useState(new Set());
     const [selectAll, setSelectAll] = useState(false);
+
+    // 部屋タイプ関連の状態
+    const [roomTypes, setRoomTypes] = useState([]);
+    const [roomTypesLoading, setRoomTypesLoading] = useState(false);
+    const [roomTypesError, setRoomTypesError] = useState(null);
+
     const itemsPerPage = 10;
 
     // データ取得
@@ -273,12 +306,22 @@ const PropertyPage = () => {
                 if (propertyData.has_related_rooms) {
                     try {
                         setRoomsLoading(true);
-                        const roomData = await apiService.getRoomList(id);
+                        setRoomTypesLoading(true);
+
+                        // 部屋データと部屋タイプデータを並行して取得
+                        const [roomData, roomTypeData] = await Promise.all([
+                            apiService.getRoomList(id),
+                            apiService.getRoomTypeList(id)
+                        ]);
+
                         setRooms(roomData);
+                        setRoomTypes(roomTypeData);
                     } catch (roomErr) {
                         setRoomsError(roomErr.message || '部屋データの取得中にエラーが発生しました');
+                        setRoomTypesError(roomErr.message || '部屋タイプデータの取得中にエラーが発生しました');
                     } finally {
                         setRoomsLoading(false);
+                        setRoomTypesLoading(false);
                     }
                 }
             } catch (err) {
@@ -314,6 +357,24 @@ const PropertyPage = () => {
             setRoomsError(err.message || '部屋データの取得中にエラーが発生しました');
         } finally {
             setRoomsLoading(false);
+        }
+    };
+
+    // 部屋タイプデータの手動更新（更新ボタン用）
+    const fetchRoomTypesData = async () => {
+        if (!property?.has_related_rooms) return;
+
+        try {
+            setRoomTypesLoading(true);
+            setRoomTypesError(null);
+
+            // 部屋タイプデータを取得
+            const roomTypeData = await apiService.getRoomTypeList(id);
+            setRoomTypes(roomTypeData);
+        } catch (err) {
+            setRoomTypesError(err.message || '部屋タイプデータの取得中にエラーが発生しました');
+        } finally {
+            setRoomTypesLoading(false);
         }
     };
 
@@ -1031,8 +1092,43 @@ const PropertyPage = () => {
                 <Section>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3>部屋タイプ管理</h3>
-                        <p>部屋タイプ管理機能は今後実装予定です。</p>
+                        <Button onClick={fetchRoomTypesData} disabled={roomTypesLoading}>
+                            {roomTypesLoading ? '更新中...' : '更新'}
+                        </Button>
                     </div>
+
+                    {roomTypesError && (
+                        <ErrorMessage>
+                            {roomTypesError}
+                        </ErrorMessage>
+                    )}
+
+                    {roomTypesLoading ? (
+                        <LoadingMessage>部屋タイプデータを読み込み中...</LoadingMessage>
+                    ) : roomTypes.length > 0 ? (
+                        <RoomTypeContainer>
+                            <RoomTypeTable>
+                                <thead>
+                                    <tr>
+                                        <RoomTypeTableHeader>部屋タイプID</RoomTypeTableHeader>
+                                        <RoomTypeTableHeader>部屋タイプ名</RoomTypeTableHeader>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {roomTypes.map((roomType, index) => (
+                                        <tr key={roomType.room_type_id || index}>
+                                            <RoomTypeTableCell>{roomType.room_type_id}</RoomTypeTableCell>
+                                            <RoomTypeTableCell>{roomType.room_type_name}</RoomTypeTableCell>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </RoomTypeTable>
+                        </RoomTypeContainer>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                            この物件には部屋タイプデータがありません
+                        </div>
+                    )}
                 </Section>
             )}
         </Container>

@@ -41,6 +41,12 @@ const bigQueryService = new BigQueryService();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// HTTPヘッダーサイズ制限を増加
+app.use((req, res, next) => {
+    req.setTimeout(300000); // 5分のタイムアウト
+    next();
+});
+
 // 起動情報のログ出力
 console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`現在の作業ディレクトリ: ${process.cwd()}`);
@@ -58,8 +64,8 @@ app.use(helmet({
     }
 }));
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(morgan('combined'));
 
 // ヘルスチェックエンドポイント
@@ -247,125 +253,146 @@ apiRouter.get('/property/:id/rooms', async (req, res) => {
     }
 });
 
-// BigQuery接続テスト用エンドポイント
-apiRouter.get('/bigquery/test', async (req, res) => {
+// 部屋タイプリストを取得（物件IDごと）
+apiRouter.get('/property/:id/room-types', async (req, res) => {
+    const id = req.params.id;
+
+    // モック部屋タイプデータ
+    const mockRoomTypeData = [
+        { room_type_id: 'RT001', room_type_name: '1K' },
+        { room_type_id: 'RT002', room_type_name: '1DK' },
+        { room_type_id: 'RT003', room_type_name: '1LDK' },
+        { room_type_id: 'RT004', room_type_name: '2DK' }
+    ];
+
     try {
-        // BigQueryの設定がある場合は実際のテストを実行
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
         if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
-            const isConnected = await bigQueryService.testConnection();
-            res.json({
-                connected: isConnected,
-                message: isConnected ? 'BigQuery接続成功' : 'BigQuery接続失敗'
-            });
+            console.log(`BigQueryから物件ID ${id} の部屋タイプデータを取得中...`);
+            const roomTypeData = await bigQueryService.getRoomTypeList(id);
+
+            if (roomTypeData && roomTypeData.length > 0) {
+                return res.json(roomTypeData); // BigQueryからデータが取得できた場合
+            } else {
+                console.log('BigQueryで部屋タイプデータが見つからないため、モックデータを返します');
+                return res.json(mockRoomTypeData);
+            }
         } else {
-            // BigQuery設定がない場合はモックモードとして接続成功を返す
-            res.json({
-                connected: true,
-                message: 'モックモード'
-            });
+            console.log('BigQuery設定がないため、モックデータを返します');
+            return res.json(mockRoomTypeData);
         }
+    } catch (error) {
+        console.error('部屋タイプデータ取得エラー:', error);
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        return res.json(mockRoomTypeData);
+    }
+});
+
+// BigQuery接続テスト用エンドポイント
+apiRouter.get('/test-bigquery', async (req, res) => {
+    try {
+        const isConnected = await bigQueryService.testConnection();
+        res.json({
+            success: isConnected,
+            message: isConnected ? 'BigQuery接続成功' : 'BigQuery接続失敗',
+            timestamp: new Date().toISOString()
+        });
     } catch (error) {
         console.error('BigQuery接続テストエラー:', error);
         res.status(500).json({
-            connected: false,
+            success: false,
             message: 'BigQuery接続テスト中にエラーが発生しました',
-            error: error.message
+            error: error.message,
+            timestamp: new Date().toISOString()
         });
     }
 });
 
-// ボタンクリックのログを記録
-apiRouter.post('/log-button-click', (req, res) => {
-    console.log('Button click log:', req.body);
+// SQLクエリ実行エンドポイント
+apiRouter.post('/execute-query', async (req, res) => {
+    try {
+        const { query } = req.body;
 
-    // 実際の実装では、データベースやロギングサービスにログを保存します
-    res.json({ success: true });
+        if (!query) {
+            return res.status(400).json({
+                success: false,
+                message: 'クエリが指定されていません'
+            });
+        }
+
+        console.log('受信したクエリ:', query);
+
+        const results = await bigQueryService.executeQuery(query);
+
+        res.json({
+            success: true,
+            data: results,
+            message: `${results.length}件のレコードを取得しました`,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('クエリ実行エラー:', error);
+
+        res.status(500).json({
+            success: false,
+            message: 'クエリの実行中にエラーが発生しました',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
-// APIルートを/apiプレフィックスで設定
+// APIルーターをマウント
 app.use('/api', apiRouter);
 
-// 本番環境では、Reactのビルドファイルを提供
+// 静的ファイルの配信
 if (process.env.NODE_ENV === 'production') {
-    // 作業ディレクトリとその内容を確認
-    const currentDir = process.cwd();
-    console.log(`現在の作業ディレクトリ: ${currentDir}`);
-    try {
-        const dirContents = require('fs').readdirSync(currentDir);
-        console.log(`作業ディレクトリの内容: ${dirContents.join(', ')}`);
-    } catch (err) {
-        console.error(`作業ディレクトリの読み込みエラー: ${err.message}`);
-    }
+    app.use(express.static(path.join(__dirname, '../build')));
 
-    // ビルドパスを相対パスと絶対パスの両方で試行
-    const relativeBuildPath = './build';
-    const absoluteBuildPath = path.join(__dirname, '../build');
-
-    // まず相対パスを試す
-    let buildPath = relativeBuildPath;
-    let buildExists = false;
-
-    try {
-        buildExists = require('fs').existsSync(buildPath);
-        console.log(`相対パス ${buildPath} の存在: ${buildExists}`);
-
-        if (!buildExists) {
-            // 次に絶対パスを試す
-            buildPath = absoluteBuildPath;
-            buildExists = require('fs').existsSync(buildPath);
-            console.log(`絶対パス ${buildPath} の存在: ${buildExists}`);
-        }
-
-        if (buildExists) {
-            const files = require('fs').readdirSync(buildPath);
-            console.log(`ビルドディレクトリ ${buildPath} の内容: ${files.join(', ')}`);
-        }
-    } catch (err) {
-        console.error(`ビルドディレクトリの確認エラー: ${err.message}`);
-    }
-
-    // ビルドディレクトリが存在する場合のみ静的ファイルを提供
-    if (buildExists) {
-        console.log(`静的ファイル配信パスを設定: ${buildPath}`);
-        app.use(express.static(buildPath));
-    } else {
-        console.error('ビルドディレクトリが見つかりません');
-    }
-
-    // すべてのルートで index.html を返すように設定
+    // React アプリケーションのルートを処理
     app.get('*', (req, res) => {
-        console.log(`リクエスト受信: ${req.path}`);
-
-        // まず相対パスでindexを探す
-        let indexPath = path.join(relativeBuildPath, 'index.html');
-        let indexExists = false;
-
-        try {
-            indexExists = require('fs').existsSync(indexPath);
-            console.log(`相対パスindex ${indexPath} の存在: ${indexExists}`);
-
-            if (!indexExists) {
-                // 次に絶対パスを試す
-                indexPath = path.join(absoluteBuildPath, 'index.html');
-                indexExists = require('fs').existsSync(indexPath);
-                console.log(`絶対パスindex ${indexPath} の存在: ${indexExists}`);
-            }
-
-            if (indexExists) {
-                const indexContent = require('fs').readFileSync(indexPath, 'utf8').substring(0, 100);
-                console.log(`index.htmlの内容（先頭100文字）: ${indexContent}`);
-                res.sendFile(path.resolve(indexPath));
-            } else {
-                throw new Error('index.htmlファイルが見つかりません');
-            }
-        } catch (err) {
-            console.error(`index.html読み込みエラー: ${err.message}`);
-            res.status(404).send(`index.htmlファイルが見つかりません。ビルド設定を確認してください。エラー: ${err.message}`);
-        }
+        res.sendFile(path.join(__dirname, '../build', 'index.html'));
+    });
+} else {
+    // 開発環境では簡単な応答
+    app.get('/', (req, res) => {
+        res.send('Development server is running! API available at /api/*');
     });
 }
 
-// サーバーの起動
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// サーバー起動（HTTPヘッダーサイズ制限を設定）
+const http = require('http');
+const server = http.createServer(app);
+
+// サーバー設定でHTTPヘッダーサイズ制限を増加
+server.maxHeadersCount = 0; // ヘッダー数制限を無効化
+server.headersTimeout = 300000; // 5分のタイムアウト
+
+server.listen(PORT, () => {
+    console.log(`サーバーがポート ${PORT} で起動しました`);
+    console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
+
+    if (process.env.NODE_ENV === 'production') {
+        console.log('Production モード: 静的ファイルを配信します');
+    } else {
+        console.log('Development モード: API のみを提供します');
+        console.log('フロントエンドは別途起動してください (npm start)');
+    }
+});
+
+// グレースフルシャットダウン
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    server.close(() => {
+        process.exit(0);
+    });
 });

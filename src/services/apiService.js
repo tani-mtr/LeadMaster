@@ -140,6 +140,19 @@ export const apiService = {
             throw error;
         }
     },
+
+    // 部屋タイプリストの取得（物件IDごと）
+    getRoomTypeList: async (propertyId) => {
+        try {
+            console.log(`API Request: GET /property/${propertyId}/room-types`);
+            const response = await apiClient.get(`/property/${propertyId}/room-types`);
+            console.log('API Response: room type data received', response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching room types for property ${propertyId}:`, error);
+            throw error;
+        }
+    },
 };
 
 export default apiService;

@@ -462,6 +462,36 @@ class BigQueryService {
     }
 
     /**
+     * 部屋タイプリストを取得
+     * @param {string} propertyId - 物件ID
+     * @returns {Promise<Array>} 部屋タイプリストの配列
+     */
+    async getRoomTypeList(propertyId) {
+        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+        const query = `
+            SELECT
+                ROOM_TYPE.id AS room_type_id,
+                ROOM_TYPE.name AS room_type_name
+            FROM
+                \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOM_TYPE
+            WHERE
+                ROOM_TYPE.lead_property_id = @propertyId
+            ORDER BY
+                ROOM_TYPE.name
+        `;
+
+        try {
+            const params = { propertyId };
+            const rows = await this.executeQuery(query, params);
+            return rows;
+        } catch (error) {
+            console.error('部屋タイプリスト取得エラー:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 日付をフォーマット
      * @param {*} dateValue - 日付値
      * @returns {string|null} フォーマットされた日付文字列またはnull
