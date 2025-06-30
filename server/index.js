@@ -148,6 +148,42 @@ apiRouter.put('/buildings/:id', (req, res) => {
     res.json(mockBuildings[buildingIndex]);
 });
 
+// 物件データを取得（GASのgetPropertyData関数と同様）
+apiRouter.get('/property/:id', async (req, res) => {
+    const id = req.params.id;
+
+    // モック物件データ
+    const mockPropertyData = {
+        id: id,
+        name: `物件${id}`,
+        tag: `タグ${id}`,
+        has_related_rooms: true
+    };
+
+    try {
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryから物件ID ${id} のデータを取得中...`);
+            const propertyData = await bigQueryService.getPropertyData(id);
+
+            if (propertyData && propertyData.length > 0) {
+                return res.json(propertyData[0]); // BigQueryからデータが取得できた場合
+            } else {
+                console.log('BigQueryで物件が見つからないため、モックデータを返します');
+                return res.json(mockPropertyData);
+            }
+        } else {
+            console.log('BigQuery設定がないため、モックデータを返します');
+            return res.json(mockPropertyData);
+        }
+    } catch (error) {
+        console.error('物件データ取得エラー:', error);
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        return res.json(mockPropertyData);
+    }
+});
+
 // BigQuery接続テスト用エンドポイント
 apiRouter.get('/bigquery/test', async (req, res) => {
     try {

@@ -277,6 +277,62 @@ class BigQueryService {
     }
 
     /**
+     * 指定されたIDの物件データを取得（GASのgetPropertyData関数と同様）
+     * @param {string} id 物件ID
+     * @returns {Promise<Array>} 物件データの配列
+     */
+    async getPropertyData(id) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            // 初期実装ではid, name, tagのみを取得
+            const query = `
+                SELECT
+                    PROPERTY.id AS \`id\`,
+                    PROPERTY.name AS \`name\`,
+                    PROPERTY.tag AS \`tag\`,
+                    CASE
+                        WHEN EXISTS(
+                            SELECT 1
+                            FROM \`${projectId}.zzz_taniguchi.lead_room\` AS lead_room
+                            WHERE lead_room.lead_property_id = PROPERTY.id
+                        ) OR EXISTS(
+                            SELECT 1
+                            FROM \`${projectId}.zzz_taniguchi.lead_room_type\` AS lead_room_type
+                            WHERE lead_room_type.lead_property_id = PROPERTY.id
+                        ) THEN TRUE
+                        ELSE FALSE
+                    END AS \`has_related_rooms\`
+                FROM
+                    \`${projectId}.zzz_taniguchi.lead_property\` AS PROPERTY
+                WHERE
+                    PROPERTY.id = @id
+            `;
+
+            const params = { id: id };
+            const rows = await this.executeQuery(query, params);
+
+            // データが見つからない場合は空配列を返す
+            if (!rows || rows.length === 0) {
+                console.log(`物件ID ${id} のデータが見つかりませんでした`);
+                return [];
+            }
+
+            return rows.map(row => ({
+                id: row.id,
+                name: row.name,
+                tag: row.tag || '',
+                has_related_rooms: row.has_related_rooms || false
+            }));
+
+        } catch (error) {
+            console.error('物件データ取得エラー:', error);
+            // エラーが発生した場合は空配列を返す（上位でモックデータにフォールバックするため）
+            return [];
+        }
+    }
+
+    /**
      * 日付をフォーマット
      * @param {*} dateValue - 日付値
      * @returns {string|null} フォーマットされた日付文字列またはnull

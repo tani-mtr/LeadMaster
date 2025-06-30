@@ -93,6 +93,19 @@ export const apiService = {
         }
     },
 
+    // 物件データの取得（GASのgetPropertyData関数と同様）
+    getPropertyData: async (id) => {
+        try {
+            console.log(`API Request: GET /property/${id}`);
+            const response = await apiClient.get(`/property/${id}`);
+            console.log('API Response: property data received', response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching property with id ${id}:`, error);
+            throw error;
+        }
+    },
+
     // ボタンクリックのログ送信
     logButtonClick: async (logData) => {
         try {
