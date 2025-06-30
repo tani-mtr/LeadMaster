@@ -95,6 +95,101 @@ const LoadingMessage = styled.div`
   color: #666;
 `;
 
+const SearchInput = styled.input`
+  width: 300px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+`;
+
+const BulkActions = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+`;
+
+const PageButton = styled.button`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background: ${props => props.active ? '#007bff' : 'white'};
+  color: ${props => props.active ? 'white' : '#333'};
+  border-radius: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    background: ${props => props.active ? '#0056b3' : '#f8f9fa'};
+  }
+  
+  &:disabled {
+    background: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+  }
+`;
+
+const CheckboxWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const Checkbox = styled.input`
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 5px;
+`;
+
+const IconButton = styled.button`
+  padding: 6px 8px;
+  border: none;
+  background: ${props => props.variant === 'danger' ? '#dc3545' : '#007bff'};
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  
+  &:hover {
+    background: ${props => props.variant === 'danger' ? '#c82333' : '#0056b3'};
+  }
+  
+  &:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+  }
+`;
+
+const RoomName = styled.a`
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -141,25 +236,6 @@ const StatusBadge = styled.span`
     }};
 `;
 
-const ActionButton = styled.button`
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  background: ${props => props.variant === 'primary' ? '#007bff' : '#6c757d'};
-  color: white;
-  
-  &:hover {
-    background: ${props => props.variant === 'primary' ? '#0056b3' : '#5a6268'};
-  }
-  
-  &:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-  }
-`;
-
 const PropertyPage = () => {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('info');
@@ -171,6 +247,14 @@ const PropertyPage = () => {
     const [error, setError] = useState(null);
     const [editMode, setEditMode] = useState(false);
     const [editData, setEditData] = useState({});
+
+    // 部屋一覧の検索・ページネーション・選択機能
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filteredRooms, setFilteredRooms] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [selectedRooms, setSelectedRooms] = useState(new Set());
+    const [selectAll, setSelectAll] = useState(false);
+    const itemsPerPage = 10;
 
     // データ取得
     useEffect(() => {
@@ -207,10 +291,106 @@ const PropertyPage = () => {
             // BigQueryから部屋データを取得
             const roomData = await apiService.getRoomList(id);
             setRooms(roomData);
+
+            // 検索結果をリセット
+            setSearchTerm('');
+            setCurrentPage(1);
+            setSelectedRooms(new Set());
+            setSelectAll(false);
         } catch (err) {
             setRoomsError(err.message || '部屋データの取得中にエラーが発生しました');
         } finally {
             setRoomsLoading(false);
+        }
+    };
+
+    // 検索とフィルタリング
+    useEffect(() => {
+        if (rooms.length > 1) {
+            const roomsData = rooms.slice(1); // ヘッダーを除く
+            let filtered = roomsData;
+
+            if (searchTerm) {
+                filtered = roomsData.filter(room => {
+                    const roomName = room[2]; // 部屋名のカラム
+                    return roomName && roomName.toLowerCase().includes(searchTerm.toLowerCase());
+                });
+            }
+
+            setFilteredRooms(filtered);
+            setCurrentPage(1); // 検索時はページを1に戻す
+        } else {
+            setFilteredRooms([]);
+        }
+    }, [rooms, searchTerm]);
+
+    // ページネーション用の計算
+    const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentRooms = filteredRooms.slice(startIndex, endIndex);
+
+    // チェックボックス関連の処理
+    const handleSelectAll = (checked) => {
+        setSelectAll(checked);
+        if (checked) {
+            const allRoomIds = currentRooms.map(room => room[1]); // 部屋IDのカラム
+            setSelectedRooms(new Set(allRoomIds));
+        } else {
+            setSelectedRooms(new Set());
+        }
+    };
+
+    const handleRoomSelect = (roomId, checked) => {
+        const newSelected = new Set(selectedRooms);
+        if (checked) {
+            newSelected.add(roomId);
+        } else {
+            newSelected.delete(roomId);
+        }
+        setSelectedRooms(newSelected);
+
+        // 全選択状態の更新
+        setSelectAll(newSelected.size === currentRooms.length && currentRooms.length > 0);
+    };
+
+    // 一括操作
+    const handleBulkUpdate = () => {
+        if (selectedRooms.size === 0) {
+            alert('部屋が選択されていません。');
+            return;
+        }
+
+        const selectedRoomIds = Array.from(selectedRooms);
+        // TODO: 一括更新ページへの遷移を実装
+        alert(`選択された部屋（${selectedRoomIds.length}件）の一括更新機能は今後実装予定です。\n部屋ID: ${selectedRoomIds.join(', ')}`);
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedRooms.size === 0) {
+            alert('部屋が選択されていません。');
+            return;
+        }
+
+        const selectedRoomData = currentRooms.filter(room => selectedRooms.has(room[1]));
+        const roomNames = selectedRoomData.map(room => room[2]).join(', ');
+
+        if (window.confirm(`以下の部屋を削除しますか？\n${roomNames}`)) {
+            // TODO: 削除処理の実装
+            alert('一括削除機能は今後実装予定です。');
+        }
+    };
+
+    // 個別操作
+    const handleRoomClick = (roomId, roomName) => {
+        // TODO: 部屋詳細ページへの遷移を実装
+        alert(`部屋「${roomName}」の詳細ページ機能は今後実装予定です。\n部屋ID: ${roomId}`);
+    };
+
+    const handleRoomDelete = (roomId, roomName) => {
+        if (window.confirm(`部屋「${roomName}」を削除しますか？`)) {
+            // TODO: 個別削除処理の実装
+            alert('個別削除機能は今後実装予定です。');
         }
     };
 
@@ -240,7 +420,8 @@ const PropertyPage = () => {
         if (activeTab === 'rooms' && property?.has_related_rooms && rooms.length === 0) {
             fetchRoomsData();
         }
-    }, [activeTab, property?.has_related_rooms, id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, property?.has_related_rooms]);
 
     if (loading) {
         return (
@@ -663,41 +844,146 @@ const PropertyPage = () => {
                     ) : (
                         <>
                             {rooms.length > 1 ? (
-                                <Table>
-                                    <thead>
-                                        <tr>
-                                            {rooms[0].map((header, index) => (
-                                                <TableHeader key={index}>{header}</TableHeader>
+                                <>
+                                    {/* 検索バー */}
+                                    <SearchInput
+                                        type="text"
+                                        placeholder="部屋名で検索"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+
+                                    {/* 一括操作ボタン */}
+                                    <BulkActions>
+                                        <span>選択された部屋: {selectedRooms.size}件</span>
+                                        <Button
+                                            onClick={handleBulkUpdate}
+                                            disabled={selectedRooms.size === 0}
+                                        >
+                                            一括更新
+                                        </Button>
+                                        <Button
+                                            onClick={handleBulkDelete}
+                                            disabled={selectedRooms.size === 0}
+                                            style={{ backgroundColor: '#dc3545' }}
+                                        >
+                                            一括削除
+                                        </Button>
+                                        <Button onClick={() => alert('新規部屋追加機能は今後実装予定です。')}>
+                                            新規追加
+                                        </Button>
+                                    </BulkActions>
+
+                                    {/* 部屋一覧テーブル */}
+                                    <Table>
+                                        <thead>
+                                            <tr>
+                                                <TableHeader>
+                                                    <CheckboxWrapper>
+                                                        <Checkbox
+                                                            type="checkbox"
+                                                            checked={selectAll}
+                                                            onChange={(e) => handleSelectAll(e.target.checked)}
+                                                        />
+                                                    </CheckboxWrapper>
+                                                </TableHeader>
+                                                {rooms[0].map((header, index) => (
+                                                    <TableHeader key={index}>{header}</TableHeader>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {currentRooms.map((room, rowIndex) => {
+                                                const roomId = room[1];
+                                                const roomName = room[2];
+                                                const isOperationEnabled = room[4] !== 'false';
+
+                                                return (
+                                                    <TableRow key={rowIndex}>
+                                                        <TableCell>
+                                                            <CheckboxWrapper>
+                                                                <Checkbox
+                                                                    type="checkbox"
+                                                                    checked={selectedRooms.has(roomId)}
+                                                                    onChange={(e) => handleRoomSelect(roomId, e.target.checked)}
+                                                                />
+                                                            </CheckboxWrapper>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <StatusBadge status={room[0]}>
+                                                                {room[0]}
+                                                            </StatusBadge>
+                                                        </TableCell>
+                                                        <TableCell>{roomId}</TableCell>
+                                                        <TableCell>
+                                                            <RoomName
+                                                                onClick={() => handleRoomClick(roomId, roomName)}
+                                                            >
+                                                                {roomName}
+                                                            </RoomName>
+                                                        </TableCell>
+                                                        <TableCell>{room[3]}</TableCell>
+                                                        <TableCell>
+                                                            <ActionButtons>
+                                                                <IconButton
+                                                                    variant="primary"
+                                                                    disabled={!isOperationEnabled}
+                                                                    onClick={() => handleRoomClick(roomId, roomName)}
+                                                                    title="詳細を表示"
+                                                                >
+                                                                    📝
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    variant="danger"
+                                                                    disabled={!isOperationEnabled}
+                                                                    onClick={() => handleRoomDelete(roomId, roomName)}
+                                                                    title="削除"
+                                                                >
+                                                                    🗑️
+                                                                </IconButton>
+                                                            </ActionButtons>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </Table>
+
+                                    {/* ページネーション */}
+                                    {totalPages > 1 && (
+                                        <Pagination>
+                                            <PageButton
+                                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                disabled={currentPage === 1}
+                                            >
+                                                前へ
+                                            </PageButton>
+
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                                <PageButton
+                                                    key={page}
+                                                    active={page === currentPage}
+                                                    onClick={() => setCurrentPage(page)}
+                                                >
+                                                    {page}
+                                                </PageButton>
                                             ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {rooms.slice(1).map((room, rowIndex) => (
-                                            <TableRow key={rowIndex}>
-                                                <TableCell>
-                                                    <StatusBadge status={room[0]}>
-                                                        {room[0]}
-                                                    </StatusBadge>
-                                                </TableCell>
-                                                <TableCell>{room[1]}</TableCell>
-                                                <TableCell>{room[2]}</TableCell>
-                                                <TableCell>{room[3]}</TableCell>
-                                                <TableCell>
-                                                    <ActionButton
-                                                        variant="primary"
-                                                        disabled={room[4] === 'false'}
-                                                        onClick={() => {
-                                                            // 操作ボタンのクリック処理（今後実装）
-                                                            alert(`部屋ID: ${room[1]} の操作機能は今後実装予定です`);
-                                                        }}
-                                                    >
-                                                        {room[4] === 'true' ? '操作可能' : '操作不可'}
-                                                    </ActionButton>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </tbody>
-                                </Table>
+
+                                            <PageButton
+                                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                disabled={currentPage === totalPages}
+                                            >
+                                                次へ
+                                            </PageButton>
+                                        </Pagination>
+                                    )}
+
+                                    {/* 表示情報 */}
+                                    <div style={{ textAlign: 'center', marginTop: '10px', color: '#666', fontSize: '14px' }}>
+                                        {filteredRooms.length}件中 {startIndex + 1}-{Math.min(endIndex, filteredRooms.length)}件を表示
+                                        {searchTerm && ` (「${searchTerm}」で検索)`}
+                                    </div>
+                                </>
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                                     この物件には部屋データがありません
