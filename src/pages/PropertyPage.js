@@ -268,6 +268,19 @@ const PropertyPage = () => {
 
                 setProperty(propertyData);
                 setEditData(propertyData);
+
+                // 関連部屋データがある場合は同時に取得
+                if (propertyData.has_related_rooms) {
+                    try {
+                        setRoomsLoading(true);
+                        const roomData = await apiService.getRoomList(id);
+                        setRooms(roomData);
+                    } catch (roomErr) {
+                        setRoomsError(roomErr.message || '部屋データの取得中にエラーが発生しました');
+                    } finally {
+                        setRoomsLoading(false);
+                    }
+                }
             } catch (err) {
                 setError(err.message || 'データの取得中にエラーが発生しました');
             } finally {
@@ -280,7 +293,7 @@ const PropertyPage = () => {
         }
     }, [id]);
 
-    // 部屋データの取得
+    // 部屋データの手動更新（更新ボタン用）
     const fetchRoomsData = async () => {
         if (!property?.has_related_rooms) return;
 
@@ -416,9 +429,14 @@ const PropertyPage = () => {
         }
     };
 
+    // 部屋一覧タブクリック時の処理（データは初期読み込み済み）
     useEffect(() => {
-        if (activeTab === 'rooms' && property?.has_related_rooms && rooms.length === 0) {
-            fetchRoomsData();
+        if (activeTab === 'rooms' && property?.has_related_rooms) {
+            // 検索結果をリセット（データは既に取得済み）
+            setSearchTerm('');
+            setCurrentPage(1);
+            setSelectedRooms(new Set());
+            setSelectAll(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, property?.has_related_rooms]);
@@ -839,10 +857,25 @@ const PropertyPage = () => {
                         <ErrorMessage>{roomsError}</ErrorMessage>
                     )}
 
-                    {roomsLoading ? (
+                    {roomsLoading && rooms.length === 0 ? (
                         <LoadingMessage>部屋データを読み込み中...</LoadingMessage>
                     ) : (
-                        <>
+                        <div style={{ position: 'relative' }}>
+                            {roomsLoading && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '10px',
+                                    right: '10px',
+                                    background: 'rgba(0, 123, 255, 0.1)',
+                                    color: '#007bff',
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    zIndex: 1
+                                }}>
+                                    更新中...
+                                </div>
+                            )}
                             {rooms.length > 1 ? (
                                 <>
                                     {/* 検索バー */}
@@ -989,7 +1022,7 @@ const PropertyPage = () => {
                                     この物件には部屋データがありません
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
                 </Section>
             )}
