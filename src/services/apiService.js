@@ -3,6 +3,35 @@ import axios from 'axios';
 // APIのベースURL
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
+// シンプルなメモリキャッシュ
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5分
+
+// キャッシュヘルパー関数
+const getCacheKey = (url, params = {}) => {
+    return `${url}_${JSON.stringify(params)}`;
+};
+
+const isValidCache = (cacheEntry) => {
+    return cacheEntry && (Date.now() - cacheEntry.timestamp) < CACHE_DURATION;
+};
+
+const setCache = (key, data) => {
+    cache.set(key, {
+        data,
+        timestamp: Date.now()
+    });
+};
+
+const getCache = (key) => {
+    const cacheEntry = cache.get(key);
+    if (isValidCache(cacheEntry)) {
+        return cacheEntry.data;
+    }
+    cache.delete(key);
+    return null;
+};
+
 // Axiosインスタンスを作成
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -95,10 +124,20 @@ export const apiService = {
 
     // 物件データの取得（GASのgetPropertyData関数と同様）
     getPropertyData: async (id) => {
+        const cacheKey = getCacheKey(`/property/${id}`);
+        const cachedData = getCache(cacheKey);
+
+        if (cachedData) {
+            console.log(`キャッシュから物件データを取得: ${id}`);
+            return cachedData;
+        }
+
         try {
             console.log(`API Request: GET /property/${id}`);
             const response = await apiClient.get(`/property/${id}`);
             console.log('API Response: property data received', response.data);
+
+            setCache(cacheKey, response.data);
             return response.data;
         } catch (error) {
             console.error(`Error fetching property with id ${id}:`, error);
@@ -130,10 +169,20 @@ export const apiService = {
 
     // 部屋一覧の取得（物件IDごと）
     getRoomList: async (propertyId) => {
+        const cacheKey = getCacheKey(`/property/${propertyId}/rooms`);
+        const cachedData = getCache(cacheKey);
+
+        if (cachedData) {
+            console.log(`キャッシュから部屋データを取得: ${propertyId}`);
+            return cachedData;
+        }
+
         try {
             console.log(`API Request: GET /property/${propertyId}/rooms`);
             const response = await apiClient.get(`/property/${propertyId}/rooms`);
             console.log('API Response: room data received', response.data);
+
+            setCache(cacheKey, response.data);
             return response.data;
         } catch (error) {
             console.error(`Error fetching rooms for property ${propertyId}:`, error);
@@ -143,10 +192,20 @@ export const apiService = {
 
     // 部屋タイプリストの取得（物件IDごと）
     getRoomTypeList: async (propertyId) => {
+        const cacheKey = getCacheKey(`/property/${propertyId}/room-types`);
+        const cachedData = getCache(cacheKey);
+
+        if (cachedData) {
+            console.log(`キャッシュから部屋タイプデータを取得: ${propertyId}`);
+            return cachedData;
+        }
+
         try {
             console.log(`API Request: GET /property/${propertyId}/room-types`);
             const response = await apiClient.get(`/property/${propertyId}/room-types`);
             console.log('API Response: room type data received', response.data);
+
+            setCache(cacheKey, response.data);
             return response.data;
         } catch (error) {
             console.error(`Error fetching room types for property ${propertyId}:`, error);

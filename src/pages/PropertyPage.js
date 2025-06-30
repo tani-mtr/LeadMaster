@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
@@ -93,6 +93,22 @@ const LoadingMessage = styled.div`
   text-align: center;
   padding: 20px;
   color: #666;
+  
+  .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 `;
 
 const SearchInput = styled.input`
@@ -277,7 +293,6 @@ const PropertyPage = () => {
 
     // 部屋一覧の検索・ページネーション・選択機能
     const [searchTerm, setSearchTerm] = useState('');
-    const [filteredRooms, setFilteredRooms] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRooms, setSelectedRooms] = useState(new Set());
     const [selectAll, setSelectAll] = useState(false);
@@ -289,45 +304,44 @@ const PropertyPage = () => {
 
     const itemsPerPage = 10;
 
-    // データ取得
+    // データ取得 - パフォーマンス最適化版
     useEffect(() => {
         const fetchPropertyData = async () => {
             try {
                 setLoading(true);
                 setError(null);
 
-                // BigQueryから物件データを取得
-                const propertyData = await apiService.getPropertyData(id);
+                // 物件データ、部屋データ、部屋タイプデータを並行取得
+                const requests = [apiService.getPropertyData(id)];
+
+                // 最初から全データを並行取得（部屋データの有無は物件データ取得後に判断）
+                requests.push(
+                    apiService.getRoomList(id).catch(err => {
+                        console.warn('部屋データ取得失敗（スキップ）:', err.message);
+                        return [];
+                    }),
+                    apiService.getRoomTypeList(id).catch(err => {
+                        console.warn('部屋タイプデータ取得失敗（スキップ）:', err.message);
+                        return [];
+                    })
+                );
+
+                const [propertyData, roomData, roomTypeData] = await Promise.all(requests);
 
                 setProperty(propertyData);
                 setEditData(propertyData);
 
-                // 関連部屋データがある場合は同時に取得
+                // 部屋データがある場合のみ設定
                 if (propertyData.has_related_rooms) {
-                    try {
-                        setRoomsLoading(true);
-                        setRoomTypesLoading(true);
-
-                        // 部屋データと部屋タイプデータを並行して取得
-                        const [roomData, roomTypeData] = await Promise.all([
-                            apiService.getRoomList(id),
-                            apiService.getRoomTypeList(id)
-                        ]);
-
-                        setRooms(roomData);
-                        setRoomTypes(roomTypeData);
-                    } catch (roomErr) {
-                        setRoomsError(roomErr.message || '部屋データの取得中にエラーが発生しました');
-                        setRoomTypesError(roomErr.message || '部屋タイプデータの取得中にエラーが発生しました');
-                    } finally {
-                        setRoomsLoading(false);
-                        setRoomTypesLoading(false);
-                    }
+                    setRooms(roomData);
+                    setRoomTypes(roomTypeData);
                 }
             } catch (err) {
                 setError(err.message || 'データの取得中にエラーが発生しました');
             } finally {
                 setLoading(false);
+                setRoomsLoading(false);
+                setRoomTypesLoading(false);
             }
         };
 
@@ -378,34 +392,38 @@ const PropertyPage = () => {
         }
     };
 
-    // 検索とフィルタリング
+    // 検索時のページリセット
     useEffect(() => {
-        if (rooms.length > 1) {
-            const roomsData = rooms.slice(1); // ヘッダーを除く
-            let filtered = roomsData;
+        setCurrentPage(1);
+    }, [searchTerm]);
+    const filteredRooms = useMemo(() => {
+        if (rooms.length <= 1) return [];
 
-            if (searchTerm) {
-                filtered = roomsData.filter(room => {
-                    const roomName = room[2]; // 部屋名のカラム
-                    return roomName && roomName.toLowerCase().includes(searchTerm.toLowerCase());
-                });
-            }
+        const roomsData = rooms.slice(1); // ヘッダーを除く
 
-            setFilteredRooms(filtered);
-            setCurrentPage(1); // 検索時はページを1に戻す
-        } else {
-            setFilteredRooms([]);
-        }
+        if (!searchTerm) return roomsData;
+
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        return roomsData.filter(room => {
+            const roomName = room[2]; // 部屋名のカラム
+            return roomName && roomName.toLowerCase().includes(lowerSearchTerm);
+        });
     }, [rooms, searchTerm]);
 
-    // ページネーション用の計算
-    const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const currentRooms = filteredRooms.slice(startIndex, endIndex);
+    // ページネーション用の計算 - メモ化
+    const paginationData = useMemo(() => {
+        const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const currentRooms = filteredRooms.slice(startIndex, endIndex);
 
-    // チェックボックス関連の処理
-    const handleSelectAll = (checked) => {
+        return { totalPages, currentRooms, startIndex, endIndex };
+    }, [filteredRooms, currentPage, itemsPerPage]);
+
+    const { totalPages, currentRooms, startIndex, endIndex } = paginationData;
+
+    // チェックボックス関連の処理 - useCallbackで最適化
+    const handleSelectAll = useCallback((checked) => {
         setSelectAll(checked);
         if (checked) {
             const allRoomIds = currentRooms.map(room => room[1]); // 部屋IDのカラム
@@ -413,9 +431,9 @@ const PropertyPage = () => {
         } else {
             setSelectedRooms(new Set());
         }
-    };
+    }, [currentRooms]);
 
-    const handleRoomSelect = (roomId, checked) => {
+    const handleRoomSelect = useCallback((roomId, checked) => {
         const newSelected = new Set(selectedRooms);
         if (checked) {
             newSelected.add(roomId);
@@ -426,7 +444,7 @@ const PropertyPage = () => {
 
         // 全選択状態の更新
         setSelectAll(newSelected.size === currentRooms.length && currentRooms.length > 0);
-    };
+    }, [selectedRooms, currentRooms.length]);
 
     // 一括操作
     const handleBulkUpdate = () => {
@@ -468,13 +486,13 @@ const PropertyPage = () => {
         }
     };
 
-    // 編集データの更新
-    const handleInputChange = (field, value) => {
+    // 編集データの更新 - useCallbackで最適化
+    const handleInputChange = useCallback((field, value) => {
         setEditData(prev => ({
             ...prev,
             [field]: value
         }));
-    };
+    }, []);
 
     // 保存処理
     const handleSave = async () => {
@@ -505,7 +523,10 @@ const PropertyPage = () => {
     if (loading) {
         return (
             <Container>
-                <LoadingMessage>データを読み込み中...</LoadingMessage>
+                <LoadingMessage>
+                    <div className="spinner"></div>
+                    データを読み込み中...
+                </LoadingMessage>
             </Container>
         );
     }

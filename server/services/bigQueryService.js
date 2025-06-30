@@ -1,5 +1,34 @@
 const { BigQuery } = require('@google-cloud/bigquery');
 
+// シンプルなメモリキャッシュ
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5分
+
+// キャッシュヘルパー関数
+const getCacheKey = (query, params = {}) => {
+    return `${query}_${JSON.stringify(params)}`;
+};
+
+const isValidCache = (cacheEntry) => {
+    return cacheEntry && (Date.now() - cacheEntry.timestamp) < CACHE_DURATION;
+};
+
+const setCache = (key, data) => {
+    cache.set(key, {
+        data,
+        timestamp: Date.now()
+    });
+};
+
+const getCache = (key) => {
+    const cacheEntry = cache.get(key);
+    if (isValidCache(cacheEntry)) {
+        return cacheEntry.data;
+    }
+    cache.delete(key);
+    return null;
+};
+
 class BigQueryService {
     constructor() {
         // BigQueryクライアントを初期化
@@ -21,22 +50,35 @@ class BigQueryService {
      * カスタムSQLクエリを実行
      * @param {string} query - 実行するSQLクエリ
      * @param {Object} params - クエリパラメータ（オプション）
+     * @param {boolean} useCache - キャッシュを使用するかどうか（デフォルト: true）
      * @returns {Promise<Array>} クエリ結果の配列
      */
-    async executeQuery(query, params = {}) {
+    async executeQuery(query, params = {}, useCache = true) {
         try {
             // 必要な環境変数がない場合はエラーを投げる
             if (!process.env.GOOGLE_CLOUD_PROJECT_ID) {
                 throw new Error('BigQuery設定が不完全です: GOOGLE_CLOUD_PROJECT_ID が設定されていません');
             }
 
-            console.log('BigQuery カスタムクエリを実行中:', query);
+            // キャッシュチェック
+            if (useCache) {
+                const cacheKey = getCacheKey(query, params);
+                const cachedResult = getCache(cacheKey);
+                if (cachedResult) {
+                    console.log('BigQuery キャッシュからデータを取得:', cacheKey.substring(0, 50) + '...');
+                    return cachedResult;
+                }
+            }
+
+            console.log('BigQuery カスタムクエリを実行中:', query.substring(0, 100) + '...');
             console.log('パラメータ:', params);
 
             const options = {
                 query: query,
                 params: params,
                 location: process.env.BIGQUERY_LOCATION || 'US',
+                timeoutMs: 30000, // 30秒のタイムアウト
+                maxResults: 1000, // 結果の上限設定
             };
 
             // クエリを実行
@@ -47,6 +89,13 @@ class BigQueryService {
             const [rows] = await job.getQueryResults();
 
             console.log(`${rows.length} 件のレコードを取得しました。`);
+
+            // キャッシュに保存
+            if (useCache) {
+                const cacheKey = getCacheKey(query, params);
+                setCache(cacheKey, rows);
+            }
+
             return rows;
 
         } catch (error) {

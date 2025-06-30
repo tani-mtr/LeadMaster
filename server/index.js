@@ -43,7 +43,7 @@ const PORT = process.env.PORT || 8080;
 
 // HTTPヘッダーサイズ制限を増加
 app.use((req, res, next) => {
-    req.setTimeout(300000); // 5分のタイムアウト
+    req.setTimeout(30000); // 30秒のタイムアウト（短縮）
     next();
 });
 
@@ -293,7 +293,7 @@ apiRouter.get('/property/:id/room-types', async (req, res) => {
 apiRouter.get('/debug/info', (req, res) => {
     const fs = require('fs');
     const buildPath = path.join(__dirname, 'build');
-    
+
     res.json({
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV,
@@ -370,7 +370,7 @@ if (process.env.NODE_ENV === 'production') {
     const buildPath = path.join(__dirname, 'build');
     console.log(`静的ファイル配信パス: ${buildPath}`);
     console.log(`buildディレクトリの存在確認: ${require('fs').existsSync(buildPath)}`);
-    
+
     app.use(express.static(buildPath));
 
     // React アプリケーションのルートを処理
@@ -400,7 +400,7 @@ server.listen(PORT, () => {
     console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
     console.log(`作業ディレクトリ: ${process.cwd()}`);
     console.log(`__dirname: ${__dirname}`);
-    
+
     // ディレクトリ構造の確認
     const fs = require('fs');
     console.log('ディレクトリ構造:');
