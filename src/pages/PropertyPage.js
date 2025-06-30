@@ -5,9 +5,10 @@ import { apiService } from '../services/apiService';
 
 // スタイル定義
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 20px;
+  width: 95%;
 `;
 
 const Header = styled.h1`
