@@ -289,6 +289,23 @@ apiRouter.get('/property/:id/room-types', async (req, res) => {
     }
 });
 
+// デバッグ用エンドポイント
+apiRouter.get('/debug/info', (req, res) => {
+    const fs = require('fs');
+    const buildPath = path.join(__dirname, 'build');
+    
+    res.json({
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        workingDirectory: process.cwd(),
+        dirname: __dirname,
+        buildPath: buildPath,
+        buildExists: fs.existsSync(buildPath),
+        buildContents: fs.existsSync(buildPath) ? fs.readdirSync(buildPath) : [],
+        currentDirContents: fs.readdirSync(__dirname)
+    });
+});
+
 // BigQuery接続テスト用エンドポイント
 apiRouter.get('/test-bigquery', async (req, res) => {
     try {
@@ -349,11 +366,19 @@ app.use('/api', apiRouter);
 
 // 静的ファイルの配信
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../build')));
+    // Dockerコンテナ内では build ディレクトリは同階層にある
+    const buildPath = path.join(__dirname, 'build');
+    console.log(`静的ファイル配信パス: ${buildPath}`);
+    console.log(`buildディレクトリの存在確認: ${require('fs').existsSync(buildPath)}`);
+    
+    app.use(express.static(buildPath));
 
     // React アプリケーションのルートを処理
     app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../build', 'index.html'));
+        const indexPath = path.join(buildPath, 'index.html');
+        console.log(`index.htmlパス: ${indexPath}`);
+        console.log(`index.htmlの存在確認: ${require('fs').existsSync(indexPath)}`);
+        res.sendFile(indexPath);
     });
 } else {
     // 開発環境では簡単な応答
@@ -373,6 +398,23 @@ server.headersTimeout = 300000; // 5分のタイムアウト
 server.listen(PORT, () => {
     console.log(`サーバーがポート ${PORT} で起動しました`);
     console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`作業ディレクトリ: ${process.cwd()}`);
+    console.log(`__dirname: ${__dirname}`);
+    
+    // ディレクトリ構造の確認
+    const fs = require('fs');
+    console.log('ディレクトリ構造:');
+    try {
+        console.log('Current directory contents:', fs.readdirSync(__dirname));
+        const buildPath = path.join(__dirname, 'build');
+        if (fs.existsSync(buildPath)) {
+            console.log('Build directory contents:', fs.readdirSync(buildPath));
+        } else {
+            console.log('Build directory does not exist at:', buildPath);
+        }
+    } catch (err) {
+        console.error('Directory listing error:', err);
+    }
 
     if (process.env.NODE_ENV === 'production') {
         console.log('Production モード: 静的ファイルを配信します');
