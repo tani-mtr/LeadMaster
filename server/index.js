@@ -152,11 +152,36 @@ apiRouter.put('/buildings/:id', (req, res) => {
 apiRouter.get('/property/:id', async (req, res) => {
     const id = req.params.id;
 
-    // モック物件データ
+    // モック物件データ（全カラムを含む）
     const mockPropertyData = {
         id: id,
         name: `物件${id}`,
         tag: `タグ${id}`,
+        is_trade: '売買',
+        is_lease: '借上',
+        lead_from: 'サンプルlead元',
+        is_fund: 'ファンド物件',
+        lead_channel: 'レインズ',
+        trade_form: '専任',
+        lead_from_representative: '田中太郎',
+        lead_from_representative_phone: '03-1234-5678',
+        lead_from_representative_email: 'tanaka@example.com',
+        folder: `https://drive.google.com/drive/folders/sample_folder_${id}`,
+        serial_number: `SN${id}`,
+        note: `物件${id}の備考です`,
+        mt_representative: 'MT担当者',
+        create_date: '2025-06-30 10:00:00',
+        information_acquisition_date: '2025-06-30',
+        latest_inventory_confirmation_date: '2025-06-30',
+        num_of_occupied_rooms: 5,
+        num_of_vacant_rooms: 3,
+        num_of_rooms_without_furniture: 2,
+        minpaku_feasibility: '可',
+        sp_feasibility: '可',
+        done_property_viewing: '済',
+        torikago: '無',
+        key_handling_date: '2025-07-01',
+        done_antisocial_check: '済',
         has_related_rooms: true
     };
 

@@ -285,12 +285,37 @@ class BigQueryService {
         try {
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
 
-            // 初期実装ではid, name, tagのみを取得
+            // 全カラムを取得するクエリ
             const query = `
                 SELECT
                     PROPERTY.id AS \`id\`,
                     PROPERTY.name AS \`name\`,
                     PROPERTY.tag AS \`tag\`,
+                    PROPERTY.is_trade AS \`is_trade\`,
+                    PROPERTY.is_lease AS \`is_lease\`,
+                    PROPERTY.lead_from AS \`lead_from\`,
+                    PROPERTY.is_fund AS \`is_fund\`,
+                    PROPERTY.lead_channel AS \`lead_channel\`,
+                    PROPERTY.trade_form AS \`trade_form\`,
+                    PROPERTY.lead_from_representative AS \`lead_from_representative\`,
+                    PROPERTY.lead_from_representative_phone AS \`lead_from_representative_phone\`,
+                    PROPERTY.lead_from_representative_email AS \`lead_from_representative_email\`,
+                    PROPERTY.folder AS \`folder\`,
+                    PROPERTY.serial_number AS \`serial_number\`,
+                    PROPERTY.note AS \`note\`,
+                    PROPERTY.mt_representative AS \`mt_representative\`,
+                    FORMAT_TIMESTAMP('%Y-%m-%d %H:%M:%S', PROPERTY.create_date) AS \`create_date\`,
+                    FORMAT_DATE('%Y-%m-%d', PROPERTY.information_acquisition_date) AS \`information_acquisition_date\`,
+                    FORMAT_DATE('%Y-%m-%d', PROPERTY.latest_inventory_confirmation_date) AS \`latest_inventory_confirmation_date\`,
+                    PROPERTY.num_of_occupied_rooms AS \`num_of_occupied_rooms\`,
+                    PROPERTY.num_of_vacant_rooms AS \`num_of_vacant_rooms\`,
+                    PROPERTY.num_of_rooms_without_furniture AS \`num_of_rooms_without_furniture\`,
+                    PROPERTY.minpaku_feasibility AS \`minpaku_feasibility\`,
+                    PROPERTY.sp_feasibility AS \`sp_feasibility\`,
+                    PROPERTY.done_property_viewing AS \`done_property_viewing\`,
+                    PROPERTY.torikago AS \`torikago\`,
+                    FORMAT_DATE('%Y-%m-%d', PROPERTY.key_handling_date) AS \`key_handling_date\`,
+                    PROPERTY.done_antisocial_check AS \`done_antisocial_check\`,
                     CASE
                         WHEN EXISTS(
                             SELECT 1
@@ -320,8 +345,33 @@ class BigQueryService {
 
             return rows.map(row => ({
                 id: row.id,
-                name: row.name,
+                name: row.name || '',
                 tag: row.tag || '',
+                is_trade: row.is_trade || '',
+                is_lease: row.is_lease || '',
+                lead_from: row.lead_from || '',
+                is_fund: row.is_fund || '',
+                lead_channel: row.lead_channel || '',
+                trade_form: row.trade_form || '',
+                lead_from_representative: row.lead_from_representative || '',
+                lead_from_representative_phone: row.lead_from_representative_phone || '',
+                lead_from_representative_email: row.lead_from_representative_email || '',
+                folder: row.folder || '',
+                serial_number: row.serial_number || '',
+                note: row.note || '',
+                mt_representative: row.mt_representative || '',
+                create_date: row.create_date || '',
+                information_acquisition_date: row.information_acquisition_date || '',
+                latest_inventory_confirmation_date: row.latest_inventory_confirmation_date || '',
+                num_of_occupied_rooms: row.num_of_occupied_rooms || 0,
+                num_of_vacant_rooms: row.num_of_vacant_rooms || 0,
+                num_of_rooms_without_furniture: row.num_of_rooms_without_furniture || 0,
+                minpaku_feasibility: row.minpaku_feasibility || '',
+                sp_feasibility: row.sp_feasibility || '',
+                done_property_viewing: row.done_property_viewing || '',
+                torikago: row.torikago || '',
+                key_handling_date: row.key_handling_date || '',
+                done_antisocial_check: row.done_antisocial_check || '',
                 has_related_rooms: row.has_related_rooms || false
             }));
 
