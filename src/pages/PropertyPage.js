@@ -94,10 +94,78 @@ const LoadingMessage = styled.div`
   color: #666;
 `;
 
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+`;
+
+const TableHeader = styled.th`
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+  font-weight: bold;
+`;
+
+const TableCell = styled.td`
+  border: 1px solid #ddd;
+  padding: 12px;
+  vertical-align: middle;
+`;
+
+const TableRow = styled.tr`
+  &:nth-child(even) {
+    background: #f9f9f9;
+  }
+  
+  &:hover {
+    background: #f0f8ff;
+  }
+`;
+
+const StatusBadge = styled.span`
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  background: ${props => {
+        switch (props.status) {
+            case '空室': return '#28a745';
+            case '入居中': return '#dc3545';
+            case 'リフォーム中': return '#ffc107';
+            default: return '#6c757d';
+        }
+    }};
+`;
+
+const ActionButton = styled.button`
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  background: ${props => props.variant === 'primary' ? '#007bff' : '#6c757d'};
+  color: white;
+  
+  &:hover {
+    background: ${props => props.variant === 'primary' ? '#0056b3' : '#5a6268'};
+  }
+  
+  &:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+  }
+`;
+
 const PropertyPage = () => {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('info');
     const [property, setProperty] = useState(null);
+    const [rooms, setRooms] = useState([]);
+    const [roomsLoading, setRoomsLoading] = useState(false);
+    const [roomsError, setRoomsError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [editMode, setEditMode] = useState(false);
@@ -127,6 +195,24 @@ const PropertyPage = () => {
         }
     }, [id]);
 
+    // 部屋データの取得
+    const fetchRoomsData = async () => {
+        if (!property?.has_related_rooms) return;
+
+        try {
+            setRoomsLoading(true);
+            setRoomsError(null);
+
+            // BigQueryから部屋データを取得
+            const roomData = await apiService.getRoomList(id);
+            setRooms(roomData);
+        } catch (err) {
+            setRoomsError(err.message || '部屋データの取得中にエラーが発生しました');
+        } finally {
+            setRoomsLoading(false);
+        }
+    };
+
     // 編集データの更新
     const handleInputChange = (field, value) => {
         setEditData(prev => ({
@@ -148,6 +234,12 @@ const PropertyPage = () => {
             setError('保存中にエラーが発生しました');
         }
     };
+
+    useEffect(() => {
+        if (activeTab === 'rooms' && property?.has_related_rooms && rooms.length === 0) {
+            fetchRoomsData();
+        }
+    }, [activeTab, property?.has_related_rooms, id]);
 
     if (loading) {
         return (
@@ -344,9 +436,9 @@ const PropertyPage = () => {
                                 ) : (
                                     <div>
                                         {property.folder ? (
-                                            <a 
-                                                href={property.folder} 
-                                                target="_blank" 
+                                            <a
+                                                href={property.folder}
+                                                target="_blank"
                                                 rel="noopener noreferrer"
                                                 style={{
                                                     color: '#007bff',
@@ -556,8 +648,62 @@ const PropertyPage = () => {
                 <Section>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3>部屋一覧</h3>
-                        <p>部屋データの表示機能は今後実装予定です。</p>
+                        <Button onClick={fetchRoomsData} disabled={roomsLoading}>
+                            {roomsLoading ? '読み込み中...' : '更新'}
+                        </Button>
                     </div>
+
+                    {roomsError && (
+                        <ErrorMessage>{roomsError}</ErrorMessage>
+                    )}
+
+                    {roomsLoading ? (
+                        <LoadingMessage>部屋データを読み込み中...</LoadingMessage>
+                    ) : (
+                        <>
+                            {rooms.length > 1 ? (
+                                <Table>
+                                    <thead>
+                                        <tr>
+                                            {rooms[0].map((header, index) => (
+                                                <TableHeader key={index}>{header}</TableHeader>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rooms.slice(1).map((room, rowIndex) => (
+                                            <TableRow key={rowIndex}>
+                                                <TableCell>
+                                                    <StatusBadge status={room[0]}>
+                                                        {room[0]}
+                                                    </StatusBadge>
+                                                </TableCell>
+                                                <TableCell>{room[1]}</TableCell>
+                                                <TableCell>{room[2]}</TableCell>
+                                                <TableCell>{room[3]}</TableCell>
+                                                <TableCell>
+                                                    <ActionButton
+                                                        variant="primary"
+                                                        disabled={room[4] === 'false'}
+                                                        onClick={() => {
+                                                            // 操作ボタンのクリック処理（今後実装）
+                                                            alert(`部屋ID: ${room[1]} の操作機能は今後実装予定です`);
+                                                        }}
+                                                    >
+                                                        {room[4] === 'true' ? '操作可能' : '操作不可'}
+                                                    </ActionButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                    この物件には部屋データがありません
+                                </div>
+                            )}
+                        </>
+                    )}
                 </Section>
             )}
 

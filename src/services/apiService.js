@@ -127,6 +127,19 @@ export const apiService = {
             throw error;
         }
     },
+
+    // 部屋一覧の取得（物件IDごと）
+    getRoomList: async (propertyId) => {
+        try {
+            console.log(`API Request: GET /property/${propertyId}/rooms`);
+            const response = await apiClient.get(`/property/${propertyId}/rooms`);
+            console.log('API Response: room data received', response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching rooms for property ${propertyId}:`, error);
+            throw error;
+        }
+    },
 };
 
 export default apiService;

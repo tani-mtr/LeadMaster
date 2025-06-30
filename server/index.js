@@ -209,6 +209,44 @@ apiRouter.get('/property/:id', async (req, res) => {
     }
 });
 
+// 部屋一覧を取得（物件IDごと）
+apiRouter.get('/property/:id/rooms', async (req, res) => {
+    const id = req.params.id;
+
+    // モック部屋データ（2次元配列形式）
+    const mockRoomData = [
+        ['進捗', '部屋ID', '部屋名', '部屋タイプ', '操作'],
+        ['空室', 'R001', '101号室', '1K', 'false'],
+        ['入居中', 'R002', '102号室', '1DK', 'true'],
+        ['空室', 'R003', '103号室', '1K', 'false'],
+        ['リフォーム中', 'R004', '201号室', '1DK', 'true'],
+        ['空室', 'R005', '202号室', '1K', 'false']
+    ];
+
+    try {
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryから物件ID ${id} の部屋データを取得中...`);
+            const roomData = await bigQueryService.getRoomList(id);
+
+            if (roomData && roomData.length > 0) {
+                return res.json(roomData); // BigQueryからデータが取得できた場合
+            } else {
+                console.log('BigQueryで部屋データが見つからないため、モックデータを返します');
+                return res.json(mockRoomData);
+            }
+        } else {
+            console.log('BigQuery設定がないため、モックデータを返します');
+            return res.json(mockRoomData);
+        }
+    } catch (error) {
+        console.error('部屋データ取得エラー:', error);
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        return res.json(mockRoomData);
+    }
+});
+
 // BigQuery接続テスト用エンドポイント
 apiRouter.get('/bigquery/test', async (req, res) => {
     try {

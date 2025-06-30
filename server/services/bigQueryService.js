@@ -383,6 +383,85 @@ class BigQueryService {
     }
 
     /**
+     * 指定された物件IDの部屋一覧を取得（GASのgetRoomList関数と同様）
+     * @param {string} id 物件ID
+     * @returns {Promise<Array>} 部屋データの配列（ヘッダー行含む）
+     */
+    async getRoomList(id) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            const query = `
+                WITH lead_room_type_id_counts AS (
+                    SELECT
+                        lead_room_type_id,
+                        count(DISTINCT id) AS num_rooms
+                    FROM
+                        \`${projectId}.zzz_taniguchi.lead_room\` AS lead_room
+                    GROUP BY
+                        1
+                ),
+                lead_room_with_shared_type_id AS (
+                    SELECT
+                        lead_room.id,
+                        CASE
+                            WHEN lead_room_type_id_counts.num_rooms = 1 THEN TRUE
+                            ELSE FALSE
+                        END AS is_shared_type_id
+                    FROM
+                        \`${projectId}.zzz_taniguchi.lead_room\` AS lead_room
+                        LEFT OUTER JOIN lead_room_type_id_counts ON lead_room.lead_room_type_id = lead_room_type_id_counts.lead_room_type_id
+                )
+                SELECT
+                    ROOM.status AS \`進捗\`,
+                    ROOM.id AS \`部屋ID\`,
+                    ROOM.name AS \`部屋名\`,
+                    ROOMTYPE.name AS \`部屋タイプ\`,
+                    lead_room_with_shared_type_id.is_shared_type_id AS \`操作\`
+                FROM
+                    \`${projectId}.zzz_taniguchi.lead_room\` AS ROOM
+                    LEFT JOIN lead_room_with_shared_type_id ON ROOM.id = lead_room_with_shared_type_id.id
+                    LEFT JOIN \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOMTYPE ON ROOM.lead_room_type_id = ROOMTYPE.id
+                WHERE
+                    ROOM.lead_property_id = @id
+                ORDER BY
+                    ROOM.name
+            `;
+
+            const params = { id: id };
+            const rows = await this.executeQuery(query, params);
+
+            console.log(`物件ID ${id} の部屋データを ${rows.length} 件取得しました`);
+
+            // データが見つからない場合はヘッダーのみの配列を返す
+            const headers = ['進捗', '部屋ID', '部屋名', '部屋タイプ', '操作'];
+
+            if (!rows || rows.length === 0) {
+                console.log(`物件ID ${id} の部屋データが見つかりませんでした`);
+                return [headers];
+            }
+
+            // データを2次元配列に変換（GASの形式に合わせる）
+            const dataRows = rows.map(row => [
+                row.進捗 || '',
+                row.部屋ID || '',
+                row.部屋名 || '',
+                row.部屋タイプ || '',
+                row.操作 ? 'true' : 'false'
+            ]);
+
+            // ヘッダー行を最初に挿入
+            return [headers, ...dataRows];
+
+        } catch (error) {
+            console.error(`物件ID ${id} の部屋データ取得エラー:`, error);
+            // エラーが発生した場合はヘッダーのみの配列を返す
+            const headers = ['進捗', '部屋ID', '部屋名', '部屋タイプ', '操作'];
+            return [headers];
+        }
+    }
+
+    /**
      * 日付をフォーマット
      * @param {*} dateValue - 日付値
      * @returns {string|null} フォーマットされた日付文字列またはnull
