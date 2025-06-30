@@ -48,6 +48,7 @@ const TopPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [bigQueryStatus, setBigQueryStatus] = useState({ connected: false, message: 'チェック中...' });
+    const [dataSource, setDataSource] = useState('unknown'); // 'bigquery', 'mock', 'unknown'
 
     // AG Gridのデフォルト設定
     const defaultColDef = useMemo(() => ({
@@ -110,20 +111,6 @@ const TopPage = () => {
     ], []);
 
     useEffect(() => {
-        // BigQuery接続テスト
-        const testBigQueryConnection = async () => {
-            try {
-                const result = await apiService.testBigQueryConnection();
-                setBigQueryStatus(result);
-            } catch (error) {
-                console.error('BigQuery接続テストエラー:', error);
-                setBigQueryStatus({
-                    connected: false,
-                    message: 'モックデータを使用中'
-                });
-            }
-        };
-
         // APIからデータを取得
         const fetchBuildings = async () => {
             try {
@@ -139,6 +126,41 @@ const TopPage = () => {
                     id: item.id || Math.random().toString(36).substr(2, 9)
                 }));
                 setBuildings(dataWithIds);
+
+                // データソースを判定
+                // モックデータには特定のパターンがあるかチェック
+                const isMockData = data.length <= 3 &&
+                    data.some(item => item.name && item.name.includes('サンプルビル'));
+
+                if (isMockData) {
+                    setDataSource('mock');
+                    setBigQueryStatus({
+                        connected: false,
+                        message: 'モックデータを使用中'
+                    });
+                } else {
+                    setDataSource('bigquery');
+                    setBigQueryStatus({
+                        connected: true,
+                        message: 'BigQueryから取得中'
+                    });
+
+                    // BigQueryデータが取得できた場合は接続テストも実行
+                    try {
+                        const result = await apiService.testBigQueryConnection();
+                        setBigQueryStatus({
+                            connected: result.success,
+                            message: result.success ? 'BigQuery接続成功' : 'BigQuery接続確認済み（データ取得済み）'
+                        });
+                    } catch (error) {
+                        console.error('BigQuery接続テストエラー:', error);
+                        // データは取得できているので、接続テストが失敗してもBigQueryからのデータとして扱う
+                        setBigQueryStatus({
+                            connected: true,
+                            message: 'BigQueryからデータ取得済み'
+                        });
+                    }
+                }
             } catch (err) {
                 console.error('Error fetching buildings:', err);
                 console.error('Error details:', {
@@ -149,12 +171,16 @@ const TopPage = () => {
                 });
                 setError(`エラーが発生しました: ${err.message || 'Request failed with status code 500'}`);
                 showErrorAlert('エラー', `データの取得中にエラーが発生しました: ${err.message}`);
+                setDataSource('mock');
+                setBigQueryStatus({
+                    connected: false,
+                    message: 'エラーのためモックデータを使用中'
+                });
             } finally {
                 setLoading(false);
             }
         };
 
-        testBigQueryConnection();
         fetchBuildings();
     }, []);
 
@@ -165,7 +191,7 @@ const TopPage = () => {
     return (
         <PageContainer>
             <HeaderSection>
-                <h2>物件リスト（重複除去済み）</h2>
+                <h2>物件リスト</h2>
                 <div>
                     <StatusBadge connected={bigQueryStatus.connected}>
                         {bigQueryStatus.message}

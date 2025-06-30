@@ -159,7 +159,7 @@ export const apiService = {
     // BigQuery接続テスト
     testBigQueryConnection: async () => {
         try {
-            const response = await apiClient.get('/bigquery/test');
+            const response = await apiClient.get('/test-bigquery');
             return response.data;
         } catch (error) {
             console.error('Error testing BigQuery connection:', error);
