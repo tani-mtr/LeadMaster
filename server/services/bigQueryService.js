@@ -653,6 +653,58 @@ class BigQueryService {
             return false;
         }
     }
+
+    /**
+     * 部屋タイプリストを取得
+     * @param {string} propertyId - 物件ID
+     * @returns {Promise<Array>} 部屋タイプデータの配列
+     */
+    async getRoomTypeList(propertyId) {
+        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+        const cacheKey = getCacheKey('roomTypeList', { propertyId });
+        const cachedData = getCache(cacheKey);
+        if (cachedData) {
+            console.log('部屋タイプリストをキャッシュから取得:', propertyId);
+            return cachedData;
+        }
+
+        try {
+            console.log(`部屋タイプリストを取得中: propertyId=${propertyId}`);
+
+            const query = `
+                SELECT
+                    ROOM_TYPE.id AS room_type_id,
+                    ROOM_TYPE.name AS room_type_name
+                FROM
+                    \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOM_TYPE
+                WHERE
+                    ROOM_TYPE.lead_property_id = @propertyId
+                ORDER BY
+                    ROOM_TYPE.name
+            `;
+
+            const rows = await this.executeQuery(query, { propertyId });
+
+            if (rows && rows.length > 0) {
+                const result = rows.map(row => ({
+                    room_type_id: row.room_type_id,
+                    room_type_name: row.room_type_name
+                }));
+
+                setCache(cacheKey, result);
+                console.log(`部屋タイプリストを取得しました: ${result.length}件`);
+                return result;
+            } else {
+                console.log('部屋タイプが見つかりませんでした');
+                return [];
+            }
+
+        } catch (error) {
+            console.error('部屋タイプリスト取得エラー:', error);
+            throw new Error(`部屋タイプリストの取得に失敗しました: ${error.message}`);
+        }
+    }
 }
 
 module.exports = BigQueryService;
