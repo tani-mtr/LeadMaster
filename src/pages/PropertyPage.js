@@ -322,6 +322,11 @@ const PropertyPage = () => {
     const [roomTypes, setRoomTypes] = useState([]);
     const [roomTypesLoading, setRoomTypesLoading] = useState(false);
     const [roomTypesError, setRoomTypesError] = useState(null);
+    const [roomTypeSearchTerm, setRoomTypeSearchTerm] = useState('');
+    const [selectedRoomTypes, setSelectedRoomTypes] = useState(new Set());
+    const [roomTypeSelectAll, setRoomTypeSelectAll] = useState(false);
+    const [roomTypeCurrentPage, setRoomTypeCurrentPage] = useState(1);
+    const [roomTypeItemsPerPage] = useState(10);
 
     const itemsPerPage = 10;
 
@@ -466,6 +471,11 @@ const PropertyPage = () => {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
+
+    // 部屋タイプ検索時のページリセット
+    useEffect(() => {
+        setRoomTypeCurrentPage(1);
+    }, [roomTypeSearchTerm]);
     const filteredRooms = useMemo(() => {
         if (rooms.length <= 1) return [];
 
@@ -491,6 +501,38 @@ const PropertyPage = () => {
     }, [filteredRooms, currentPage, itemsPerPage]);
 
     const { totalPages, currentRooms, startIndex, endIndex } = paginationData;
+
+    // 部屋タイプのフィルタリング
+    const filteredRoomTypes = useMemo(() => {
+        if (!roomTypes || roomTypes.length === 0) return [];
+
+        if (!roomTypeSearchTerm) return roomTypes;
+
+        const lowerSearchTerm = roomTypeSearchTerm.toLowerCase();
+        return roomTypes.filter(roomType => {
+            const roomTypeName = roomType.room_type_name || roomType.name;
+            const roomTypeId = roomType.room_type_id || roomType.id;
+            return (roomTypeName && roomTypeName.toLowerCase().includes(lowerSearchTerm)) ||
+                (roomTypeId && roomTypeId.toString().toLowerCase().includes(lowerSearchTerm));
+        });
+    }, [roomTypes, roomTypeSearchTerm]);
+
+    // 部屋タイプのページネーション用の計算
+    const roomTypePaginationData = useMemo(() => {
+        const totalPages = Math.ceil(filteredRoomTypes.length / roomTypeItemsPerPage);
+        const startIndex = (roomTypeCurrentPage - 1) * roomTypeItemsPerPage;
+        const endIndex = startIndex + roomTypeItemsPerPage;
+        const currentRoomTypes = filteredRoomTypes.slice(startIndex, endIndex);
+
+        return { totalPages, currentRoomTypes, startIndex, endIndex };
+    }, [filteredRoomTypes, roomTypeCurrentPage, roomTypeItemsPerPage]);
+
+    const {
+        totalPages: roomTypeTotalPages,
+        currentRoomTypes,
+        startIndex: roomTypeStartIndex,
+        endIndex: roomTypeEndIndex
+    } = roomTypePaginationData;
 
     // チェックボックス関連の処理 - useCallbackで最適化
     const handleSelectAll = useCallback((checked) => {
@@ -546,6 +588,61 @@ const PropertyPage = () => {
     const handleRoomDelete = (roomId, roomName) => {
         if (window.confirm(`部屋「${roomName}」を削除しますか？`)) {
             // TODO: 個別削除処理の実装
+            alert('個別削除機能は今後実装予定です。');
+        }
+    };
+
+    // 部屋タイプのチェックボックス関連処理
+    const handleRoomTypeSelectAll = useCallback((checked) => {
+        setRoomTypeSelectAll(checked);
+        if (checked) {
+            const allRoomTypeIds = currentRoomTypes.map(roomType => roomType.room_type_id || roomType.id);
+            setSelectedRoomTypes(new Set(allRoomTypeIds));
+        } else {
+            setSelectedRoomTypes(new Set());
+        }
+    }, [currentRoomTypes]);
+
+    const handleRoomTypeSelect = useCallback((roomTypeId, checked) => {
+        const newSelected = new Set(selectedRoomTypes);
+        if (checked) {
+            newSelected.add(roomTypeId);
+        } else {
+            newSelected.delete(roomTypeId);
+        }
+        setSelectedRoomTypes(newSelected);
+
+        // 全選択状態の更新
+        setRoomTypeSelectAll(newSelected.size === currentRoomTypes.length && currentRoomTypes.length > 0);
+    }, [selectedRoomTypes, currentRoomTypes.length]);
+
+    // 部屋タイプの一括操作
+    const handleRoomTypeBulkUpdate = () => {
+        if (selectedRoomTypes.size === 0) {
+            alert('部屋タイプが選択されていません。');
+            return;
+        }
+
+        const selectedRoomTypeIds = Array.from(selectedRoomTypes);
+        alert(`選択された部屋タイプ（${selectedRoomTypeIds.length}件）の一括更新機能は今後実装予定です。\n部屋タイプID: ${selectedRoomTypeIds.join(', ')}`);
+    };
+
+    const handleRoomTypeBulkDelete = () => {
+        if (selectedRoomTypes.size === 0) {
+            alert('部屋タイプが選択されていません。');
+            return;
+        }
+
+        const selectedRoomTypeData = currentRoomTypes.filter(roomType => selectedRoomTypes.has(roomType.room_type_id || roomType.id));
+        const roomTypeNames = selectedRoomTypeData.map(roomType => roomType.room_type_name || roomType.name).join(', ');
+
+        if (window.confirm(`以下の部屋タイプを削除しますか？\n${roomTypeNames}`)) {
+            alert('一括削除機能は今後実装予定です。');
+        }
+    };
+
+    const handleRoomTypeDelete = (roomTypeId, roomTypeName) => {
+        if (window.confirm(`部屋タイプ「${roomTypeName}」を削除しますか？`)) {
             alert('個別削除機能は今後実装予定です。');
         }
     };
@@ -992,11 +1089,8 @@ const PropertyPage = () => {
 
             {property.has_related_rooms && activeTab === 'rooms' && (
                 <Section>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ marginBottom: '20px' }}>
                         <h3>部屋一覧</h3>
-                        <Button onClick={fetchRoomsData} disabled={roomsLoading}>
-                            {roomsLoading ? '読み込み中...' : '更新'}
-                        </Button>
                     </div>
 
                     {roomsError && (
@@ -1173,11 +1267,8 @@ const PropertyPage = () => {
 
             {property.has_related_rooms && activeTab === 'types' && (
                 <Section>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ marginBottom: '20px' }}>
                         <h3>部屋タイプ管理</h3>
-                        <Button onClick={fetchRoomTypesData} disabled={roomTypesLoading}>
-                            {roomTypesLoading ? '更新中...' : '更新'}
-                        </Button>
                     </div>
 
                     {roomTypesError && (
@@ -1186,36 +1277,177 @@ const PropertyPage = () => {
                         </ErrorMessage>
                     )}
 
-                    {roomTypesLoading ? (
+                    {roomTypesLoading && roomTypes.length === 0 ? (
                         <LoadingMessage>部屋タイプデータを読み込み中...</LoadingMessage>
-                    ) : roomTypes.length > 0 ? (
-                        <RoomTypeContainer>
-                            <RoomTypeTable>
-                                <thead>
-                                    <tr>
-                                        <RoomTypeTableHeader>部屋タイプID</RoomTypeTableHeader>
-                                        <RoomTypeTableHeader>部屋タイプ名</RoomTypeTableHeader>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {roomTypes.map((roomType, index) => (
-                                        <tr
-                                            key={roomType.room_type_id || index}
-                                            onClick={() => handleOpenRoomTypeDrawer(roomType.room_type_id)}
-                                            style={{ cursor: 'pointer' }}
-                                            onMouseEnter={(e) => e.target.closest('tr').style.backgroundColor = '#f8f9fa'}
-                                            onMouseLeave={(e) => e.target.closest('tr').style.backgroundColor = 'transparent'}
-                                        >
-                                            <RoomTypeTableCell>{roomType.room_type_id}</RoomTypeTableCell>
-                                            <RoomTypeTableCell>{roomType.room_type_name}</RoomTypeTableCell>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </RoomTypeTable>
-                        </RoomTypeContainer>
                     ) : (
-                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                            この物件には部屋タイプデータがありません
+                        <div style={{ position: 'relative' }}>
+                            {roomTypesLoading && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '10px',
+                                    right: '10px',
+                                    background: 'rgba(0, 123, 255, 0.1)',
+                                    color: '#007bff',
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    zIndex: 1
+                                }}>
+                                    更新中...
+                                </div>
+                            )}
+                            {roomTypes.length > 0 ? (
+                                <>
+                                    {/* 検索バー */}
+                                    <SearchInput
+                                        type="text"
+                                        placeholder="部屋タイプ名またはIDで検索"
+                                        value={roomTypeSearchTerm}
+                                        onChange={(e) => setRoomTypeSearchTerm(e.target.value)}
+                                    />
+
+                                    {/* 一括操作ボタン */}
+                                    <BulkActions>
+                                        <span>選択された部屋タイプ: {selectedRoomTypes.size}件</span>
+                                        <Button
+                                            onClick={handleRoomTypeBulkUpdate}
+                                            disabled={selectedRoomTypes.size === 0}
+                                        >
+                                            一括更新
+                                        </Button>
+                                        <Button
+                                            onClick={handleRoomTypeBulkDelete}
+                                            disabled={selectedRoomTypes.size === 0}
+                                            style={{ backgroundColor: '#dc3545' }}
+                                        >
+                                            一括削除
+                                        </Button>
+                                        <Button onClick={() => alert('新規部屋タイプ追加機能は今後実装予定です。')}>
+                                            新規追加
+                                        </Button>
+                                    </BulkActions>
+
+                                    {/* 部屋タイプ一覧テーブル */}
+                                    <RoomTypeContainer>
+                                        <RoomTypeTable>
+                                            <thead>
+                                                <tr>
+                                                    <RoomTypeTableHeader>
+                                                        <CheckboxWrapper>
+                                                            <Checkbox
+                                                                type="checkbox"
+                                                                checked={roomTypeSelectAll}
+                                                                onChange={(e) => handleRoomTypeSelectAll(e.target.checked)}
+                                                            />
+                                                        </CheckboxWrapper>
+                                                    </RoomTypeTableHeader>
+                                                    <RoomTypeTableHeader>部屋タイプID</RoomTypeTableHeader>
+                                                    <RoomTypeTableHeader>部屋タイプ名</RoomTypeTableHeader>
+                                                    <RoomTypeTableHeader>間取り</RoomTypeTableHeader>
+                                                    <RoomTypeTableHeader>専有面積</RoomTypeTableHeader>
+                                                    <RoomTypeTableHeader>家賃</RoomTypeTableHeader>
+                                                    <RoomTypeTableHeader>操作</RoomTypeTableHeader>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {currentRoomTypes.map((roomType, index) => {
+                                                    const roomTypeId = roomType.room_type_id || roomType.id;
+                                                    const roomTypeName = roomType.room_type_name || roomType.name;
+
+                                                    return (
+                                                        <tr key={roomTypeId || index}>
+                                                            <RoomTypeTableCell>
+                                                                <CheckboxWrapper>
+                                                                    <Checkbox
+                                                                        type="checkbox"
+                                                                        checked={selectedRoomTypes.has(roomTypeId)}
+                                                                        onChange={(e) => handleRoomTypeSelect(roomTypeId, e.target.checked)}
+                                                                    />
+                                                                </CheckboxWrapper>
+                                                            </RoomTypeTableCell>
+                                                            <RoomTypeTableCell>{roomTypeId}</RoomTypeTableCell>
+                                                            <RoomTypeTableCell>
+                                                                <RoomNameButton onClick={() => handleOpenRoomTypeDrawer(roomTypeId)}>
+                                                                    {roomTypeName}
+                                                                </RoomNameButton>
+                                                            </RoomTypeTableCell>
+                                                            <RoomTypeTableCell>{roomType.floor_plan || 'N/A'}</RoomTypeTableCell>
+                                                            <RoomTypeTableCell>{roomType.floor_area ? `${roomType.floor_area}㎡` : 'N/A'}</RoomTypeTableCell>
+                                                            <RoomTypeTableCell>
+                                                                {roomType.rent ? `¥${Number(roomType.rent).toLocaleString()}` : 'N/A'}
+                                                            </RoomTypeTableCell>
+                                                            <RoomTypeTableCell>
+                                                                <Button
+                                                                    onClick={() => handleRoomTypeDelete(roomTypeId, roomTypeName)}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        fontSize: '12px',
+                                                                        backgroundColor: '#dc3545'
+                                                                    }}
+                                                                >
+                                                                    削除
+                                                                </Button>
+                                                            </RoomTypeTableCell>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </RoomTypeTable>
+                                    </RoomTypeContainer>
+
+                                    {/* ページネーション */}
+                                    {roomTypeTotalPages > 1 && (
+                                        <Pagination>
+                                            <PageButton
+                                                onClick={() => setRoomTypeCurrentPage(roomTypeCurrentPage - 1)}
+                                                disabled={roomTypeCurrentPage === 1}
+                                            >
+                                                前へ
+                                            </PageButton>
+
+                                            {Array.from({ length: roomTypeTotalPages }, (_, i) => i + 1)
+                                                .filter(page =>
+                                                    page === 1 ||
+                                                    page === roomTypeTotalPages ||
+                                                    Math.abs(page - roomTypeCurrentPage) <= 2
+                                                )
+                                                .map((page, index, arr) => (
+                                                    <React.Fragment key={page}>
+                                                        {index > 0 && arr[index - 1] !== page - 1 && <span>...</span>}
+                                                        <PageButton
+                                                            active={page === roomTypeCurrentPage}
+                                                            onClick={() => setRoomTypeCurrentPage(page)}
+                                                        >
+                                                            {page}
+                                                        </PageButton>
+                                                    </React.Fragment>
+                                                ))
+                                            }
+
+                                            <PageButton
+                                                onClick={() => setRoomTypeCurrentPage(roomTypeCurrentPage + 1)}
+                                                disabled={roomTypeCurrentPage === roomTypeTotalPages}
+                                            >
+                                                次へ
+                                            </PageButton>
+                                        </Pagination>
+                                    )}
+
+                                    {/* 表示件数情報 */}
+                                    <div style={{ textAlign: 'center', marginTop: '10px', color: '#666', fontSize: '14px' }}>
+                                        {roomTypeStartIndex + 1} - {Math.min(roomTypeEndIndex, filteredRoomTypes.length)} 件 / 全 {filteredRoomTypes.length} 件
+                                        {roomTypeSearchTerm && (
+                                            <span style={{ marginLeft: '10px' }}>
+                                                （「{roomTypeSearchTerm}」で検索）
+                                            </span>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                    この物件には部屋タイプデータがありません
+                                </div>
+                            )}
                         </div>
                     )}
                 </Section>
