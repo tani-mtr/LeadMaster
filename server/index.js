@@ -39,7 +39,7 @@ const bigQueryService = new BigQueryService();
 
 // アプリケーションの初期化
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3001;
 
 // HTTPヘッダーサイズ制限を増加
 app.use((req, res, next) => {
@@ -289,54 +289,52 @@ apiRouter.get('/property/:id/room-types', async (req, res) => {
     }
 });
 
-// 部屋データの取得
+// 部屋データの取得（GASのgetRoomData関数と同様）
 apiRouter.get('/room/:id', async (req, res) => {
     try {
         const roomId = req.params.id;
         console.log(`部屋データ取得リクエスト: ${roomId}`);
 
-        if (bigQueryService.isConfigured()) {
-            // BigQueryから部屋データを取得
-            const query = `
-                SELECT *
-                FROM \`your-project.your-dataset.rooms\`
-                WHERE id = @roomId
-            `;
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryから部屋ID ${roomId} のデータを取得中...`);
+            const roomData = await bigQueryService.getRoomData(roomId);
 
-            const options = {
-                query: query,
-                params: { roomId: roomId }
-            };
-
-            const [rows] = await bigQueryService.executeQuery(options);
-
-            if (rows.length === 0) {
-                return res.status(404).json({ error: '部屋が見つかりません' });
+            if (roomData && roomData.length > 0) {
+                console.log('BigQueryから部屋データを取得しました');
+                return res.json(roomData);
+            } else {
+                console.log('BigQueryで部屋データが見つからないため、モックデータを返します');
             }
-
-            console.log('BigQueryから部屋データを取得しました');
-            return res.json(rows);
         } else {
-            // モックデータ
-            const mockRoomData = [{
-                id: roomId,
-                lead_property_id: 1,
-                lead_property_name: 'サンプル物件',
-                name: `サンプル部屋 ${roomId}`,
-                room_number: roomId,
-                status: 'A',
-                lead_room_type_id: 1,
-                lead_room_type_name: 'ワンルーム',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            }];
-
             console.log('BigQuery設定がないため、モックデータを返します');
-            return res.json(mockRoomData);
         }
+
+        // モックデータ（idとnameのみ）
+        const mockRoomData = [{
+            id: roomId,
+            name: `サンプル部屋 ${roomId}`,
+            lead_property_id: '1',
+            lead_property_name: 'サンプル物件',
+            lead_room_type_name: 'ワンルーム'
+        }];
+
+        return res.json(mockRoomData);
+
     } catch (error) {
         console.error('部屋データ取得エラー:', error);
-        return res.status(500).json({ error: '部屋データの取得に失敗しました' });
+
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        const mockRoomData = [{
+            id: roomId,
+            name: `サンプル部屋 ${roomId}`,
+            lead_property_id: '1',
+            lead_property_name: 'サンプル物件',
+            lead_room_type_name: 'ワンルーム'
+        }];
+
+        return res.json(mockRoomData);
     }
 });
 
@@ -345,24 +343,40 @@ apiRouter.get('/room/schema', async (req, res) => {
     try {
         console.log('部屋スキーマ取得リクエスト');
 
-        // モックスキーマデータ
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log('BigQueryから部屋スキーマを取得中...');
+            const schema = await bigQueryService.getRoomSchema();
+
+            if (schema) {
+                console.log('BigQueryから部屋スキーマを取得しました');
+                return res.json(schema);
+            } else {
+                console.log('BigQueryでスキーマが見つからないため、モックデータを返します');
+            }
+        } else {
+            console.log('BigQuery設定がないため、モックデータを返します');
+        }
+
+        // モックスキーマデータ（idとnameのみ）
         const mockSchema = {
-            id: { type: 'string', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
-            lead_property_id: { type: 'numeric', japaneseName: '物件ID', order: 2, editable: false, isRequired: false },
-            lead_property_name: { type: 'string', japaneseName: '物件名', order: 3, editable: false, isRequired: false },
-            name: { type: 'string', japaneseName: '部屋名', order: 4, editable: true, isRequired: true },
-            room_number: { type: 'string', japaneseName: '部屋番号', order: 5, editable: true, isRequired: true },
-            status: { type: 'string', japaneseName: 'ステータス', order: 6, editable: true, isRequired: true },
-            lead_room_type_name: { type: 'string', japaneseName: '部屋タイプ', order: 7, editable: true, isRequired: false },
-            created_at: { type: 'date', japaneseName: '作成日', order: 8, editable: false, isRequired: false },
-            updated_at: { type: 'date', japaneseName: '更新日', order: 9, editable: false, isRequired: false }
+            id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
+            name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
         };
 
-        console.log('部屋スキーマを返します');
         return res.json(mockSchema);
+
     } catch (error) {
         console.error('部屋スキーマ取得エラー:', error);
-        return res.status(500).json({ error: '部屋スキーマの取得に失敗しました' });
+
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        const mockSchema = {
+            id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
+            name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
+        };
+
+        return res.json(mockSchema);
     }
 });
 

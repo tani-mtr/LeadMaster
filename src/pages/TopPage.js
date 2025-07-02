@@ -43,7 +43,7 @@ const HeaderSection = styled.div`
   margin-bottom: 10px;
 `;
 
-const TopPage = () => {
+const TopPage = ({ openRoomDrawer }) => {
     const [buildings, setBuildings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

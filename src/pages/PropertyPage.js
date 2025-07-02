@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 
@@ -196,10 +196,14 @@ const IconButton = styled.button`
   }
 `;
 
-const RoomNameLink = styled(Link)`
+const RoomNameButton = styled.button`
   color: #007bff;
   text-decoration: none;
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
   
   &:hover {
     text-decoration: underline;
@@ -279,7 +283,7 @@ const RoomTypeContainer = styled.div`
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
-const PropertyPage = () => {
+const PropertyPage = ({ openRoomDrawer }) => {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('info');
     const [property, setProperty] = useState(null);
@@ -1025,9 +1029,9 @@ const PropertyPage = () => {
                                                         </TableCell>
                                                         <TableCell>{roomId}</TableCell>
                                                         <TableCell>
-                                                            <RoomNameLink to={`/room/${roomId}`}>
+                                                            <RoomNameButton onClick={() => openRoomDrawer(roomId)}>
                                                                 {roomName}
-                                                            </RoomNameLink>
+                                                            </RoomNameButton>
                                                         </TableCell>
                                                         <TableCell>{room[3]}</TableCell>
                                                         <TableCell>
@@ -1035,8 +1039,7 @@ const PropertyPage = () => {
                                                                 <IconButton
                                                                     variant="primary"
                                                                     disabled={!isOperationEnabled}
-                                                                    as={Link}
-                                                                    to={`/room/${roomId}`}
+                                                                    onClick={() => openRoomDrawer(roomId)}
                                                                     title="詳細を表示"
                                                                 >
                                                                     📝

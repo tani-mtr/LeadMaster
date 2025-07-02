@@ -511,32 +511,80 @@ class BigQueryService {
     }
 
     /**
-     * 部屋タイプリストを取得
-     * @param {string} propertyId - 物件ID
-     * @returns {Promise<Array>} 部屋タイプリストの配列
+     * 部屋データを取得（GASのgetRoomData関数と同様）
+     * @param {string} id 部屋ID
+     * @returns {Promise<Array>} 部屋データの配列
      */
-    async getRoomTypeList(propertyId) {
-        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
-
-        const query = `
-            SELECT
-                ROOM_TYPE.id AS room_type_id,
-                ROOM_TYPE.name AS room_type_name
-            FROM
-                \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOM_TYPE
-            WHERE
-                ROOM_TYPE.lead_property_id = @propertyId
-            ORDER BY
-                ROOM_TYPE.name
-        `;
-
+    async getRoomData(id) {
         try {
-            const params = { propertyId };
-            const rows = await this.executeQuery(query, params);
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            // 部屋スキーマを取得（GASのgetRoomSchema相当）
+            const schema = await this.getRoomSchema();
+
+            // スキーマからカラムを生成
+            let columns = Object.keys(schema).map((name) => {
+                const type = schema[name].type;
+                let column = `ROOM.${name}`;
+
+                if (type === "TIMESTAMP") {
+                    column = `FORMAT_TIMESTAMP('%Y-%m-%d %H:%M:%S', ${column}) AS \`${name}\``;
+                } else if (type === "DATE") {
+                    column = `FORMAT_DATE('%Y-%m-%d', ${column}) AS \`${name}\``;
+                } else {
+                    column = `${column} AS \`${name}\``;
+                }
+                return column;
+            });
+
+            // 追加カラムを追加（GASコードと同様）
+            columns.push("ROOMTYPE.name AS `lead_room_type_name`");
+            columns.push("ROOM.lead_property_id AS `lead_property_id`");
+            columns.push("PROPERTY.name AS `lead_property_name`");
+
+            const query = `
+                SELECT
+                    ${columns.join(",\n                    ")}
+                FROM
+                    \`${projectId}.zzz_taniguchi.lead_room\` AS ROOM
+                    LEFT JOIN \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOMTYPE ON ROOM.lead_room_type_id = ROOMTYPE.id
+                    LEFT JOIN \`${projectId}.zzz_taniguchi.lead_property\` AS PROPERTY ON ROOM.lead_property_id = PROPERTY.id
+                WHERE
+                    ROOM.id = @roomId
+            `;
+
+            console.log(`BigQueryから部屋データを取得中: ID=${id}`);
+            const rows = await this.executeQuery(query, { roomId: id });
+
             return rows;
+
         } catch (error) {
-            console.error('部屋タイプリスト取得エラー:', error);
+            console.error('部屋データ取得エラー:', error);
             throw error;
+        }
+    }
+
+    /**
+     * 部屋スキーマを取得
+     * @returns {Promise<Object>} 部屋スキーマ
+     */
+    async getRoomSchema() {
+        try {
+            // シンプルなスキーマを返す（idとnameのみ）
+            const schema = {
+                id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
+                name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
+            };
+
+            return schema;
+
+        } catch (error) {
+            console.error('部屋スキーマ取得エラー:', error);
+            // エラーの場合はモックスキーマを返す
+            return {
+                id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
+                name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
+            };
         }
     }
 
