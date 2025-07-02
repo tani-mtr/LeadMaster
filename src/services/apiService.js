@@ -213,6 +213,29 @@ export const apiService = {
         }
     },
 
+    // 部屋タイプの詳細データの取得
+    getRoomTypeData: async (id) => {
+        const cacheKey = getCacheKey(`/room-type/${id}`);
+        const cachedData = getCache(cacheKey);
+
+        if (cachedData) {
+            console.log(`キャッシュから部屋タイプ詳細データを取得: ${id}`);
+            return cachedData;
+        }
+
+        try {
+            console.log(`API Request: GET /room-type/${id}`);
+            const response = await apiClient.get(`/room-type/${id}`);
+            console.log('API Response: room type detail data received', response.data);
+
+            setCache(cacheKey, response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching room type data for ID ${id}:`, error);
+            throw error;
+        }
+    },
+
     // 部屋データの取得
     getRoomData: async (id) => {
         const cacheKey = getCacheKey(`/room/${id}`);

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import RoomDrawer from '../components/RoomDrawer';
+import RoomTypeDrawer from '../components/RoomTypeDrawer';
 
 // スタイル定義
 const Container = styled.div`
@@ -307,6 +308,10 @@ const PropertyPage = () => {
     const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
     const [selectedRoomId, setSelectedRoomId] = useState(roomIdFromUrl);
 
+    // 部屋タイプドロワー関連の状態
+    const [roomTypeDrawerOpen, setRoomTypeDrawerOpen] = useState(false);
+    const [selectedRoomTypeId, setSelectedRoomTypeId] = useState(null);
+
     // 部屋一覧の検索・ページネーション・選択機能
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -342,6 +347,18 @@ const PropertyPage = () => {
         const newSearch = newParams.toString();
         navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ''}`, { replace: true });
     }, [navigate, location.pathname, location.search]);
+
+    // 部屋タイプドロワーを開く関数
+    const handleOpenRoomTypeDrawer = useCallback((roomTypeId) => {
+        setSelectedRoomTypeId(roomTypeId);
+        setRoomTypeDrawerOpen(true);
+    }, []);
+
+    // 部屋タイプドロワーを閉じる関数
+    const handleCloseRoomTypeDrawer = useCallback(() => {
+        setRoomTypeDrawerOpen(false);
+        setSelectedRoomTypeId(null);
+    }, []);
 
     // URLの変更を監視してドロワー状態を同期
     useEffect(() => {
@@ -1182,7 +1199,13 @@ const PropertyPage = () => {
                                 </thead>
                                 <tbody>
                                     {roomTypes.map((roomType, index) => (
-                                        <tr key={roomType.room_type_id || index}>
+                                        <tr
+                                            key={roomType.room_type_id || index}
+                                            onClick={() => handleOpenRoomTypeDrawer(roomType.room_type_id)}
+                                            style={{ cursor: 'pointer' }}
+                                            onMouseEnter={(e) => e.target.closest('tr').style.backgroundColor = '#f8f9fa'}
+                                            onMouseLeave={(e) => e.target.closest('tr').style.backgroundColor = 'transparent'}
+                                        >
                                             <RoomTypeTableCell>{roomType.room_type_id}</RoomTypeTableCell>
                                             <RoomTypeTableCell>{roomType.room_type_name}</RoomTypeTableCell>
                                         </tr>
@@ -1203,6 +1226,13 @@ const PropertyPage = () => {
                 isOpen={drawerOpen}
                 onClose={handleCloseRoomDrawer}
                 roomId={selectedRoomId}
+            />
+
+            {/* RoomTypeDrawer を追加 */}
+            <RoomTypeDrawer
+                isOpen={roomTypeDrawerOpen}
+                onClose={handleCloseRoomTypeDrawer}
+                roomTypeId={selectedRoomTypeId}
             />
         </Container>
     );
