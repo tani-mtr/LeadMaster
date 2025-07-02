@@ -705,6 +705,163 @@ class BigQueryService {
             throw new Error(`部屋タイプリストの取得に失敗しました: ${error.message}`);
         }
     }
+
+    /**
+     * 部屋タイプ詳細データを取得（GASのgetRoomTypeData関数と同様）
+     * @param {string} roomTypeId - 部屋タイプID
+     * @returns {Promise<Array>} 部屋タイプ詳細データの配列
+     */
+    async getRoomTypeData(roomTypeId) {
+        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+        const cacheKey = getCacheKey('roomTypeData', { roomTypeId });
+        const cachedData = getCache(cacheKey);
+        if (cachedData) {
+            console.log('部屋タイプ詳細データをキャッシュから取得:', roomTypeId);
+            return cachedData;
+        }
+
+        try {
+            console.log(`部屋タイプ詳細データを取得中: roomTypeId=${roomTypeId}`);
+
+            // 全フィールドを取得するクエリ
+            const query = `
+                SELECT
+                    ROOM_TYPE.id AS \`id\`,
+                    ROOM_TYPE.name AS \`name\`,
+                    ROOM_TYPE.lead_property_id AS \`lead_property_id\`,
+                    ROOM_TYPE.create_date AS \`create_date\`,
+                    ROOM_TYPE.minpaku_price AS \`minpaku_price\`,
+                    ROOM_TYPE.monthly_price AS \`monthly_price\`,
+                    ROOM_TYPE.pax AS \`pax\`,
+                    ROOM_TYPE.owner_type AS \`owner_type\`,
+                    ROOM_TYPE.register_type AS \`register_type\`,
+                    ROOM_TYPE.payment_rent AS \`payment_rent\`,
+                    ROOM_TYPE.management_expenses AS \`management_expenses\`,
+                    ROOM_TYPE.brokerage_commission AS \`brokerage_commission\`,
+                    ROOM_TYPE.deposit AS \`deposit\`,
+                    ROOM_TYPE.key_money AS \`key_money\`,
+                    ROOM_TYPE.key_exchange_money AS \`key_exchange_money\`,
+                    ROOM_TYPE.renovation_cost AS \`renovation_cost\`,
+                    ROOM_TYPE.property_introduction_fee AS \`property_introduction_fee\`,
+                    ROOM_TYPE.other_initial_cost_name AS \`other_initial_cost_name\`,
+                    ROOM_TYPE.other_initial_cost AS \`other_initial_cost\`,
+                    ROOM_TYPE.contract_type AS \`contract_type\`,
+                    ROOM_TYPE.contract_period AS \`contract_period\`,
+                    ROOM_TYPE.renewal_fee AS \`renewal_fee\`,
+                    ROOM_TYPE.date_moving_in AS \`date_moving_in\`,
+                    ROOM_TYPE.rent_accrual_date AS \`rent_accrual_date\`,
+                    ROOM_TYPE.operation_start_date AS \`operation_start_date\`,
+                    ROOM_TYPE.use_guarantee_company AS \`use_guarantee_company\`,
+                    ROOM_TYPE.Initial_guarantee_rate AS \`Initial_guarantee_rate\`,
+                    ROOM_TYPE.monthly_guarantee_fee_rate AS \`monthly_guarantee_fee_rate\`,
+                    ROOM_TYPE.maa_insurance AS \`maa_insurance\`,
+                    ROOM_TYPE.prefectures AS \`prefectures\`,
+                    ROOM_TYPE.city AS \`city\`,
+                    ROOM_TYPE.town AS \`town\`,
+                    ROOM_TYPE.area_zoned_for_use AS \`area_zoned_for_use\`,
+                    ROOM_TYPE.request_checking_area_zoned_for_use AS \`request_checking_area_zoned_for_use\`,
+                    ROOM_TYPE.done_checking_area_zoned_for_use AS \`done_checking_area_zoned_for_use\`,
+                    ROOM_TYPE.special_use_areas AS \`special_use_areas\`,
+                    ROOM_TYPE.route_1 AS \`route_1\`,
+                    ROOM_TYPE.station_1 AS \`station_1\`,
+                    ROOM_TYPE.walk_min_1 AS \`walk_min_1\`,
+                    ROOM_TYPE.route_2 AS \`route_2\`,
+                    ROOM_TYPE.station_2 AS \`station_2\`,
+                    ROOM_TYPE.walk_min_2 AS \`walk_min_2\`,
+                    ROOM_TYPE.floor_plan AS \`floor_plan\`,
+                    ROOM_TYPE.ev AS \`ev\`,
+                    ROOM_TYPE.sqm AS \`sqm\`,
+                    ROOM_TYPE.room_type AS \`room_type\`,
+                    ROOM_TYPE.building_structure AS \`building_structure\`,
+                    ROOM_TYPE.completion_year AS \`completion_year\`,
+                    ROOM_TYPE.minpaku_plan AS \`minpaku_plan\`,
+                    ROOM_TYPE.room_floor AS \`room_floor\`,
+                    ROOM_TYPE.building_floor AS \`building_floor\`,
+                    ROOM_TYPE.num_of_room_per_building AS \`num_of_room_per_building\`,
+                    ROOM_TYPE.staircase_location AS \`staircase_location\`,
+                    ROOM_TYPE.total_sqm AS \`total_sqm\`,
+                    ROOM_TYPE.availability_of_floor_plan AS \`availability_of_floor_plan\`,
+                    ROOM_TYPE.applications_for_other_floors AS \`applications_for_other_floors\`,
+                    ROOM_TYPE.firefighting_equipment AS \`firefighting_equipment\`,
+                    ROOM_TYPE.firefighting_equipment_cost AS \`firefighting_equipment_cost\`,
+                    ROOM_TYPE.firefighting_equipment_cost_manual AS \`firefighting_equipment_cost_manual\`,
+                    ROOM_TYPE.furniture_transfer_availability AS \`furniture_transfer_availability\`,
+                    ROOM_TYPE.checkin_cost AS \`checkin_cost\`,
+                    ROOM_TYPE.other_cost_name AS \`other_cost_name\`,
+                    ROOM_TYPE.other_cost AS \`other_cost\`
+                FROM
+                    \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOM_TYPE
+                WHERE
+                    ROOM_TYPE.id = @roomTypeId
+            `;
+
+            const rows = await this.executeQuery(query, { roomTypeId });
+
+            if (rows && rows.length > 0) {
+                // 全フィールドをそのまま返す（BigQueryから取得したデータの構造を保持）
+                const result = rows.map(row => row);
+
+                setCache(cacheKey, result);
+                console.log(`部屋タイプ詳細データを取得しました: ${result.length}件`);
+                return result;
+            } else {
+                console.log('部屋タイプ詳細データが見つかりませんでした');
+                return [];
+            }
+
+        } catch (error) {
+            console.error('部屋タイプ詳細データ取得エラー:', error);
+            throw new Error(`部屋タイプ詳細データの取得に失敗しました: ${error.message}`);
+        }
+    }
+
+    /**
+     * 部屋タイプデータの更新
+     * @param {string} roomTypeId - 部屋タイプID
+     * @param {Object} updateData - 更新するデータ
+     * @returns {Promise<boolean>} 更新が成功したかどうか
+     */
+    async updateRoomTypeData(roomTypeId, updateData) {
+        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+        try {
+            console.log(`部屋タイプデータを更新中: roomTypeId=${roomTypeId}`, updateData);
+
+            // 更新可能なフィールドのみを対象とする（id以外）
+            const updateFields = [];
+            const updateParams = { roomTypeId };
+
+            if (updateData.name !== undefined) {
+                updateFields.push('name = @name');
+                updateParams.name = updateData.name;
+            }
+
+            if (updateFields.length === 0) {
+                console.log('更新するフィールドがありません');
+                return true;
+            }
+
+            const query = `
+                UPDATE \`${projectId}.zzz_taniguchi.lead_room_type\`
+                SET ${updateFields.join(', ')}
+                WHERE id = @roomTypeId
+            `;
+
+            const rows = await this.executeQuery(query, updateParams, false); // キャッシュを使用しない
+
+            // キャッシュをクリア
+            const cacheKey = getCacheKey('roomTypeData', { roomTypeId });
+            cache.delete(cacheKey);
+
+            console.log('部屋タイプデータを更新しました');
+            return true;
+
+        } catch (error) {
+            console.error('部屋タイプデータ更新エラー:', error);
+            throw new Error(`部屋タイプデータの更新に失敗しました: ${error.message}`);
+        }
+    }
 }
 
 module.exports = BigQueryService;

@@ -3,6 +3,7 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const http = require('http');
 const BigQueryService = require('./services/bigQueryService');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -289,6 +290,101 @@ apiRouter.get('/property/:id/room-types', async (req, res) => {
     }
 });
 
+// 部屋タイプ詳細データの取得（GASのgetRoomTypeData関数と同様）
+apiRouter.get('/room-type/:id', async (req, res) => {
+    const roomTypeId = req.params.id;
+
+    // モック部屋タイプ詳細データ
+    const mockRoomTypeDetailData = [{
+        id: roomTypeId,
+        name: `部屋タイプ${roomTypeId}`,
+        lead_property_id: '1',
+        create_date: '2024-01-01T00:00:00.000Z',
+        minpaku_price: 8000,
+        monthly_price: 120000,
+        pax: 2,
+        owner_type: '個人',
+        register_type: '民泊',
+        payment_rent: 100000,
+        management_expenses: 10000,
+        brokerage_commission: 50000,
+        deposit: 100000,
+        key_money: 50000,
+        key_exchange_money: 15000,
+        renovation_cost: 300000,
+        property_introduction_fee: 25000,
+        other_initial_cost_name: '清掃費',
+        other_initial_cost: 20000,
+        contract_type: '普通借家契約',
+        contract_period: '2年',
+        renewal_fee: 50000,
+        date_moving_in: '2024-02-01',
+        rent_accrual_date: '2024-02-01',
+        operation_start_date: '2024-02-15',
+        use_guarantee_company: 'あり',
+        Initial_guarantee_rate: 50,
+        monthly_guarantee_fee_rate: 1,
+        maa_insurance: 'あり',
+        prefectures: '東京都',
+        city: '新宿区',
+        town: '新宿1-1-1',
+        area_zoned_for_use: '商業地域',
+        request_checking_area_zoned_for_use: '完了',
+        done_checking_area_zoned_for_use: '完了',
+        special_use_areas: 'なし',
+        route_1: 'JR山手線',
+        station_1: '新宿駅',
+        walk_min_1: 5,
+        route_2: '東京メトロ丸ノ内線',
+        station_2: '新宿駅',
+        walk_min_2: 7,
+        floor_plan: '1K',
+        ev: 'あり',
+        sqm: 25.5,
+        room_type: 'ワンルーム',
+        building_structure: 'RC造',
+        completion_year: 2020,
+        minpaku_plan: 1,
+        room_floor: '3階',
+        building_floor: '10階建',
+        num_of_room_per_building: 50,
+        staircase_location: '中央',
+        total_sqm: 1500,
+        availability_of_floor_plan: 'あり',
+        applications_for_other_floors: '住宅',
+        firefighting_equipment: '完備',
+        firefighting_equipment_cost: 50000,
+        firefighting_equipment_cost_manual: 0,
+        furniture_transfer_availability: 'あり',
+        checkin_cost: 3000,
+        other_cost_name: '水道光熱費',
+        other_cost: 8000
+    }];
+
+    try {
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryから部屋タイプID ${roomTypeId} の詳細データを取得中...`);
+            const roomTypeData = await bigQueryService.getRoomTypeData(roomTypeId);
+
+            if (roomTypeData && roomTypeData.length > 0) {
+                return res.json(roomTypeData); // BigQueryからデータが取得できた場合
+            } else {
+                console.log('BigQueryで部屋タイプ詳細データが見つからないため、モックデータを返します');
+                return res.json(mockRoomTypeDetailData);
+            }
+        } else {
+            console.log('BigQuery設定がないため、モックデータを返します');
+            return res.json(mockRoomTypeDetailData);
+        }
+    } catch (error) {
+        console.error('部屋タイプ詳細データ取得エラー:', error);
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        return res.json(mockRoomTypeDetailData);
+    }
+});
+
 // 部屋データの取得（GASのgetRoomData関数と同様）
 apiRouter.get('/room/:id', async (req, res) => {
     try {
@@ -572,7 +668,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // サーバー起動（HTTPヘッダーサイズ制限を設定）
-const http = require('http');
 const server = http.createServer(app);
 
 // サーバー設定でHTTPヘッダーサイズ制限を増加
@@ -622,3 +717,325 @@ process.on('SIGINT', () => {
         process.exit(0);
     });
 });
+
+// 部屋タイプデータの更新
+apiRouter.put('/room-type/:id', async (req, res) => {
+    const roomTypeId = req.params.id;
+    const updateData = req.body;
+
+    try {
+        console.log(`部屋タイプデータ更新リクエスト: ${roomTypeId}`, updateData);
+
+        // BigQueryの設定がある場合はBigQueryで更新を試行
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryで部屋タイプID ${roomTypeId} のデータを更新中...`);
+            const result = await bigQueryService.updateRoomTypeData(roomTypeId, updateData);
+
+            if (result) {
+                console.log('BigQueryで部屋タイプデータを更新しました');
+                return res.json({ success: true, message: '部屋タイプデータが正常に更新されました' });
+            }
+        }
+
+        // BigQuery設定がない場合やエラーの場合はモック応答
+        console.log('BigQuery設定がないため、モック応答を返します');
+        return res.json({ success: true, message: '部屋タイプデータが正常に更新されました（モック）' });
+
+    } catch (error) {
+        console.error('部屋タイプデータ更新エラー:', error);
+        return res.status(500).json({
+            success: false,
+            message: '部屋タイプデータの更新に失敗しました',
+            error: error.message
+        });
+    }
+});
+
+// 部屋データの取得（GASのgetRoomData関数と同様）
+apiRouter.get('/room/:id', async (req, res) => {
+    try {
+        const roomId = req.params.id;
+        console.log(`部屋データ取得リクエスト: ${roomId}`);
+
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryから部屋ID ${roomId} のデータを取得中...`);
+            const roomData = await bigQueryService.getRoomData(roomId);
+
+            if (roomData && roomData.length > 0) {
+                console.log('BigQueryから部屋データを取得しました');
+                return res.json(roomData);
+            } else {
+                console.log('BigQueryで部屋データが見つからないため、モックデータを返します');
+            }
+        } else {
+            console.log('BigQuery設定がないため、モックデータを返します');
+        }
+
+        // モックデータ（新しいカラムリストに対応）
+        const mockRoomData = [{
+            id: roomId,
+            status: 'アクティブ',
+            name: `サンプル部屋 ${roomId}`,
+            room_number: `${roomId}01`,
+            lead_property_id: '1',
+            lead_room_type_id: 'RT001',
+            create_date: '2025-07-01 10:00:00',
+            key_handover_scheduled_date: '2025-07-15',
+            possible_key_handover_scheduled_date_1: '2025-07-16',
+            possible_key_handover_scheduled_date_2: '2025-07-17',
+            possible_key_handover_scheduled_date_3: '2025-07-18',
+            vacate_setup: 'スタンダード',
+            contract_collection_date: '2025-07-20',
+            application_intended_date: '2025-07-25',
+            lead_property_name: 'サンプル物件',
+            lead_room_type_name: 'ワンルーム'
+        }];
+
+        return res.json(mockRoomData);
+
+    } catch (error) {
+        console.error('部屋データ取得エラー:', error);
+
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        const mockRoomData = [{
+            id: roomId,
+            status: 'アクティブ',
+            name: `サンプル部屋 ${roomId}`,
+            room_number: `${roomId}01`,
+            lead_property_id: '1',
+            lead_room_type_id: 'RT001',
+            create_date: '2025-07-01 10:00:00',
+            key_handover_scheduled_date: '2025-07-15',
+            possible_key_handover_scheduled_date_1: '2025-07-16',
+            possible_key_handover_scheduled_date_2: '2025-07-17',
+            possible_key_handover_scheduled_date_3: '2025-07-18',
+            vacate_setup: 'スタンダード',
+            contract_collection_date: '2025-07-20',
+            application_intended_date: '2025-07-25',
+            lead_property_name: 'サンプル物件',
+            lead_room_type_name: 'ワンルーム'
+        }];
+
+        return res.json(mockRoomData);
+    }
+});
+
+// 部屋スキーマの取得
+apiRouter.get('/room/schema', async (req, res) => {
+    try {
+        console.log('部屋スキーマ取得リクエスト');
+
+        // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log('BigQueryから部屋スキーマを取得中...');
+            const schema = await bigQueryService.getRoomSchema();
+
+            if (schema) {
+                console.log('BigQueryから部屋スキーマを取得しました');
+                return res.json(schema);
+            } else {
+                console.log('BigQueryでスキーマが見つからないため、モックデータを返します');
+            }
+        } else {
+            console.log('BigQuery設定がないため、モックデータを返します');
+        }
+
+        // モックスキーマデータ（idとnameのみ）
+        const mockSchema = {
+            id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
+            name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
+        };
+
+        return res.json(mockSchema);
+
+    } catch (error) {
+        console.error('部屋スキーマ取得エラー:', error);
+
+        // エラーが発生した場合はモックデータにフォールバック
+        console.log('エラーのためモックデータにフォールバック');
+        const mockSchema = {
+            id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
+            name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
+        };
+
+        return res.json(mockSchema);
+    }
+});
+
+// ドロップダウンオプションの取得
+apiRouter.get('/dropdown-options/:propertyId', async (req, res) => {
+    try {
+        const propertyId = req.params.propertyId;
+        console.log(`ドロップダウンオプション取得リクエスト: ${propertyId}`);
+
+        // モックドロップダウンオプション
+        const mockDropdownOptions = {
+            status: ['A', 'B', 'C', 'D', 'E', 'クローズ'],
+            lead_room_type_name: [
+                '1|ワンルーム',
+                '2|1K',
+                '3|1DK',
+                '4|1LDK',
+                '5|2K',
+                '6|2DK',
+                '7|2LDK'
+            ]
+        };
+
+        console.log('ドロップダウンオプションを返します');
+        return res.json(mockDropdownOptions);
+    } catch (error) {
+        console.error('ドロップダウンオプション取得エラー:', error);
+        return res.status(500).json({ error: 'ドロップダウンオプションの取得に失敗しました' });
+    }
+});
+
+// 部屋データの更新
+apiRouter.put('/room/:id', async (req, res) => {
+    try {
+        const roomId = req.params.id;
+        const updateData = req.body;
+        console.log(`部屋データ更新リクエスト: ${roomId}`, updateData);
+
+        if (bigQueryService.isConfigured()) {
+            // BigQueryでの更新処理（実装が必要）
+            console.log('BigQueryでの部屋データ更新は未実装');
+            return res.status(501).json({ error: '部屋データ更新機能は未実装です' });
+        } else {
+            // モック更新（実際は何もしない）
+            console.log('モック環境での部屋データ更新（実際の更新なし）');
+            return res.json({ success: true, message: '部屋データが更新されました' });
+        }
+    } catch (error) {
+        console.error('部屋データ更新エラー:', error);
+        return res.status(500).json({ error: '部屋データの更新に失敗しました' });
+    }
+});
+
+// 重複チェック
+apiRouter.post('/check-duplication', async (req, res) => {
+    try {
+        const { type, value } = req.body;
+        console.log(`重複チェックリクエスト: ${type} - ${value}`);
+
+        if (bigQueryService.isConfigured()) {
+            // BigQueryでの重複チェック（実装が必要）
+            console.log('BigQueryでの重複チェックは未実装');
+            return res.json([true, []]); // 重複なしとして扱う
+        } else {
+            // モック重複チェック（常に重複なしとして扱う）
+            console.log('モック環境での重複チェック（常に重複なし）');
+            return res.json([true, []]);
+        }
+    } catch (error) {
+        console.error('重複チェックエラー:', error);
+        return res.status(500).json({ error: '重複チェックに失敗しました' });
+    }
+});
+
+// デバッグ用エンドポイント
+apiRouter.get('/debug/info', (req, res) => {
+    const fs = require('fs');
+    const buildPath = path.join(__dirname, 'build');
+
+    res.json({
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        workingDirectory: process.cwd(),
+        dirname: __dirname,
+        buildPath: buildPath,
+        buildExists: fs.existsSync(buildPath),
+        buildContents: fs.existsSync(buildPath) ? fs.readdirSync(buildPath) : [],
+        currentDirContents: fs.readdirSync(__dirname)
+    });
+});
+
+// BigQuery接続テスト用エンドポイント
+apiRouter.get('/test-bigquery', async (req, res) => {
+    try {
+        const isConnected = await bigQueryService.testConnection();
+        res.json({
+            success: isConnected,
+            message: isConnected ? 'BigQuery接続成功' : 'BigQuery接続失敗',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('BigQuery接続テストエラー:', error);
+        res.status(500).json({
+            success: false,
+            message: 'BigQuery接続テスト中にエラーが発生しました',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// SQLクエリ実行エンドポイント
+apiRouter.post('/execute-query', async (req, res) => {
+    try {
+        const { query } = req.body;
+
+        if (!query) {
+            return res.status(400).json({
+                success: false,
+                message: 'クエリが指定されていません'
+            });
+        }
+
+        console.log('受信したクエリ:', query);
+
+        const results = await bigQueryService.executeQuery(query);
+
+        res.json({
+            success: true,
+            data: results,
+            message: `${results.length}件のレコードを取得しました`,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('クエリ実行エラー:', error);
+
+        res.status(500).json({
+            success: false,
+            message: 'クエリの実行中にエラーが発生しました',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// APIルーターをマウント
+app.use('/api', apiRouter);
+
+// 静的ファイルの配信
+if (process.env.NODE_ENV === 'production') {
+    // Dockerコンテナ内では build ディレクトリは同階層にある
+    const buildPath = path.join(__dirname, 'build');
+    console.log(`静的ファイル配信パス: ${buildPath}`);
+    console.log(`buildディレクトリの存在確認: ${require('fs').existsSync(buildPath)}`);
+
+    app.use(express.static(buildPath));
+
+    // React アプリケーションのルートを処理
+    app.get('*', (req, res) => {
+        const indexPath = path.join(buildPath, 'index.html');
+        console.log(`index.htmlパス: ${indexPath}`);
+        console.log(`index.htmlの存在確認: ${require('fs').existsSync(indexPath)}`);
+        res.sendFile(indexPath);
+    });
+} else {
+    // 開発環境では簡単な応答
+    app.get('/', (req, res) => {
+        res.send('Development server is running! API available at /api/*');
+    });
+}
+
+// サーバー起動（HTTPヘッダーサイズ制限を設定）
+
+// サーバー設定でHTTPヘッダーサイズ制限を増加
+server.maxHeadersCount = 0; // ヘッダー数制限を無効化
+server.headersTimeout = 300000; // 5分のタイムアウト
+

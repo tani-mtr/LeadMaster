@@ -236,6 +236,24 @@ export const apiService = {
         }
     },
 
+    // 部屋タイプデータの更新
+    updateRoomTypeData: async (id, data) => {
+        try {
+            console.log(`API Request: PUT /room-type/${id}`, data);
+            const response = await apiClient.put(`/room-type/${id}`, data);
+            console.log('API Response: room type data updated', response.data);
+
+            // キャッシュをクリア
+            const cacheKey = getCacheKey(`/room-type/${id}`);
+            cache.delete(cacheKey);
+
+            return response.data;
+        } catch (error) {
+            console.error(`Error updating room type data for ID ${id}:`, error);
+            throw error;
+        }
+    },
+
     // 部屋データの取得
     getRoomData: async (id) => {
         const cacheKey = getCacheKey(`/room/${id}`);
