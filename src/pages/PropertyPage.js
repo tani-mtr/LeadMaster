@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 
@@ -196,7 +196,7 @@ const IconButton = styled.button`
   }
 `;
 
-const RoomName = styled.a`
+const RoomNameLink = styled(Link)`
   color: #007bff;
   text-decoration: none;
   cursor: pointer;
@@ -471,12 +471,6 @@ const PropertyPage = () => {
             // TODO: 削除処理の実装
             alert('一括削除機能は今後実装予定です。');
         }
-    };
-
-    // 個別操作
-    const handleRoomClick = (roomId, roomName) => {
-        // TODO: 部屋詳細ページへの遷移を実装
-        alert(`部屋「${roomName}」の詳細ページ機能は今後実装予定です。\n部屋ID: ${roomId}`);
     };
 
     const handleRoomDelete = (roomId, roomName) => {
@@ -1031,11 +1025,9 @@ const PropertyPage = () => {
                                                         </TableCell>
                                                         <TableCell>{roomId}</TableCell>
                                                         <TableCell>
-                                                            <RoomName
-                                                                onClick={() => handleRoomClick(roomId, roomName)}
-                                                            >
+                                                            <RoomNameLink to={`/room/${roomId}`}>
                                                                 {roomName}
-                                                            </RoomName>
+                                                            </RoomNameLink>
                                                         </TableCell>
                                                         <TableCell>{room[3]}</TableCell>
                                                         <TableCell>
@@ -1043,7 +1035,8 @@ const PropertyPage = () => {
                                                                 <IconButton
                                                                     variant="primary"
                                                                     disabled={!isOperationEnabled}
-                                                                    onClick={() => handleRoomClick(roomId, roomName)}
+                                                                    as={Link}
+                                                                    to={`/room/${roomId}`}
                                                                     title="詳細を表示"
                                                                 >
                                                                     📝

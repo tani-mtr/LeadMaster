@@ -6,6 +6,8 @@ GASで作成されたウェブアプリをReactとCloud Runに移行したアプ
 
 - 建物リストの表示と編集
 - 建物詳細情報の閲覧と編集
+- 物件管理（部屋情報の一覧・編集）
+- 部屋詳細情報の閲覧と編集
 - Slackを通じた問い合わせ機能
 - モダンなUIとユーザー体験
 
@@ -117,6 +119,25 @@ CREATE TABLE `your_project.your_dataset.your_table` (
 
 注意：BigQuery設定がない場合、自動的にモックデータが使用されます。
 
+## API仕様
+
+### 建物関連
+- `GET /api/buildings` - 建物一覧の取得
+- `GET /api/buildings/:id` - 建物詳細の取得
+- `PUT /api/buildings/:id` - 建物情報の更新
+
+### 物件関連
+- `GET /api/property/:id` - 物件詳細の取得
+- `GET /api/property/:id/rooms` - 物件の部屋一覧の取得
+- `GET /api/property/:id/room-types` - 物件の部屋タイプ一覧の取得
+
+### 部屋関連
+- `GET /api/room/:id` - 部屋詳細の取得
+- `GET /api/room/schema` - 部屋スキーマの取得
+- `PUT /api/room/:id` - 部屋情報の更新
+- `GET /api/dropdown-options/:propertyId` - ドロップダウンオプションの取得
+- `POST /api/check-duplication` - 重複チェック
+
 ### 開発サーバーの起動
 
 ```bash
@@ -184,4 +205,3 @@ lead-master-webapp/
 ## ライセンス
 
 © 2025 Your Company. All Rights Reserved.
->>>>>>> 0008655 (初期コミット: GASからReactアプリへの変換)

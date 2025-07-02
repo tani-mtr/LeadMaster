@@ -289,6 +289,154 @@ apiRouter.get('/property/:id/room-types', async (req, res) => {
     }
 });
 
+// 部屋データの取得
+apiRouter.get('/room/:id', async (req, res) => {
+    try {
+        const roomId = req.params.id;
+        console.log(`部屋データ取得リクエスト: ${roomId}`);
+
+        if (bigQueryService.isConfigured()) {
+            // BigQueryから部屋データを取得
+            const query = `
+                SELECT *
+                FROM \`your-project.your-dataset.rooms\`
+                WHERE id = @roomId
+            `;
+
+            const options = {
+                query: query,
+                params: { roomId: roomId }
+            };
+
+            const [rows] = await bigQueryService.executeQuery(options);
+
+            if (rows.length === 0) {
+                return res.status(404).json({ error: '部屋が見つかりません' });
+            }
+
+            console.log('BigQueryから部屋データを取得しました');
+            return res.json(rows);
+        } else {
+            // モックデータ
+            const mockRoomData = [{
+                id: roomId,
+                lead_property_id: 1,
+                lead_property_name: 'サンプル物件',
+                name: `サンプル部屋 ${roomId}`,
+                room_number: roomId,
+                status: 'A',
+                lead_room_type_id: 1,
+                lead_room_type_name: 'ワンルーム',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }];
+
+            console.log('BigQuery設定がないため、モックデータを返します');
+            return res.json(mockRoomData);
+        }
+    } catch (error) {
+        console.error('部屋データ取得エラー:', error);
+        return res.status(500).json({ error: '部屋データの取得に失敗しました' });
+    }
+});
+
+// 部屋スキーマの取得
+apiRouter.get('/room/schema', async (req, res) => {
+    try {
+        console.log('部屋スキーマ取得リクエスト');
+
+        // モックスキーマデータ
+        const mockSchema = {
+            id: { type: 'string', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
+            lead_property_id: { type: 'numeric', japaneseName: '物件ID', order: 2, editable: false, isRequired: false },
+            lead_property_name: { type: 'string', japaneseName: '物件名', order: 3, editable: false, isRequired: false },
+            name: { type: 'string', japaneseName: '部屋名', order: 4, editable: true, isRequired: true },
+            room_number: { type: 'string', japaneseName: '部屋番号', order: 5, editable: true, isRequired: true },
+            status: { type: 'string', japaneseName: 'ステータス', order: 6, editable: true, isRequired: true },
+            lead_room_type_name: { type: 'string', japaneseName: '部屋タイプ', order: 7, editable: true, isRequired: false },
+            created_at: { type: 'date', japaneseName: '作成日', order: 8, editable: false, isRequired: false },
+            updated_at: { type: 'date', japaneseName: '更新日', order: 9, editable: false, isRequired: false }
+        };
+
+        console.log('部屋スキーマを返します');
+        return res.json(mockSchema);
+    } catch (error) {
+        console.error('部屋スキーマ取得エラー:', error);
+        return res.status(500).json({ error: '部屋スキーマの取得に失敗しました' });
+    }
+});
+
+// ドロップダウンオプションの取得
+apiRouter.get('/dropdown-options/:propertyId', async (req, res) => {
+    try {
+        const propertyId = req.params.propertyId;
+        console.log(`ドロップダウンオプション取得リクエスト: ${propertyId}`);
+
+        // モックドロップダウンオプション
+        const mockDropdownOptions = {
+            status: ['A', 'B', 'C', 'D', 'E', 'クローズ'],
+            lead_room_type_name: [
+                '1|ワンルーム',
+                '2|1K',
+                '3|1DK',
+                '4|1LDK',
+                '5|2K',
+                '6|2DK',
+                '7|2LDK'
+            ]
+        };
+
+        console.log('ドロップダウンオプションを返します');
+        return res.json(mockDropdownOptions);
+    } catch (error) {
+        console.error('ドロップダウンオプション取得エラー:', error);
+        return res.status(500).json({ error: 'ドロップダウンオプションの取得に失敗しました' });
+    }
+});
+
+// 部屋データの更新
+apiRouter.put('/room/:id', async (req, res) => {
+    try {
+        const roomId = req.params.id;
+        const updateData = req.body;
+        console.log(`部屋データ更新リクエスト: ${roomId}`, updateData);
+
+        if (bigQueryService.isConfigured()) {
+            // BigQueryでの更新処理（実装が必要）
+            console.log('BigQueryでの部屋データ更新は未実装');
+            return res.status(501).json({ error: '部屋データ更新機能は未実装です' });
+        } else {
+            // モック更新（実際は何もしない）
+            console.log('モック環境での部屋データ更新（実際の更新なし）');
+            return res.json({ success: true, message: '部屋データが更新されました' });
+        }
+    } catch (error) {
+        console.error('部屋データ更新エラー:', error);
+        return res.status(500).json({ error: '部屋データの更新に失敗しました' });
+    }
+});
+
+// 重複チェック
+apiRouter.post('/check-duplication', async (req, res) => {
+    try {
+        const { type, value } = req.body;
+        console.log(`重複チェックリクエスト: ${type} - ${value}`);
+
+        if (bigQueryService.isConfigured()) {
+            // BigQueryでの重複チェック（実装が必要）
+            console.log('BigQueryでの重複チェックは未実装');
+            return res.json([true, []]); // 重複なしとして扱う
+        } else {
+            // モック重複チェック（常に重複なしとして扱う）
+            console.log('モック環境での重複チェック（常に重複なし）');
+            return res.json([true, []]);
+        }
+    } catch (error) {
+        console.error('重複チェックエラー:', error);
+        return res.status(500).json({ error: '重複チェックに失敗しました' });
+    }
+});
+
 // デバッグ用エンドポイント
 apiRouter.get('/debug/info', (req, res) => {
     const fs = require('fs');

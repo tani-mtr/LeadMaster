@@ -212,6 +212,105 @@ export const apiService = {
             throw error;
         }
     },
-};
 
-export default apiService;
+    // 部屋データの取得
+    getRoomData: async (id) => {
+        const cacheKey = getCacheKey(`/room/${id}`);
+        const cachedData = getCache(cacheKey);
+
+        if (cachedData) {
+            console.log(`キャッシュから部屋データを取得: ${id}`);
+            return cachedData;
+        }
+
+        try {
+            console.log(`API Request: GET /room/${id}`);
+            const response = await apiClient.get(`/room/${id}`);
+            console.log('API Response: room data received', response.data);
+
+            setCache(cacheKey, response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching room with id ${id}:`, error);
+            throw error;
+        }
+    },
+
+    // 部屋スキーマの取得
+    getRoomSchema: async () => {
+        const cacheKey = getCacheKey('/room/schema');
+        const cachedData = getCache(cacheKey);
+
+        if (cachedData) {
+            console.log('キャッシュから部屋スキーマを取得');
+            return cachedData;
+        }
+
+        try {
+            console.log('API Request: GET /room/schema');
+            const response = await apiClient.get('/room/schema');
+            console.log('API Response: room schema received', response.data);
+
+            setCache(cacheKey, response.data);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching room schema:', error);
+            throw error;
+        }
+    },
+
+    // ドロップダウンオプションの取得
+    getDropdownOptions: async (propertyId) => {
+        const cacheKey = getCacheKey(`/dropdown-options/${propertyId}`);
+        const cachedData = getCache(cacheKey);
+
+        if (cachedData) {
+            console.log(`キャッシュからドロップダウンオプションを取得: ${propertyId}`);
+            return cachedData;
+        }
+
+        try {
+            console.log(`API Request: GET /dropdown-options/${propertyId}`);
+            const response = await apiClient.get(`/dropdown-options/${propertyId}`);
+            console.log('API Response: dropdown options received', response.data);
+
+            setCache(cacheKey, response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching dropdown options for property ${propertyId}:`, error);
+            throw error;
+        }
+    },
+
+    // 部屋データの更新
+    updateRoomData: async (id, data) => {
+        try {
+            console.log(`API Request: PUT /room/${id}`, data);
+            const response = await apiClient.put(`/room/${id}`, data);
+            console.log('API Response: room updated', response.data);
+
+            // キャッシュをクリア
+            const cacheKey = getCacheKey(`/room/${id}`);
+            cache.delete(cacheKey);
+
+            return response.data;
+        } catch (error) {
+            console.error(`Error updating room with id ${id}:`, error);
+            throw error;
+        }
+    },
+
+    // 重複チェック
+    checkDuplication: async (type, value) => {
+        try {
+            console.log(`API Request: POST /check-duplication`, { type, value });
+            const response = await apiClient.post('/check-duplication', { type, value });
+            console.log('API Response: duplication check result', response.data);
+
+            return response.data;
+        } catch (error) {
+            console.error('Error checking duplication:', error);
+            throw error;
+        }
+    },
+};

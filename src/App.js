@@ -5,6 +5,7 @@ import ContactButton from './components/ContactButton';
 import TopPage from './pages/TopPage';
 import DetailPage from './pages/DetailPage';
 import PropertyPage from './pages/PropertyPage';
+import RoomPage from './pages/RoomPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { sessionStorage } from './utils/uiUtils';
 
@@ -22,6 +23,8 @@ function App() {
             setCurrentPage('detail');
         } else if (path.includes('/property')) {
             setCurrentPage('property');
+        } else if (path.includes('/room')) {
+            setCurrentPage('room');
         } else {
             setCurrentPage('other');
         }
@@ -47,6 +50,8 @@ function App() {
                 return '建物詳細';
             case 'property':
                 return '物件管理';
+            case 'room':
+                return '部屋詳細';
             default:
                 return '';
         }
@@ -61,6 +66,7 @@ function App() {
                     <Route path="/" element={<TopPage />} />
                     <Route path="/detail/:id" element={<DetailPage />} />
                     <Route path="/property/:id" element={<PropertyPage />} />
+                    <Route path="/room/:id" element={<RoomPage />} />
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </main>
