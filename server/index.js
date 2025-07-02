@@ -310,11 +310,22 @@ apiRouter.get('/room/:id', async (req, res) => {
             console.log('BigQuery設定がないため、モックデータを返します');
         }
 
-        // モックデータ（idとnameのみ）
+        // モックデータ（新しいカラムリストに対応）
         const mockRoomData = [{
             id: roomId,
+            status: 'アクティブ',
             name: `サンプル部屋 ${roomId}`,
+            room_number: `${roomId}01`,
             lead_property_id: '1',
+            lead_room_type_id: 'RT001',
+            create_date: '2025-07-01 10:00:00',
+            key_handover_scheduled_date: '2025-07-15',
+            possible_key_handover_scheduled_date_1: '2025-07-16',
+            possible_key_handover_scheduled_date_2: '2025-07-17',
+            possible_key_handover_scheduled_date_3: '2025-07-18',
+            vacate_setup: 'スタンダード',
+            contract_collection_date: '2025-07-20',
+            application_intended_date: '2025-07-25',
             lead_property_name: 'サンプル物件',
             lead_room_type_name: 'ワンルーム'
         }];
@@ -328,8 +339,19 @@ apiRouter.get('/room/:id', async (req, res) => {
         console.log('エラーのためモックデータにフォールバック');
         const mockRoomData = [{
             id: roomId,
+            status: 'アクティブ',
             name: `サンプル部屋 ${roomId}`,
+            room_number: `${roomId}01`,
             lead_property_id: '1',
+            lead_room_type_id: 'RT001',
+            create_date: '2025-07-01 10:00:00',
+            key_handover_scheduled_date: '2025-07-15',
+            possible_key_handover_scheduled_date_1: '2025-07-16',
+            possible_key_handover_scheduled_date_2: '2025-07-17',
+            possible_key_handover_scheduled_date_3: '2025-07-18',
+            vacate_setup: 'スタンダード',
+            contract_collection_date: '2025-07-20',
+            application_intended_date: '2025-07-25',
             lead_property_name: 'サンプル物件',
             lead_room_type_name: 'ワンルーム'
         }];

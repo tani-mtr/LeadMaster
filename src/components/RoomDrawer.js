@@ -22,7 +22,7 @@ const DrawerContainer = styled.div`
   top: 0;
   right: 0;
   height: 100vh;
-  width: 500px;
+  width: 800px;
   background-color: white;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   z-index: 1001;
@@ -30,8 +30,12 @@ const DrawerContainer = styled.div`
   transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(100%)'};
   overflow-y: auto;
   
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     width: 100%;
+  }
+  
+  @media (min-width: 1025px) and (max-width: 1200px) {
+    width: 70%;
   }
 `;
 
@@ -98,6 +102,13 @@ const DataContainer = styled.div`
   background: white;
   border-radius: 5px;
   margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const DataItem = styled.div`
@@ -105,21 +116,31 @@ const DataItem = styled.div`
   padding: 15px;
   border: 1px solid #e0e0e0;
   border-radius: 5px;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 const HeaderText = styled.div`
   font-weight: bold;
   margin-bottom: 8px;
   color: #333;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.2;
 `;
 
 const DataValue = styled.div`
-  padding: 8px;
+  padding: 6px 8px;
   background: #f8f9fa;
   border-radius: 3px;
   color: #333;
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 1.3;
+  word-break: break-word;
+  flex: 1;
+  display: flex;
+  align-items: center;
 `;
 
 // エラー表示
@@ -188,7 +209,7 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                 onClose();
             }
         };
-        
+
         if (isOpen) {
             document.addEventListener('keydown', handleEsc);
             return () => document.removeEventListener('keydown', handleEsc);
@@ -221,25 +242,85 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                     {roomData && !loading && !error && (
                         <DataContainer>
                             <DataItem>
-                                <HeaderText>ID</HeaderText>
-                                <DataValue>{roomData.id}</DataValue>
+                                <HeaderText>部屋ID</HeaderText>
+                                <DataValue>{roomData.id || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>進捗</HeaderText>
+                                <DataValue>{roomData.status || 'N/A'}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>部屋名</HeaderText>
-                                <DataValue>{roomData.name}</DataValue>
+                                <DataValue>{roomData.name || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>部屋番号</HeaderText>
+                                <DataValue>{roomData.room_number || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>建物ID</HeaderText>
+                                <DataValue>{roomData.lead_property_id || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>部屋タイプID</HeaderText>
+                                <DataValue>{roomData.lead_room_type_id || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>部屋登録日</HeaderText>
+                                <DataValue>{roomData.create_date || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>鍵引き渡し予定日</HeaderText>
+                                <DataValue>{roomData.key_handover_scheduled_date || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>鍵引き渡し予定日①</HeaderText>
+                                <DataValue>{roomData.possible_key_handover_scheduled_date_1 || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>鍵引き渡し予定日②</HeaderText>
+                                <DataValue>{roomData.possible_key_handover_scheduled_date_2 || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>鍵引き渡し予定日③</HeaderText>
+                                <DataValue>{roomData.possible_key_handover_scheduled_date_3 || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>退去SU</HeaderText>
+                                <DataValue>{roomData.vacate_setup || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>契約書回収予定日</HeaderText>
+                                <DataValue>{roomData.contract_collection_date || 'N/A'}</DataValue>
+                            </DataItem>
+
+                            <DataItem>
+                                <HeaderText>申請予定日</HeaderText>
+                                <DataValue>{roomData.application_intended_date || 'N/A'}</DataValue>
                             </DataItem>
 
                             {roomData.lead_property_name && (
-                                <DataItem>
+                                <DataItem style={{ gridColumn: '1 / -1' }}>
                                     <HeaderText>物件名</HeaderText>
                                     <DataValue>{roomData.lead_property_name}</DataValue>
                                 </DataItem>
                             )}
 
                             {roomData.lead_room_type_name && (
-                                <DataItem>
-                                    <HeaderText>部屋タイプ</HeaderText>
+                                <DataItem style={{ gridColumn: '1 / -1' }}>
+                                    <HeaderText>部屋タイプ名</HeaderText>
                                     <DataValue>{roomData.lead_room_type_name}</DataValue>
                                 </DataItem>
                             )}

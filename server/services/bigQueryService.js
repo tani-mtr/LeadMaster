@@ -537,9 +537,8 @@ class BigQueryService {
                 return column;
             });
 
-            // 追加カラムを追加（GASコードと同様）
+            // 追加カラムを追加（既存のlead_property_idと重複しないように調整）
             columns.push("ROOMTYPE.name AS `lead_room_type_name`");
-            columns.push("ROOM.lead_property_id AS `lead_property_id`");
             columns.push("PROPERTY.name AS `lead_property_name`");
 
             const query = `
@@ -570,10 +569,22 @@ class BigQueryService {
      */
     async getRoomSchema() {
         try {
-            // シンプルなスキーマを返す（idとnameのみ）
+            // 新しいカラムリストに対応したスキーマ
             const schema = {
-                id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
-                name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
+                id: { type: 'STRING', japaneseName: '部屋ID', order: 1, editable: false, isRequired: false },
+                status: { type: 'STRING', japaneseName: '進捗', order: 2, editable: true, isRequired: false },
+                name: { type: 'STRING', japaneseName: '部屋名', order: 3, editable: true, isRequired: true },
+                room_number: { type: 'STRING', japaneseName: '部屋番号', order: 4, editable: true, isRequired: false },
+                lead_property_id: { type: 'STRING', japaneseName: '建物ID', order: 5, editable: true, isRequired: false },
+                lead_room_type_id: { type: 'STRING', japaneseName: '部屋タイプID', order: 6, editable: true, isRequired: false },
+                create_date: { type: 'TIMESTAMP', japaneseName: '部屋登録日', order: 7, editable: false, isRequired: false },
+                key_handover_scheduled_date: { type: 'DATE', japaneseName: '鍵引き渡し予定日', order: 8, editable: true, isRequired: false },
+                possible_key_handover_scheduled_date_1: { type: 'DATE', japaneseName: '鍵引き渡し予定日①', order: 9, editable: true, isRequired: false },
+                possible_key_handover_scheduled_date_2: { type: 'DATE', japaneseName: '鍵引き渡し予定日②', order: 10, editable: true, isRequired: false },
+                possible_key_handover_scheduled_date_3: { type: 'DATE', japaneseName: '鍵引き渡し予定日③', order: 11, editable: true, isRequired: false },
+                vacate_setup: { type: 'STRING', japaneseName: '退去SU', order: 12, editable: true, isRequired: false },
+                contract_collection_date: { type: 'DATE', japaneseName: '契約書回収予定日', order: 13, editable: true, isRequired: false },
+                application_intended_date: { type: 'DATE', japaneseName: '申請予定日', order: 14, editable: true, isRequired: false }
             };
 
             return schema;

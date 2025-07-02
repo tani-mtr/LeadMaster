@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import ContactButton from './components/ContactButton';
-import RoomDrawer from './components/RoomDrawer';
 import TopPage from './pages/TopPage';
 import DetailPage from './pages/DetailPage';
 import PropertyPage from './pages/PropertyPage';
@@ -14,22 +13,6 @@ function App() {
     const location = useLocation();
     const [deployURL, setDeployURL] = useState('/');
     const [currentPage, setCurrentPage] = useState('top');
-    
-    // ドロワーの状態管理
-    const [isRoomDrawerOpen, setIsRoomDrawerOpen] = useState(false);
-    const [selectedRoomId, setSelectedRoomId] = useState(null);
-
-    // ドロワーを開く関数
-    const openRoomDrawer = (roomId) => {
-        setSelectedRoomId(roomId);
-        setIsRoomDrawerOpen(true);
-    };
-
-    // ドロワーを閉じる関数
-    const closeRoomDrawer = () => {
-        setIsRoomDrawerOpen(false);
-        setSelectedRoomId(null);
-    };
 
     useEffect(() => {
         // URLパスに基づいて現在のページを判定
@@ -80,19 +63,13 @@ function App() {
 
             <main>
                 <Routes>
-                    <Route path="/" element={<TopPage openRoomDrawer={openRoomDrawer} />} />
+                    <Route path="/" element={<TopPage />} />
                     <Route path="/detail/:id" element={<DetailPage />} />
-                    <Route path="/property/:id" element={<PropertyPage openRoomDrawer={openRoomDrawer} />} />
+                    <Route path="/property/:id" element={<PropertyPage />} />
+                    <Route path="/room/:id" element={<RoomPage />} />
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </main>
-
-            {/* 部屋詳細ドロワー */}
-            <RoomDrawer 
-                isOpen={isRoomDrawerOpen} 
-                onClose={closeRoomDrawer} 
-                roomId={selectedRoomId} 
-            />
 
             {/* Slack問い合わせボタン - 実際のSlack URLに置き換える必要があります */}
             <ContactButton href="https://slack.com/your-channel-url" text="お問い合わせ" />

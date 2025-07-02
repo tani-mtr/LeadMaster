@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
+import RoomDrawer from '../components/RoomDrawer';
 
 // スタイル定義
 const Container = styled.div`
@@ -283,8 +284,15 @@ const RoomTypeContainer = styled.div`
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
-const PropertyPage = ({ openRoomDrawer }) => {
+const PropertyPage = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // URL から roomId パラメータを取得
+    const urlParams = new URLSearchParams(location.search);
+    const roomIdFromUrl = urlParams.get('roomId');
+
     const [activeTab, setActiveTab] = useState('info');
     const [property, setProperty] = useState(null);
     const [rooms, setRooms] = useState([]);
@@ -294,6 +302,10 @@ const PropertyPage = ({ openRoomDrawer }) => {
     const [error, setError] = useState(null);
     const [editMode, setEditMode] = useState(false);
     const [editData, setEditData] = useState({});
+
+    // ドロワー関連の状態
+    const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
+    const [selectedRoomId, setSelectedRoomId] = useState(roomIdFromUrl);
 
     // 部屋一覧の検索・ページネーション・選択機能
     const [searchTerm, setSearchTerm] = useState('');
@@ -307,6 +319,43 @@ const PropertyPage = ({ openRoomDrawer }) => {
     const [roomTypesError, setRoomTypesError] = useState(null);
 
     const itemsPerPage = 10;
+
+    // ドロワーを開く関数
+    const handleOpenRoomDrawer = useCallback((roomId) => {
+        setSelectedRoomId(roomId);
+        setDrawerOpen(true);
+
+        // URLにroomIdパラメータを追加
+        const newParams = new URLSearchParams(location.search);
+        newParams.set('roomId', roomId);
+        navigate(`${location.pathname}?${newParams.toString()}`, { replace: true });
+    }, [navigate, location.pathname, location.search]);
+
+    // ドロワーを閉じる関数
+    const handleCloseRoomDrawer = useCallback(() => {
+        setDrawerOpen(false);
+        setSelectedRoomId(null);
+
+        // URLからroomIdパラメータを削除
+        const newParams = new URLSearchParams(location.search);
+        newParams.delete('roomId');
+        const newSearch = newParams.toString();
+        navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ''}`, { replace: true });
+    }, [navigate, location.pathname, location.search]);
+
+    // URLの変更を監視してドロワー状態を同期
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const roomIdFromUrl = urlParams.get('roomId');
+
+        if (roomIdFromUrl && roomIdFromUrl !== selectedRoomId) {
+            setSelectedRoomId(roomIdFromUrl);
+            setDrawerOpen(true);
+        } else if (!roomIdFromUrl && drawerOpen) {
+            setDrawerOpen(false);
+            setSelectedRoomId(null);
+        }
+    }, [location.search, selectedRoomId, drawerOpen]);
 
     // データ取得 - パフォーマンス最適化版
     useEffect(() => {
@@ -1029,7 +1078,7 @@ const PropertyPage = ({ openRoomDrawer }) => {
                                                         </TableCell>
                                                         <TableCell>{roomId}</TableCell>
                                                         <TableCell>
-                                                            <RoomNameButton onClick={() => openRoomDrawer(roomId)}>
+                                                            <RoomNameButton onClick={() => handleOpenRoomDrawer(roomId)}>
                                                                 {roomName}
                                                             </RoomNameButton>
                                                         </TableCell>
@@ -1039,7 +1088,7 @@ const PropertyPage = ({ openRoomDrawer }) => {
                                                                 <IconButton
                                                                     variant="primary"
                                                                     disabled={!isOperationEnabled}
-                                                                    onClick={() => openRoomDrawer(roomId)}
+                                                                    onClick={() => handleOpenRoomDrawer(roomId)}
                                                                     title="詳細を表示"
                                                                 >
                                                                     📝
@@ -1148,6 +1197,13 @@ const PropertyPage = ({ openRoomDrawer }) => {
                     )}
                 </Section>
             )}
+
+            {/* RoomDrawer を追加 */}
+            <RoomDrawer
+                isOpen={drawerOpen}
+                onClose={handleCloseRoomDrawer}
+                roomId={selectedRoomId}
+            />
         </Container>
     );
 };
