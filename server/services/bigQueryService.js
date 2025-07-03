@@ -351,8 +351,9 @@ class BigQueryService {
      * @param {string} id 物件ID
      * @returns {Promise<Array>} 物件データの配列
      */
-    async getPropertyData(id) {
+    async getPropertyData(id, skipCache = false) {
         try {
+            console.log(`getPropertyData開始 - ID: ${id}, skipCache: ${skipCache}`);
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
 
             // 全カラムを取得するクエリ
@@ -405,7 +406,20 @@ class BigQueryService {
             `;
 
             const params = { id: id };
-            const rows = await this.executeQuery(query, params);
+            console.log(`getPropertyData - クエリ実行前 - ID: ${id}`, {
+                query: query.substring(0, 100) + '...',
+                params: params,
+                skipCache: skipCache
+            });
+
+            // skipCacheがtrueの場合はキャッシュをバイパスする（useCache=false）
+            const rows = await this.executeQuery(query, params, !skipCache);
+
+            console.log(`getPropertyData - クエリ実行後 - ID: ${id}`, {
+                rowCount: rows ? rows.length : 0,
+                hasData: rows && rows.length > 0,
+                cacheUsed: !skipCache
+            });
 
             // データが見つからない場合は空配列を返す
             if (!rows || rows.length === 0) {
@@ -446,7 +460,11 @@ class BigQueryService {
             }));
 
         } catch (error) {
-            console.error('物件データ取得エラー:', error);
+            console.error(`getPropertyData エラー - ID: ${id}:`, {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             // エラーが発生した場合は空配列を返す（上位でモックデータにフォールバックするため）
             return [];
         }
@@ -602,19 +620,30 @@ class BigQueryService {
                 throw new Error(`BigQuery更新に失敗しました: ${queryError.message}`);
             }
 
+            // BigQueryの書き込み一貫性を確保するため少し待機
+            console.log('BigQuery書き込み一貫性のため200ms待機中...');
+            await new Promise(resolve => setTimeout(resolve, 200));
+
             // 最新のデータを取得
             console.log('更新後のデータを取得中...');
-            const latestData = await this.getPropertyData(id);
+            try {
+                const latestData = await this.getPropertyData(id, true); // キャッシュをバイパス
+                console.log('更新後データ取得成功:', latestData.length > 0 ? 'データあり' : 'データなし');
 
-            if (latestData.length === 0) {
-                const errorMsg = '更新後のデータ取得に失敗しました';
-                console.error(errorMsg);
-                throw new Error(errorMsg);
+                if (latestData.length === 0) {
+                    const errorMsg = '更新後のデータ取得に失敗しました';
+                    console.error(errorMsg);
+                    throw new Error(errorMsg);
+                }
+
+                console.log(`物件ID ${id} の更新が完了しました`);
+                console.log('返却するデータ:', JSON.stringify(latestData[0], null, 2));
+
+                return latestData[0];
+            } catch (getDataError) {
+                console.error('更新後データ取得エラー:', getDataError);
+                throw new Error(`更新後データ取得に失敗: ${getDataError.message}`);
             }
-
-            console.log(`物件ID ${id} の更新が完了しました`);
-
-            return latestData[0];
 
         } catch (error) {
             console.error('物件データ更新エラー - 詳細:', {
@@ -624,12 +653,12 @@ class BigQueryService {
                 id: id,
                 updatedData: updatedData
             });
-            
+
             // Cloud Run用により詳細なエラー情報を含める
             const detailedError = new Error(`物件データ更新エラー (ID: ${id}): ${error.message}`);
             detailedError.originalError = error;
             detailedError.context = { id, updatedData };
-            
+
             throw detailedError;
         }
     }

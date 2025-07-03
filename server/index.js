@@ -58,10 +58,29 @@ app.use(helmet({
         }
     }
 }));
-app.use(cors());
+
+// CORS設定を詳細に指定
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production'
+        ? ['https://lead-master-webapp-342064a.us-central1.run.app', 'https://lead-master-webapp.vercel.app']
+        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8081'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    maxAge: 86400 // 24時間
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(morgan('combined'));
+
+// リクエストログを詳細化
+app.use(morgan('combined', {
+    stream: {
+        write: (message) => {
+            console.log(message.trim());
+        }
+    }
+}));
 
 // ヘルスチェックエンドポイント
 app.get('/health', (req, res) => {
@@ -243,11 +262,11 @@ apiRouter.put('/property/:id', async (req, res) => {
 
         if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
             console.log('BigQueryで物件データを更新中...');
-            
+
             try {
                 const result = await bigQueryService.updateProperty(id, updatedData);
                 console.log('BigQuery更新成功:', result ? 'データあり' : 'データなし');
-                
+
                 res.json({
                     success: true,
                     message: '物件情報が正常に更新されました',
@@ -261,7 +280,7 @@ apiRouter.put('/property/:id', async (req, res) => {
                     originalError: bigQueryError.originalError,
                     context: bigQueryError.context
                 });
-                
+
                 res.status(500).json({
                     success: false,
                     error: 'BigQueryでの物件データ更新中にエラーが発生しました',
@@ -287,7 +306,7 @@ apiRouter.put('/property/:id', async (req, res) => {
             params: req.params,
             bodyPreview: JSON.stringify(req.body).substring(0, 200)
         });
-        
+
         res.status(500).json({
             success: false,
             error: '物件データの更新中にエラーが発生しました',

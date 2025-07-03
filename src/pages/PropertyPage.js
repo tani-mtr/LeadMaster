@@ -337,6 +337,7 @@ const PropertyPage = () => {
     const [editMode, setEditMode] = useState(false);
     const [editData, setEditData] = useState({});
     const [originalData, setOriginalData] = useState({}); // 元のデータを保存
+    const [forceUpdateKey, setForceUpdateKey] = useState(0); // 強制再レンダリング用
 
     // ドロワー関連の状態
     const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
@@ -749,20 +750,41 @@ const PropertyPage = () => {
             // BigQueryの物件データを更新（変更されたフィールドのみ）
             const response = await apiService.updatePropertyData(id, changedFields);
 
-            if (response.success) {
-                // 更新後のデータで表示を更新
-                setProperty(response.data || editData);
-                setOriginalData(response.data || editData); // 新しい元データとして保存
-                setEditMode(false);
-                alert('保存しました');
+            // レスポンスの構造をログで確認
+            console.log('更新レスポンス:', response);
 
-                // 最新のデータを再取得
-                const latestData = await apiService.getPropertyData(id);
+            alert('保存しました');
+
+            // 編集モードを終了
+            setEditMode(false);
+
+            // サーバーから返された更新後のデータがあればそれを使用
+            if (response && response.data) {
+                console.log('サーバーから返された更新後のデータを使用:', response.data);
+                console.log('更新前のproperty:', property);
+                setProperty(response.data);
+                setOriginalData(response.data);
+                setEditData(response.data);
+                setForceUpdateKey(prev => prev + 1); // 強制再レンダリング
+                console.log('更新後のproperty設定完了');
+            } else {
+                // フォールバック: 最新のデータを再取得
+                console.log('フォールバック: データを再取得します');
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const latestData = await apiService.getPropertyData(id, true);
+                console.log('再取得したデータ:', latestData);
+                console.log('更新前のproperty:', property);
+
                 setProperty(latestData);
                 setOriginalData(latestData);
-            } else {
-                throw new Error(response.error || '更新に失敗しました');
+                setEditData(latestData);
+                setForceUpdateKey(prev => prev + 1); // 強制再レンダリング
+                console.log('再取得データ設定完了');
             }
+
+            // 強制的に再レンダリングを促すための少しの遅延
+            await new Promise(resolve => setTimeout(resolve, 100));
         } catch (err) {
             console.error('保存エラー:', err);
             setError('保存中にエラーが発生しました: ' + (err.message || err));
@@ -811,7 +833,7 @@ const PropertyPage = () => {
     }
 
     return (
-        <Container>
+        <Container key={forceUpdateKey}>
             <Header>{property.name} - 物件管理</Header>
 
             <TabContainer>
@@ -872,7 +894,17 @@ const PropertyPage = () => {
                                 <Label required>建物名</Label>
                                 <Input
                                     type="text"
-                                    value={editMode ? editData.name : property.name}
+                                    value={(() => {
+                                        const displayValue = editMode ? editData.name : property.name;
+                                        console.log('建物名表示値:', {
+                                            editMode,
+                                            editDataName: editData.name,
+                                            propertyName: property.name,
+                                            displayValue,
+                                            forceUpdateKey
+                                        });
+                                        return displayValue;
+                                    })()}
                                     disabled={!editMode}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
                                     required

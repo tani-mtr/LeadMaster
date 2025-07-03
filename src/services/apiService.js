@@ -1,7 +1,13 @@
 import axios from 'axios';
 
 // APIのベースURL
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+const API_BASE_URL = 'http://localhost:8080/api';  // 一時的に直接指定
+
+console.log('API Service 初期化:', {
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+    API_BASE_URL: API_BASE_URL,
+    NODE_ENV: process.env.NODE_ENV
+});
 
 // シンプルなメモリキャッシュ
 const cache = new Map();
@@ -43,6 +49,12 @@ const apiClient = axios.create({
 // リクエストインターセプター
 apiClient.interceptors.request.use(
     (config) => {
+        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+            baseURL: config.baseURL,
+            fullURL: `${config.baseURL}${config.url}`,
+            headers: config.headers
+        });
+
         // リクエスト前の処理（認証トークンの追加など）
         const token = localStorage.getItem('authToken');
         if (token) {
@@ -51,6 +63,7 @@ apiClient.interceptors.request.use(
         return config;
     },
     (error) => {
+        console.error('Request interceptor error:', error);
         return Promise.reject(error);
     }
 );
@@ -58,14 +71,25 @@ apiClient.interceptors.request.use(
 // レスポンスインターセプター
 apiClient.interceptors.response.use(
     (response) => {
-        console.log(`API Success: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+        console.log(`API Success: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`, {
+            data: response.data,
+            status: response.status,
+            statusText: response.statusText
+        });
         return response;
     },
     (error) => {
         console.error(`API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'Network Error'}`, {
             status: error.response?.status,
             statusText: error.response?.statusText,
-            message: error.message
+            message: error.message,
+            config: {
+                baseURL: error.config?.baseURL,
+                url: error.config?.url,
+                method: error.config?.method
+            },
+            errorCode: error.code,
+            errorType: error.name
         });
 
         // エラー処理（認証エラーなど）
@@ -115,12 +139,17 @@ export const apiService = {
     },
 
     // 物件データの取得（GASのgetPropertyData関数と同様）
-    getPropertyData: async (id) => {
+    getPropertyData: async (id, forceRefresh = false) => {
         const cacheKey = getCacheKey(`/property/${id}`);
-        const cachedData = getCache(cacheKey);
 
-        if (cachedData) {
-            return cachedData;
+        if (forceRefresh) {
+            // 強制更新の場合はキャッシュを削除
+            cache.delete(cacheKey);
+        } else {
+            const cachedData = getCache(cacheKey);
+            if (cachedData) {
+                return cachedData;
+            }
         }
 
         try {
@@ -136,15 +165,47 @@ export const apiService = {
     // 物件データの更新（GASのupdateProperty関数と同様）
     updatePropertyData: async (id, updatedData) => {
         try {
+            console.log(`物件データ更新開始 - ID: ${id}`, {
+                updatedData,
+                dataKeys: Object.keys(updatedData),
+                dataSize: JSON.stringify(updatedData).length
+            });
+
             const response = await apiClient.put(`/property/${id}`, updatedData);
+
+            console.log('物件データ更新レスポンス:', response.data);
 
             // 更新が成功したら、該当のキャッシュを削除して次回取得時に最新データを取得
             const cacheKey = getCacheKey(`/property/${id}`);
             cache.delete(cacheKey);
 
+            // キャッシュを完全にクリアして確実に最新データを取得
+            cache.clear();
+
             return response.data;
         } catch (error) {
-            console.error(`Error updating property with id ${id}:`, error);
+            console.error(`物件データ更新エラー - ID: ${id}`, {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                headers: error.response?.headers,
+                config: {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    data: error.config?.data
+                }
+            });
+
+            // サーバーからのエラーレスポンスがある場合はそれを使用
+            if (error.response?.data?.error) {
+                const serverError = new Error(error.response.data.error);
+                serverError.details = error.response.data.details;
+                serverError.errorType = error.response.data.errorType;
+                serverError.status = error.response.status;
+                throw serverError;
+            }
+
             throw error;
         }
     },
