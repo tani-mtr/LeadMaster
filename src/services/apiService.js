@@ -58,20 +58,14 @@ apiClient.interceptors.request.use(
 // レスポンスインターセプター
 apiClient.interceptors.response.use(
     (response) => {
-        console.log('API Response Success:', response.status, response.data);
+        console.log(`API Success: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
         return response;
     },
     (error) => {
-        console.error('API Response Error:', {
+        console.error(`API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'Network Error'}`, {
             status: error.response?.status,
             statusText: error.response?.statusText,
-            data: error.response?.data,
-            message: error.message,
-            config: {
-                url: error.config?.url,
-                method: error.config?.method,
-                baseURL: error.config?.baseURL
-            }
+            message: error.message
         });
 
         // エラー処理（認証エラーなど）
@@ -90,9 +84,7 @@ export const apiService = {
     // 建物一覧の取得
     getBuildings: async () => {
         try {
-            console.log('API Request: GET /buildings');
             const response = await apiClient.get('/buildings');
-            console.log('API Response: buildings data received', response.data);
             return response.data;
         } catch (error) {
             console.error('Error fetching buildings:', error);
@@ -128,19 +120,31 @@ export const apiService = {
         const cachedData = getCache(cacheKey);
 
         if (cachedData) {
-            console.log(`キャッシュから物件データを取得: ${id}`);
             return cachedData;
         }
 
         try {
-            console.log(`API Request: GET /property/${id}`);
             const response = await apiClient.get(`/property/${id}`);
-            console.log('API Response: property data received', response.data);
-
             setCache(cacheKey, response.data);
             return response.data;
         } catch (error) {
             console.error(`Error fetching property with id ${id}:`, error);
+            throw error;
+        }
+    },
+
+    // 物件データの更新（GASのupdateProperty関数と同様）
+    updatePropertyData: async (id, updatedData) => {
+        try {
+            const response = await apiClient.put(`/property/${id}`, updatedData);
+
+            // 更新が成功したら、該当のキャッシュを削除して次回取得時に最新データを取得
+            const cacheKey = getCacheKey(`/property/${id}`);
+            cache.delete(cacheKey);
+
+            return response.data;
+        } catch (error) {
+            console.error(`Error updating property with id ${id}:`, error);
             throw error;
         }
     },

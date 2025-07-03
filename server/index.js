@@ -42,12 +42,6 @@ const bigQueryService = new BigQueryService();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// HTTPヘッダーサイズ制限を増加
-app.use((req, res, next) => {
-    req.setTimeout(30000); // 30秒のタイムアウト（短縮）
-    next();
-});
-
 // 起動情報のログ出力
 console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`現在の作業ディレクトリ: ${process.cwd()}`);
@@ -213,6 +207,38 @@ apiRouter.get('/property/:id', async (req, res) => {
         // エラーが発生した場合はモックデータにフォールバック
         console.log('エラーのためモックデータにフォールバック');
         return res.json(mockPropertyData);
+    }
+});
+
+// 物件データを更新（GASのupdateProperty関数と同様）
+apiRouter.put('/property/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updatedData = req.body;
+
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log('BigQueryで物件データを更新中...', { id, updatedData });
+            const result = await bigQueryService.updateProperty(id, updatedData);
+            res.json({
+                success: true,
+                message: '物件情報が正常に更新されました',
+                data: result
+            });
+        } else {
+            console.log('BigQuery設定がないため、モック更新レスポンスを返します');
+            res.json({
+                success: true,
+                message: '物件情報が正常に更新されました（モック）',
+                data: updatedData
+            });
+        }
+    } catch (error) {
+        console.error('物件データ更新エラー:', error);
+        res.status(500).json({
+            success: false,
+            error: '物件データの更新中にエラーが発生しました',
+            details: error.message
+        });
     }
 });
 
@@ -667,57 +693,6 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-// サーバー起動（HTTPヘッダーサイズ制限を設定）
-const server = http.createServer(app);
-
-// サーバー設定でHTTPヘッダーサイズ制限を増加
-server.maxHeadersCount = 0; // ヘッダー数制限を無効化
-server.headersTimeout = 300000; // 5分のタイムアウト
-
-server.listen(PORT, () => {
-    console.log(`サーバーがポート ${PORT} で起動しました`);
-    console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`作業ディレクトリ: ${process.cwd()}`);
-    console.log(`__dirname: ${__dirname}`);
-
-    // ディレクトリ構造の確認
-    const fs = require('fs');
-    console.log('ディレクトリ構造:');
-    try {
-        console.log('Current directory contents:', fs.readdirSync(__dirname));
-        const buildPath = path.join(__dirname, 'build');
-        if (fs.existsSync(buildPath)) {
-            console.log('Build directory contents:', fs.readdirSync(buildPath));
-        } else {
-            console.log('Build directory does not exist at:', buildPath);
-        }
-    } catch (err) {
-        console.error('Directory listing error:', err);
-    }
-
-    if (process.env.NODE_ENV === 'production') {
-        console.log('Production モード: 静的ファイルを配信します');
-    } else {
-        console.log('Development モード: API のみを提供します');
-        console.log('フロントエンドは別途起動してください (npm start)');
-    }
-});
-
-// グレースフルシャットダウン
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully');
-    server.close(() => {
-        process.exit(0);
-    });
-});
-
-process.on('SIGINT', () => {
-    console.log('SIGINT received, shutting down gracefully');
-    server.close(() => {
-        process.exit(0);
-    });
-});
-
 // 部屋タイプデータの更新
 apiRouter.put('/room-type/:id', async (req, res) => {
     const roomTypeId = req.params.id;
@@ -1034,8 +1009,55 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // サーバー起動（HTTPヘッダーサイズ制限を設定）
+const server = http.createServer(app);
 
-// サーバー設定でHTTPヘッダーサイズ制限を増加
+// サーバー設定でHTTPヘッダーサイズ制限を大幅に増加
 server.maxHeadersCount = 0; // ヘッダー数制限を無効化
+server.maxHeaderSize = 131072; // 128KB（デフォルトの8KB×16）
 server.headersTimeout = 300000; // 5分のタイムアウト
+server.timeout = 300000; // 5分のタイムアウト
+
+server.listen(PORT, () => {
+    console.log(`サーバーがポート ${PORT} で起動しました`);
+    console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`作業ディレクトリ: ${process.cwd()}`);
+    console.log(`__dirname: ${__dirname}`);
+
+    // ディレクトリ構造の確認
+    const fs = require('fs');
+    console.log('ディレクトリ構造:');
+    try {
+        console.log('Current directory contents:', fs.readdirSync(__dirname));
+        const buildPath = path.join(__dirname, 'build');
+        if (fs.existsSync(buildPath)) {
+            console.log('Build directory contents:', fs.readdirSync(buildPath));
+        } else {
+            console.log('Build directory does not exist at:', buildPath);
+        }
+    } catch (err) {
+        console.error('Directory listing error:', err);
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+        console.log('Production モード: 静的ファイルを配信します');
+    } else {
+        console.log('Development モード: API のみを提供します');
+        console.log('フロントエンドは別途起動してください (npm start)');
+    }
+});
+
+// グレースフルシャットダウン
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    server.close(() => {
+        process.exit(0);
+    });
+});
 

@@ -5,6 +5,17 @@ import { apiService } from '../services/apiService';
 import RoomDrawer from '../components/RoomDrawer';
 import RoomTypeDrawer from '../components/RoomTypeDrawer';
 
+// 選択肢の定数定義
+const SELECT_OPTIONS = {
+    is_trade: ['', '売買'],
+    is_lease: ['', '通常借上'],
+    lead_channel: ['', 'ダイレクト', 'レインズ'],
+    minpaku_feasibility: ['', '可', '不可', '確認中', '可能', '旅館業'],
+    sp_feasibility: ['', 'SP不要', 'SP必要', '確認中'],
+    done_property_viewing: ['', '未内見', '竣工待ち', '内見済み', '内見可能', '内見済', '済', '竣工前'],
+    done_antisocial_check: ['', '有', '無', '済']
+};
+
 // スタイル定義
 const Container = styled.div`
   max-width: 1600px;
@@ -53,6 +64,13 @@ const Label = styled.label`
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
+  
+  /* アスタリスクのスタイル */
+  &::after {
+    content: ${props => props.required ? '"*"' : '""'};
+    color: #dc3545;
+    margin-left: 2px;
+  }
 `;
 
 const Input = styled.input`
@@ -61,6 +79,21 @@ const Input = styled.input`
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  
+  &:disabled {
+    background: #f8f9fa;
+    cursor: not-allowed;
+  }
 `;
 
 const Button = styled.button`
@@ -303,6 +336,7 @@ const PropertyPage = () => {
     const [error, setError] = useState(null);
     const [editMode, setEditMode] = useState(false);
     const [editData, setEditData] = useState({});
+    const [originalData, setOriginalData] = useState({}); // 元のデータを保存
 
     // ドロワー関連の状態
     const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
@@ -405,6 +439,7 @@ const PropertyPage = () => {
 
                 setProperty(propertyData);
                 setEditData(propertyData);
+                setOriginalData(propertyData); // 元のデータを保存
 
                 // 部屋データがある場合のみ設定
                 if (propertyData.has_related_rooms) {
@@ -658,14 +693,81 @@ const PropertyPage = () => {
     // 保存処理
     const handleSave = async () => {
         try {
-            // 実際のAPI呼び出しに置き換える（今後実装予定）
-            await new Promise(resolve => setTimeout(resolve, 500));
+            setLoading(true);
+            setError('');
 
-            setProperty(editData);
-            setEditMode(false);
-            alert('保存しました');
+            // バリデーション - 必須項目チェック
+            if (!editData.name || editData.name.trim() === '') {
+                alert('建物名は必須項目です。');
+                setLoading(false);
+                return;
+            }
+
+            if (!editData.lead_from || editData.lead_from.trim() === '') {
+                alert('lead元は必須項目です。');
+                setLoading(false);
+                return;
+            }
+
+            // 変更されたフィールドのみを抽出
+            const changedFields = {};
+            const excludeFields = ['has_related_rooms', 'create_date']; // 更新対象外のフィールド
+
+            for (const key in editData) {
+                if (editData.hasOwnProperty(key) &&
+                    key !== 'id' &&
+                    !excludeFields.includes(key)) {
+
+                    // 値の正規化（null, undefined, 空文字を統一）
+                    const normalizeValue = (value) => {
+                        if (value === null || value === undefined || value === '') {
+                            return null;
+                        }
+                        return value;
+                    };
+
+                    const normalizedNewValue = normalizeValue(editData[key]);
+                    const normalizedOriginalValue = normalizeValue(originalData[key]);
+
+                    // 値が変更されている場合のみ送信対象に含める
+                    if (normalizedNewValue !== normalizedOriginalValue) {
+                        changedFields[key] = editData[key];
+                        console.log(`フィールド ${key} が変更されました: "${normalizedOriginalValue}" -> "${normalizedNewValue}"`);
+                    }
+                }
+            }
+
+            // 変更がない場合はアラートを表示
+            if (Object.keys(changedFields).length === 0) {
+                alert('変更されたデータがありません。');
+                setLoading(false);
+                return;
+            }
+
+            console.log('送信する変更データ:', changedFields);
+
+            // BigQueryの物件データを更新（変更されたフィールドのみ）
+            const response = await apiService.updatePropertyData(id, changedFields);
+
+            if (response.success) {
+                // 更新後のデータで表示を更新
+                setProperty(response.data || editData);
+                setOriginalData(response.data || editData); // 新しい元データとして保存
+                setEditMode(false);
+                alert('保存しました');
+
+                // 最新のデータを再取得
+                const latestData = await apiService.getPropertyData(id);
+                setProperty(latestData);
+                setOriginalData(latestData);
+            } else {
+                throw new Error(response.error || '更新に失敗しました');
+            }
         } catch (err) {
-            setError('保存中にエラーが発生しました');
+            console.error('保存エラー:', err);
+            setError('保存中にエラーが発生しました: ' + (err.message || err));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -741,7 +843,16 @@ const PropertyPage = () => {
                 <Section>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3>物件基本情報</h3>
-                        <Button onClick={() => setEditMode(!editMode)}>
+                        <Button onClick={() => {
+                            if (!editMode) {
+                                // 編集モードに入る際に元のデータを保存
+                                setOriginalData({ ...property });
+                            } else {
+                                // キャンセル時は編集内容を元に戻す
+                                setEditData({ ...originalData });
+                            }
+                            setEditMode(!editMode);
+                        }}>
                             {editMode ? 'キャンセル' : '編集'}
                         </Button>
                     </div>
@@ -758,12 +869,13 @@ const PropertyPage = () => {
                             </FormGroup>
 
                             <FormGroup>
-                                <Label>建物名</Label>
+                                <Label required>建物名</Label>
                                 <Input
                                     type="text"
                                     value={editMode ? editData.name : property.name}
                                     disabled={!editMode}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
+                                    required
                                 />
                             </FormGroup>
 
@@ -779,31 +891,56 @@ const PropertyPage = () => {
 
                             <FormGroup>
                                 <Label>売買</Label>
-                                <Input
-                                    type="text"
-                                    value={editMode ? editData.is_trade : property.is_trade}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('is_trade', e.target.value)}
-                                />
+                                {editMode ? (
+                                    <Select
+                                        value={editData.is_trade || ''}
+                                        onChange={(e) => handleInputChange('is_trade', e.target.value)}
+                                    >
+                                        {SELECT_OPTIONS.is_trade.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.is_trade || ''}
+                                        disabled={true}
+                                    />
+                                )}
                             </FormGroup>
 
                             <FormGroup>
                                 <Label>借上</Label>
-                                <Input
-                                    type="text"
-                                    value={editMode ? editData.is_lease : property.is_lease}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('is_lease', e.target.value)}
-                                />
+                                {editMode ? (
+                                    <Select
+                                        value={editData.is_lease || ''}
+                                        onChange={(e) => handleInputChange('is_lease', e.target.value)}
+                                    >
+                                        {SELECT_OPTIONS.is_lease.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.is_lease || ''}
+                                        disabled={true}
+                                    />
+                                )}
                             </FormGroup>
 
                             <FormGroup>
-                                <Label>lead元</Label>
+                                <Label required>lead元</Label>
                                 <Input
                                     type="text"
                                     value={editMode ? editData.lead_from : property.lead_from}
                                     disabled={!editMode}
                                     onChange={(e) => handleInputChange('lead_from', e.target.value)}
+                                    required
                                 />
                             </FormGroup>
 
@@ -819,12 +956,24 @@ const PropertyPage = () => {
 
                             <FormGroup>
                                 <Label>Leadチャネル</Label>
-                                <Input
-                                    type="text"
-                                    value={editMode ? editData.lead_channel : property.lead_channel}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('lead_channel', e.target.value)}
-                                />
+                                {editMode ? (
+                                    <Select
+                                        value={editData.lead_channel || ''}
+                                        onChange={(e) => handleInputChange('lead_channel', e.target.value)}
+                                    >
+                                        {SELECT_OPTIONS.lead_channel.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.lead_channel || ''}
+                                        disabled={true}
+                                    />
+                                )}
                             </FormGroup>
 
                             <FormGroup>
@@ -917,9 +1066,8 @@ const PropertyPage = () => {
                                 <Label>シリアルナンバー</Label>
                                 <Input
                                     type="text"
-                                    value={editMode ? editData.serial_number : property.serial_number}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('serial_number', e.target.value)}
+                                    value={property.serial_number}
+                                    disabled={true}
                                 />
                             </FormGroup>
 
@@ -994,32 +1142,68 @@ const PropertyPage = () => {
 
                             <FormGroup>
                                 <Label>民泊可否</Label>
-                                <Input
-                                    type="text"
-                                    value={editMode ? editData.minpaku_feasibility : property.minpaku_feasibility}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('minpaku_feasibility', e.target.value)}
-                                />
+                                {editMode ? (
+                                    <Select
+                                        value={editData.minpaku_feasibility || ''}
+                                        onChange={(e) => handleInputChange('minpaku_feasibility', e.target.value)}
+                                    >
+                                        {SELECT_OPTIONS.minpaku_feasibility.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.minpaku_feasibility || ''}
+                                        disabled={true}
+                                    />
+                                )}
                             </FormGroup>
 
                             <FormGroup>
                                 <Label>SP可否</Label>
-                                <Input
-                                    type="text"
-                                    value={editMode ? editData.sp_feasibility : property.sp_feasibility}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('sp_feasibility', e.target.value)}
-                                />
+                                {editMode ? (
+                                    <Select
+                                        value={editData.sp_feasibility || ''}
+                                        onChange={(e) => handleInputChange('sp_feasibility', e.target.value)}
+                                    >
+                                        {SELECT_OPTIONS.sp_feasibility.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.sp_feasibility || ''}
+                                        disabled={true}
+                                    />
+                                )}
                             </FormGroup>
 
                             <FormGroup>
                                 <Label>内見</Label>
-                                <Input
-                                    type="text"
-                                    value={editMode ? editData.done_property_viewing : property.done_property_viewing}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('done_property_viewing', e.target.value)}
-                                />
+                                {editMode ? (
+                                    <Select
+                                        value={editData.done_property_viewing || ''}
+                                        onChange={(e) => handleInputChange('done_property_viewing', e.target.value)}
+                                    >
+                                        {SELECT_OPTIONS.done_property_viewing.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.done_property_viewing || ''}
+                                        disabled={true}
+                                    />
+                                )}
                             </FormGroup>
 
                             <FormGroup>
@@ -1044,18 +1228,42 @@ const PropertyPage = () => {
 
                             <FormGroup>
                                 <Label>反社チェック有無</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.done_antisocial_check || ''}
+                                        onChange={(e) => handleInputChange('done_antisocial_check', e.target.value)}
+                                    >
+                                        {SELECT_OPTIONS.done_antisocial_check.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.done_antisocial_check || ''}
+                                        disabled={true}
+                                    />
+                                )}
+                            </FormGroup>
+
+                            <FormGroup>
+                                <Label>備考</Label>
                                 <Input
                                     type="text"
-                                    value={editMode ? editData.done_antisocial_check : property.done_antisocial_check}
+                                    value={editMode ? editData.note : property.note}
                                     disabled={!editMode}
-                                    onChange={(e) => handleInputChange('done_antisocial_check', e.target.value)}
+                                    onChange={(e) => handleInputChange('note', e.target.value)}
                                 />
                             </FormGroup>
                         </div>
                     </div>
 
                     {editMode && (
-                        <Button onClick={handleSave}>保存</Button>
+                        <Button onClick={handleSave} disabled={loading}>
+                            {loading ? '保存中...' : '保存'}
+                        </Button>
                     )}
                 </Section>
             )}

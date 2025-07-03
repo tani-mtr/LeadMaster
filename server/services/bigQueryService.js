@@ -432,435 +432,156 @@ class BigQueryService {
     }
 
     /**
-     * 指定された物件IDの部屋一覧を取得（GASのgetRoomList関数と同様）
+     * 物件データを更新（GASのupdateProperty関数と同様）
      * @param {string} id 物件ID
-     * @returns {Promise<Array>} 部屋データの配列（ヘッダー行含む）
+     * @param {Object} updatedData 更新するデータ
+     * @returns {Promise<Object>} 更新後のデータ
      */
-    async getRoomList(id) {
+    async updateProperty(id, updatedData) {
         try {
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+            const datasetId = 'zzz_taniguchi';
+            const tableName = 'lead_property';
 
-            const query = `
-                WITH lead_room_type_id_counts AS (
-                    SELECT
-                        lead_room_type_id,
-                        count(DISTINCT id) AS num_rooms
-                    FROM
-                        \`${projectId}.zzz_taniguchi.lead_room\` AS lead_room
-                    GROUP BY
-                        1
-                ),
-                lead_room_with_shared_type_id AS (
-                    SELECT
-                        lead_room.id,
-                        CASE
-                            WHEN lead_room_type_id_counts.num_rooms = 1 THEN TRUE
-                            ELSE FALSE
-                        END AS is_shared_type_id
-                    FROM
-                        \`${projectId}.zzz_taniguchi.lead_room\` AS lead_room
-                        LEFT OUTER JOIN lead_room_type_id_counts ON lead_room.lead_room_type_id = lead_room_type_id_counts.lead_room_type_id
-                )
-                SELECT
-                    ROOM.status AS \`進捗\`,
-                    ROOM.id AS \`部屋ID\`,
-                    ROOM.name AS \`部屋名\`,
-                    ROOMTYPE.name AS \`部屋タイプ\`,
-                    lead_room_with_shared_type_id.is_shared_type_id AS \`操作\`
-                FROM
-                    \`${projectId}.zzz_taniguchi.lead_room\` AS ROOM
-                    LEFT JOIN lead_room_with_shared_type_id ON ROOM.id = lead_room_with_shared_type_id.id
-                    LEFT JOIN \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOMTYPE ON ROOM.lead_room_type_id = ROOMTYPE.id
-                WHERE
-                    ROOM.lead_property_id = @id
-                ORDER BY
-                    ROOM.name
-            `;
+            console.log(`物件ID ${id} のデータを更新中:`, updatedData);
 
-            const params = { id: id };
-            const rows = await this.executeQuery(query, params);
+            // スキーマ情報を取得（これは実際にはSpreadSheetから取得する想定ですが、
+            // ここでは一般的なカラムタイプを想定）
+            const columnTypeMapping = {
+                'name': 'STRING',
+                'tag': 'STRING',
+                'is_trade': 'STRING',
+                'is_lease': 'STRING',
+                'lead_from': 'STRING',
+                'is_fund': 'STRING',
+                'lead_channel': 'STRING',
+                'trade_form': 'STRING',
+                'lead_from_representative': 'STRING',
+                'lead_from_representative_phone': 'STRING',
+                'lead_from_representative_email': 'STRING',
+                'folder': 'STRING',
+                'serial_number': 'STRING',
+                'note': 'STRING',
+                'mt_representative': 'STRING',
+                'information_acquisition_date': 'DATE',
+                'latest_inventory_confirmation_date': 'DATE',
+                'num_of_occupied_rooms': 'NUMERIC',
+                'num_of_vacant_rooms': 'NUMERIC',
+                'num_of_rooms_without_furniture': 'NUMERIC',
+                'minpaku_feasibility': 'STRING',
+                'sp_feasibility': 'STRING',
+                'done_property_viewing': 'STRING',
+                'torikago': 'STRING',
+                'key_handling_date': 'DATE',
+                'done_antisocial_check': 'STRING'
+            };
 
-            console.log(`物件ID ${id} の部屋データを ${rows.length} 件取得しました`);
+            // まず現在のデータを取得
+            const currentDataArray = await this.getPropertyData(id);
+            if (currentDataArray.length === 0) {
+                throw new Error('更新対象の物件が見つかりません');
+            }
+            const currentData = currentDataArray[0];
 
-            // データが見つからない場合はヘッダーのみの配列を返す
-            const headers = ['進捗', '部屋ID', '部屋名', '部屋タイプ', '操作'];
+            // 変更されたデータのみをフィルタリング
+            const setClauses = [];
+            const excludeFields = ['has_related_rooms', 'create_date'];
 
-            if (!rows || rows.length === 0) {
-                console.log(`物件ID ${id} の部屋データが見つかりませんでした`);
-                return [headers];
+            for (const key in updatedData) {
+                if (updatedData.hasOwnProperty(key) && key !== 'id' && !excludeFields.includes(key)) {
+                    const newValue = updatedData[key];
+                    const currentValue = currentData[key];
+
+                    // 値の正規化（null, undefined, 空文字を統一）
+                    const normalizeValue = (value) => {
+                        if (value === null || value === undefined || value === '') {
+                            return null;
+                        }
+                        return value;
+                    };
+
+                    const normalizedNewValue = normalizeValue(newValue);
+                    const normalizedCurrentValue = normalizeValue(currentValue);
+
+                    // 値が変更されている場合のみ更新対象に含める
+                    if (normalizedNewValue !== normalizedCurrentValue) {
+                        console.log(`フィールド ${key} が変更されました: "${normalizedCurrentValue}" -> "${normalizedNewValue}"`);
+
+                        const columnType = columnTypeMapping[key] || 'STRING';
+                        let setClause;
+
+                        if (columnType === 'STRING') {
+                            if (normalizedNewValue === null) {
+                                setClause = `\`${key}\` = NULL`;
+                            } else {
+                                // SQL injectionを防ぐためにエスケープ
+                                const escapedValue = normalizedNewValue.toString().replace(/'/g, "''");
+                                setClause = `\`${key}\` = '${escapedValue}'`;
+                            }
+                        } else if (columnType === 'DATE') {
+                            if (normalizedNewValue === null) {
+                                setClause = `\`${key}\` = NULL`;
+                            } else {
+                                setClause = `\`${key}\` = CAST('${normalizedNewValue}' AS DATE)`;
+                            }
+                        } else if (columnType === 'NUMERIC') {
+                            if (normalizedNewValue === null) {
+                                setClause = `\`${key}\` = NULL`;
+                            } else {
+                                setClause = `\`${key}\` = ${normalizedNewValue}`;
+                            }
+                        } else {
+                            if (normalizedNewValue === null) {
+                                setClause = `\`${key}\` = NULL`;
+                            } else {
+                                setClause = `\`${key}\` = ${normalizedNewValue}`;
+                            }
+                        }
+                        setClauses.push(setClause);
+                    }
+                }
             }
 
-            // データを2次元配列に変換（GASの形式に合わせる）
-            const dataRows = rows.map(row => [
-                row.進捗 || '',
-                row.部屋ID || '',
-                row.部屋名 || '',
-                row.部屋タイプ || '',
-                row.操作 ? 'true' : 'false'
-            ]);
+            if (setClauses.length === 0) {
+                console.log('変更されたデータがないため、更新をスキップします');
+                return currentData; // 変更がない場合は現在のデータをそのまま返す
+            }
 
-            // ヘッダー行を最初に挿入
-            return [headers, ...dataRows];
+            const setClause = setClauses.join(', ');
+            const updateQuery = `UPDATE \`${projectId}.${datasetId}.${tableName}\` SET ${setClause} WHERE id = '${id}'`;
 
-        } catch (error) {
-            console.error(`物件ID ${id} の部屋データ取得エラー:`, error);
-            // エラーが発生した場合はヘッダーのみの配列を返す
-            const headers = ['進捗', '部屋ID', '部屋名', '部屋タイプ', '操作'];
-            return [headers];
-        }
-    }
+            console.log('実行するUpdateクエリ:', updateQuery);
 
-    /**
-     * 部屋データを取得（GASのgetRoomData関数と同様）
-     * @param {string} id 部屋ID
-     * @returns {Promise<Array>} 部屋データの配列
-     */
-    async getRoomData(id) {
-        try {
-            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+            // BigQueryでUpdateクエリを実行
+            await this.executeQuery(updateQuery, {}, false); // キャッシュは使用しない
 
-            // 部屋スキーマを取得（GASのgetRoomSchema相当）
-            const schema = await this.getRoomSchema();
+            // 最新のデータを取得
+            const latestData = await this.getPropertyData(id);
 
-            // スキーマからカラムを生成
-            let columns = Object.keys(schema).map((name) => {
-                const type = schema[name].type;
-                let column = `ROOM.${name}`;
+            if (latestData.length === 0) {
+                throw new Error('更新後のデータ取得に失敗しました');
+            }
 
-                if (type === "TIMESTAMP") {
-                    column = `FORMAT_TIMESTAMP('%Y-%m-%d %H:%M:%S', ${column}) AS \`${name}\``;
-                } else if (type === "DATE") {
-                    column = `FORMAT_DATE('%Y-%m-%d', ${column}) AS \`${name}\``;
-                } else {
-                    column = `${column} AS \`${name}\``;
-                }
-                return column;
-            });
+            console.log(`物件ID ${id} の更新が完了しました`);
 
-            // 追加カラムを追加（既存のlead_property_idと重複しないように調整）
-            columns.push("ROOMTYPE.name AS `lead_room_type_name`");
-            columns.push("PROPERTY.name AS `lead_property_name`");
-
-            const query = `
-                SELECT
-                    ${columns.join(",\n                    ")}
-                FROM
-                    \`${projectId}.zzz_taniguchi.lead_room\` AS ROOM
-                    LEFT JOIN \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOMTYPE ON ROOM.lead_room_type_id = ROOMTYPE.id
-                    LEFT JOIN \`${projectId}.zzz_taniguchi.lead_property\` AS PROPERTY ON ROOM.lead_property_id = PROPERTY.id
-                WHERE
-                    ROOM.id = @roomId
-            `;
-
-            console.log(`BigQueryから部屋データを取得中: ID=${id}`);
-            const rows = await this.executeQuery(query, { roomId: id });
-
-            return rows;
+            return latestData[0];
 
         } catch (error) {
-            console.error('部屋データ取得エラー:', error);
+            console.error('物件データ更新エラー:', error);
             throw error;
         }
     }
 
     /**
-     * 部屋スキーマを取得
-     * @returns {Promise<Object>} 部屋スキーマ
+     * 日付をフォーマットする
+     * @param {Date|string} date 日付
+     * @returns {string} フォーマット済み日付
      */
-    async getRoomSchema() {
-        try {
-            // 新しいカラムリストに対応したスキーマ
-            const schema = {
-                id: { type: 'STRING', japaneseName: '部屋ID', order: 1, editable: false, isRequired: false },
-                status: { type: 'STRING', japaneseName: '進捗', order: 2, editable: true, isRequired: false },
-                name: { type: 'STRING', japaneseName: '部屋名', order: 3, editable: true, isRequired: true },
-                room_number: { type: 'STRING', japaneseName: '部屋番号', order: 4, editable: true, isRequired: false },
-                lead_property_id: { type: 'STRING', japaneseName: '建物ID', order: 5, editable: true, isRequired: false },
-                lead_room_type_id: { type: 'STRING', japaneseName: '部屋タイプID', order: 6, editable: true, isRequired: false },
-                create_date: { type: 'TIMESTAMP', japaneseName: '部屋登録日', order: 7, editable: false, isRequired: false },
-                key_handover_scheduled_date: { type: 'DATE', japaneseName: '鍵引き渡し予定日', order: 8, editable: true, isRequired: false },
-                possible_key_handover_scheduled_date_1: { type: 'DATE', japaneseName: '鍵引き渡し予定日①', order: 9, editable: true, isRequired: false },
-                possible_key_handover_scheduled_date_2: { type: 'DATE', japaneseName: '鍵引き渡し予定日②', order: 10, editable: true, isRequired: false },
-                possible_key_handover_scheduled_date_3: { type: 'DATE', japaneseName: '鍵引き渡し予定日③', order: 11, editable: true, isRequired: false },
-                vacate_setup: { type: 'STRING', japaneseName: '退去SU', order: 12, editable: true, isRequired: false },
-                contract_collection_date: { type: 'DATE', japaneseName: '契約書回収予定日', order: 13, editable: true, isRequired: false },
-                application_intended_date: { type: 'DATE', japaneseName: '申請予定日', order: 14, editable: true, isRequired: false }
-            };
-
-            return schema;
-
-        } catch (error) {
-            console.error('部屋スキーマ取得エラー:', error);
-            // エラーの場合はモックスキーマを返す
-            return {
-                id: { type: 'STRING', japaneseName: 'ID', order: 1, editable: false, isRequired: false },
-                name: { type: 'STRING', japaneseName: '名前', order: 2, editable: true, isRequired: true }
-            };
-        }
-    }
-
-    /**
-     * 日付をフォーマット
-     * @param {*} dateValue - 日付値
-     * @returns {string|null} フォーマットされた日付文字列またはnull
-     */
-    formatDate(dateValue) {
-        if (!dateValue) return null;
-
-        try {
-            let date;
-            if (dateValue.value) {
-                // BigQueryのDatetimeオブジェクトの場合
-                date = new Date(dateValue.value);
-            } else if (dateValue.toISOString) {
-                // Dateオブジェクトの場合
-                date = dateValue;
-            } else if (typeof dateValue === 'string') {
-                // 文字列の場合
-                date = new Date(dateValue);
-            } else {
-                return null;
-            }
-
-            if (isNaN(date.getTime())) {
-                return null;
-            }
-
-            return date.toISOString().split('T')[0];
-        } catch (error) {
-            console.error('日付フォーマットエラー:', error);
-            return null;
-        }
-    }
-
-    /**
-     * BigQuery接続のテスト
-     * @returns {Promise<boolean>} 接続成功の場合true
-     */
-    async testConnection() {
-        try {
-            // 必要な環境変数がない場合は false を返す
-            if (!process.env.GOOGLE_CLOUD_PROJECT_ID) {
-                console.log('BigQuery設定なし: GOOGLE_CLOUD_PROJECT_ID が設定されていません');
-                return false;
-            }
-
-            const query = 'SELECT 1 as test';
-            const rows = await this.executeQuery(query);
-            return rows.length > 0 && rows[0].test === 1;
-        } catch (error) {
-            console.error('BigQuery 接続テストエラー:', error);
-            return false;
-        }
-    }
-
-    /**
-     * 部屋タイプリストを取得
-     * @param {string} propertyId - 物件ID
-     * @returns {Promise<Array>} 部屋タイプデータの配列
-     */
-    async getRoomTypeList(propertyId) {
-        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
-
-        const cacheKey = getCacheKey('roomTypeList', { propertyId });
-        const cachedData = getCache(cacheKey);
-        if (cachedData) {
-            console.log('部屋タイプリストをキャッシュから取得:', propertyId);
-            return cachedData;
-        }
-
-        try {
-            console.log(`部屋タイプリストを取得中: propertyId=${propertyId}`);
-
-            const query = `
-                SELECT
-                    ROOM_TYPE.id AS room_type_id,
-                    ROOM_TYPE.name AS room_type_name
-                FROM
-                    \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOM_TYPE
-                WHERE
-                    ROOM_TYPE.lead_property_id = @propertyId
-                ORDER BY
-                    ROOM_TYPE.name
-            `;
-
-            const rows = await this.executeQuery(query, { propertyId });
-
-            if (rows && rows.length > 0) {
-                const result = rows.map(row => ({
-                    room_type_id: row.room_type_id,
-                    room_type_name: row.room_type_name
-                }));
-
-                setCache(cacheKey, result);
-                console.log(`部屋タイプリストを取得しました: ${result.length}件`);
-                return result;
-            } else {
-                console.log('部屋タイプが見つかりませんでした');
-                return [];
-            }
-
-        } catch (error) {
-            console.error('部屋タイプリスト取得エラー:', error);
-            throw new Error(`部屋タイプリストの取得に失敗しました: ${error.message}`);
-        }
-    }
-
-    /**
-     * 部屋タイプ詳細データを取得（GASのgetRoomTypeData関数と同様）
-     * @param {string} roomTypeId - 部屋タイプID
-     * @returns {Promise<Array>} 部屋タイプ詳細データの配列
-     */
-    async getRoomTypeData(roomTypeId) {
-        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
-
-        const cacheKey = getCacheKey('roomTypeData', { roomTypeId });
-        const cachedData = getCache(cacheKey);
-        if (cachedData) {
-            console.log('部屋タイプ詳細データをキャッシュから取得:', roomTypeId);
-            return cachedData;
-        }
-
-        try {
-            console.log(`部屋タイプ詳細データを取得中: roomTypeId=${roomTypeId}`);
-
-            // 全フィールドを取得するクエリ
-            const query = `
-                SELECT
-                    ROOM_TYPE.id AS \`id\`,
-                    ROOM_TYPE.name AS \`name\`,
-                    ROOM_TYPE.lead_property_id AS \`lead_property_id\`,
-                    ROOM_TYPE.create_date AS \`create_date\`,
-                    ROOM_TYPE.minpaku_price AS \`minpaku_price\`,
-                    ROOM_TYPE.monthly_price AS \`monthly_price\`,
-                    ROOM_TYPE.pax AS \`pax\`,
-                    ROOM_TYPE.owner_type AS \`owner_type\`,
-                    ROOM_TYPE.register_type AS \`register_type\`,
-                    ROOM_TYPE.payment_rent AS \`payment_rent\`,
-                    ROOM_TYPE.management_expenses AS \`management_expenses\`,
-                    ROOM_TYPE.brokerage_commission AS \`brokerage_commission\`,
-                    ROOM_TYPE.deposit AS \`deposit\`,
-                    ROOM_TYPE.key_money AS \`key_money\`,
-                    ROOM_TYPE.key_exchange_money AS \`key_exchange_money\`,
-                    ROOM_TYPE.renovation_cost AS \`renovation_cost\`,
-                    ROOM_TYPE.property_introduction_fee AS \`property_introduction_fee\`,
-                    ROOM_TYPE.other_initial_cost_name AS \`other_initial_cost_name\`,
-                    ROOM_TYPE.other_initial_cost AS \`other_initial_cost\`,
-                    ROOM_TYPE.contract_type AS \`contract_type\`,
-                    ROOM_TYPE.contract_period AS \`contract_period\`,
-                    ROOM_TYPE.renewal_fee AS \`renewal_fee\`,
-                    ROOM_TYPE.date_moving_in AS \`date_moving_in\`,
-                    ROOM_TYPE.rent_accrual_date AS \`rent_accrual_date\`,
-                    ROOM_TYPE.operation_start_date AS \`operation_start_date\`,
-                    ROOM_TYPE.use_guarantee_company AS \`use_guarantee_company\`,
-                    ROOM_TYPE.Initial_guarantee_rate AS \`Initial_guarantee_rate\`,
-                    ROOM_TYPE.monthly_guarantee_fee_rate AS \`monthly_guarantee_fee_rate\`,
-                    ROOM_TYPE.maa_insurance AS \`maa_insurance\`,
-                    ROOM_TYPE.prefectures AS \`prefectures\`,
-                    ROOM_TYPE.city AS \`city\`,
-                    ROOM_TYPE.town AS \`town\`,
-                    ROOM_TYPE.area_zoned_for_use AS \`area_zoned_for_use\`,
-                    ROOM_TYPE.request_checking_area_zoned_for_use AS \`request_checking_area_zoned_for_use\`,
-                    ROOM_TYPE.done_checking_area_zoned_for_use AS \`done_checking_area_zoned_for_use\`,
-                    ROOM_TYPE.special_use_areas AS \`special_use_areas\`,
-                    ROOM_TYPE.route_1 AS \`route_1\`,
-                    ROOM_TYPE.station_1 AS \`station_1\`,
-                    ROOM_TYPE.walk_min_1 AS \`walk_min_1\`,
-                    ROOM_TYPE.route_2 AS \`route_2\`,
-                    ROOM_TYPE.station_2 AS \`station_2\`,
-                    ROOM_TYPE.walk_min_2 AS \`walk_min_2\`,
-                    ROOM_TYPE.floor_plan AS \`floor_plan\`,
-                    ROOM_TYPE.ev AS \`ev\`,
-                    ROOM_TYPE.sqm AS \`sqm\`,
-                    ROOM_TYPE.room_type AS \`room_type\`,
-                    ROOM_TYPE.building_structure AS \`building_structure\`,
-                    ROOM_TYPE.completion_year AS \`completion_year\`,
-                    ROOM_TYPE.minpaku_plan AS \`minpaku_plan\`,
-                    ROOM_TYPE.room_floor AS \`room_floor\`,
-                    ROOM_TYPE.building_floor AS \`building_floor\`,
-                    ROOM_TYPE.num_of_room_per_building AS \`num_of_room_per_building\`,
-                    ROOM_TYPE.staircase_location AS \`staircase_location\`,
-                    ROOM_TYPE.total_sqm AS \`total_sqm\`,
-                    ROOM_TYPE.availability_of_floor_plan AS \`availability_of_floor_plan\`,
-                    ROOM_TYPE.applications_for_other_floors AS \`applications_for_other_floors\`,
-                    ROOM_TYPE.firefighting_equipment AS \`firefighting_equipment\`,
-                    ROOM_TYPE.firefighting_equipment_cost AS \`firefighting_equipment_cost\`,
-                    ROOM_TYPE.firefighting_equipment_cost_manual AS \`firefighting_equipment_cost_manual\`,
-                    ROOM_TYPE.furniture_transfer_availability AS \`furniture_transfer_availability\`,
-                    ROOM_TYPE.checkin_cost AS \`checkin_cost\`,
-                    ROOM_TYPE.other_cost_name AS \`other_cost_name\`,
-                    ROOM_TYPE.other_cost AS \`other_cost\`
-                FROM
-                    \`${projectId}.zzz_taniguchi.lead_room_type\` AS ROOM_TYPE
-                WHERE
-                    ROOM_TYPE.id = @roomTypeId
-            `;
-
-            const rows = await this.executeQuery(query, { roomTypeId });
-
-            if (rows && rows.length > 0) {
-                // 全フィールドをそのまま返す（BigQueryから取得したデータの構造を保持）
-                const result = rows.map(row => row);
-
-                setCache(cacheKey, result);
-                console.log(`部屋タイプ詳細データを取得しました: ${result.length}件`);
-                return result;
-            } else {
-                console.log('部屋タイプ詳細データが見つかりませんでした');
-                return [];
-            }
-
-        } catch (error) {
-            console.error('部屋タイプ詳細データ取得エラー:', error);
-            throw new Error(`部屋タイプ詳細データの取得に失敗しました: ${error.message}`);
-        }
-    }
-
-    /**
-     * 部屋タイプデータの更新
-     * @param {string} roomTypeId - 部屋タイプID
-     * @param {Object} updateData - 更新するデータ
-     * @returns {Promise<boolean>} 更新が成功したかどうか
-     */
-    async updateRoomTypeData(roomTypeId, updateData) {
-        const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
-
-        try {
-            console.log(`部屋タイプデータを更新中: roomTypeId=${roomTypeId}`, updateData);
-
-            // 更新可能なフィールドのみを対象とする（id以外）
-            const updateFields = [];
-            const updateParams = { roomTypeId };
-
-            if (updateData.name !== undefined) {
-                updateFields.push('name = @name');
-                updateParams.name = updateData.name;
-            }
-
-            if (updateFields.length === 0) {
-                console.log('更新するフィールドがありません');
-                return true;
-            }
-
-            const query = `
-                UPDATE \`${projectId}.zzz_taniguchi.lead_room_type\`
-                SET ${updateFields.join(', ')}
-                WHERE id = @roomTypeId
-            `;
-
-            const rows = await this.executeQuery(query, updateParams, false); // キャッシュを使用しない
-
-            // キャッシュをクリア
-            const cacheKey = getCacheKey('roomTypeData', { roomTypeId });
-            cache.delete(cacheKey);
-
-            console.log('部屋タイプデータを更新しました');
-            return true;
-
-        } catch (error) {
-            console.error('部屋タイプデータ更新エラー:', error);
-            throw new Error(`部屋タイプデータの更新に失敗しました: ${error.message}`);
-        }
+    formatDate(date) {
+        if (!date) return '';
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().split('T')[0];
     }
 }
 
