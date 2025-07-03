@@ -31,6 +31,13 @@ const getCache = (key) => {
 
 class BigQueryService {
     constructor() {
+        console.log('BigQueryService初期化開始');
+        console.log('環境変数チェック:', {
+            GOOGLE_CLOUD_PROJECT_ID: process.env.GOOGLE_CLOUD_PROJECT_ID ? 'set' : 'not set',
+            GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'set' : 'not set',
+            NODE_ENV: process.env.NODE_ENV
+        });
+
         // BigQueryクライアントを初期化
         // Cloud Runではサービスアカウント認証が自動で適用されます
         // ローカル開発では GOOGLE_APPLICATION_CREDENTIALS 環境変数でサービスアカウントキーを指定可能
@@ -41,9 +48,23 @@ class BigQueryService {
         // ローカル開発環境でのみサービスアカウントキーファイルを使用
         if (process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.NODE_ENV !== 'production') {
             config.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+            console.log('ローカル開発: サービスアカウントキーファイル使用');
+        } else {
+            console.log('本番環境: デフォルトのサービスアカウント認証使用');
         }
 
-        this.bigquery = new BigQuery(config);
+        console.log('BigQuery設定:', {
+            projectId: config.projectId,
+            keyFilename: config.keyFilename ? 'set' : 'not set'
+        });
+
+        try {
+            this.bigquery = new BigQuery(config);
+            console.log('BigQueryクライアント初期化成功');
+        } catch (error) {
+            console.error('BigQueryクライアント初期化エラー:', error);
+            throw error;
+        }
     }
 
     /**
@@ -443,7 +464,8 @@ class BigQueryService {
             const datasetId = 'zzz_taniguchi';
             const tableName = 'lead_property';
 
-            console.log(`物件ID ${id} のデータを更新中:`, updatedData);
+            console.log(`物件ID ${id} のデータを更新中:`, JSON.stringify(updatedData, null, 2));
+            console.log('環境変数 GOOGLE_CLOUD_PROJECT_ID:', projectId);
 
             // スキーマ情報を取得（これは実際にはSpreadSheetから取得する想定ですが、
             // ここでは一般的なカラムタイプを想定）
@@ -477,11 +499,15 @@ class BigQueryService {
             };
 
             // まず現在のデータを取得
+            console.log('現在のデータを取得中...');
             const currentDataArray = await this.getPropertyData(id);
             if (currentDataArray.length === 0) {
-                throw new Error('更新対象の物件が見つかりません');
+                const errorMsg = `更新対象の物件が見つかりません (ID: ${id})`;
+                console.error(errorMsg);
+                throw new Error(errorMsg);
             }
             const currentData = currentDataArray[0];
+            console.log('現在のデータ取得完了:', Object.keys(currentData));
 
             // 変更されたデータのみをフィルタリング
             const setClauses = [];
@@ -510,34 +536,49 @@ class BigQueryService {
                         const columnType = columnTypeMapping[key] || 'STRING';
                         let setClause;
 
-                        if (columnType === 'STRING') {
-                            if (normalizedNewValue === null) {
-                                setClause = `\`${key}\` = NULL`;
+                        try {
+                            if (columnType === 'STRING') {
+                                if (normalizedNewValue === null) {
+                                    setClause = `\`${key}\` = NULL`;
+                                } else {
+                                    // SQL injectionを防ぐためにエスケープ
+                                    const escapedValue = normalizedNewValue.toString().replace(/'/g, "''");
+                                    setClause = `\`${key}\` = '${escapedValue}'`;
+                                }
+                            } else if (columnType === 'DATE') {
+                                if (normalizedNewValue === null) {
+                                    setClause = `\`${key}\` = NULL`;
+                                } else {
+                                    // 日付の妥当性をチェック
+                                    const dateValue = new Date(normalizedNewValue);
+                                    if (isNaN(dateValue.getTime())) {
+                                        throw new Error(`無効な日付形式: ${normalizedNewValue}`);
+                                    }
+                                    setClause = `\`${key}\` = CAST('${normalizedNewValue}' AS DATE)`;
+                                }
+                            } else if (columnType === 'NUMERIC') {
+                                if (normalizedNewValue === null) {
+                                    setClause = `\`${key}\` = NULL`;
+                                } else {
+                                    // 数値の妥当性をチェック
+                                    const numValue = Number(normalizedNewValue);
+                                    if (isNaN(numValue)) {
+                                        throw new Error(`無効な数値形式: ${normalizedNewValue}`);
+                                    }
+                                    setClause = `\`${key}\` = ${numValue}`;
+                                }
                             } else {
-                                // SQL injectionを防ぐためにエスケープ
-                                const escapedValue = normalizedNewValue.toString().replace(/'/g, "''");
-                                setClause = `\`${key}\` = '${escapedValue}'`;
+                                if (normalizedNewValue === null) {
+                                    setClause = `\`${key}\` = NULL`;
+                                } else {
+                                    setClause = `\`${key}\` = ${normalizedNewValue}`;
+                                }
                             }
-                        } else if (columnType === 'DATE') {
-                            if (normalizedNewValue === null) {
-                                setClause = `\`${key}\` = NULL`;
-                            } else {
-                                setClause = `\`${key}\` = CAST('${normalizedNewValue}' AS DATE)`;
-                            }
-                        } else if (columnType === 'NUMERIC') {
-                            if (normalizedNewValue === null) {
-                                setClause = `\`${key}\` = NULL`;
-                            } else {
-                                setClause = `\`${key}\` = ${normalizedNewValue}`;
-                            }
-                        } else {
-                            if (normalizedNewValue === null) {
-                                setClause = `\`${key}\` = NULL`;
-                            } else {
-                                setClause = `\`${key}\` = ${normalizedNewValue}`;
-                            }
+                            setClauses.push(setClause);
+                        } catch (fieldError) {
+                            console.error(`フィールド ${key} の処理中にエラー:`, fieldError);
+                            throw new Error(`フィールド ${key} の処理に失敗しました: ${fieldError.message}`);
                         }
-                        setClauses.push(setClause);
                     }
                 }
             }
@@ -553,13 +594,22 @@ class BigQueryService {
             console.log('実行するUpdateクエリ:', updateQuery);
 
             // BigQueryでUpdateクエリを実行
-            await this.executeQuery(updateQuery, {}, false); // キャッシュは使用しない
+            try {
+                await this.executeQuery(updateQuery, {}, false); // キャッシュは使用しない
+                console.log('BigQuery更新クエリ実行完了');
+            } catch (queryError) {
+                console.error('BigQuery更新クエリ実行エラー:', queryError);
+                throw new Error(`BigQuery更新に失敗しました: ${queryError.message}`);
+            }
 
             // 最新のデータを取得
+            console.log('更新後のデータを取得中...');
             const latestData = await this.getPropertyData(id);
 
             if (latestData.length === 0) {
-                throw new Error('更新後のデータ取得に失敗しました');
+                const errorMsg = '更新後のデータ取得に失敗しました';
+                console.error(errorMsg);
+                throw new Error(errorMsg);
             }
 
             console.log(`物件ID ${id} の更新が完了しました`);
@@ -567,8 +617,20 @@ class BigQueryService {
             return latestData[0];
 
         } catch (error) {
-            console.error('物件データ更新エラー:', error);
-            throw error;
+            console.error('物件データ更新エラー - 詳細:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+                id: id,
+                updatedData: updatedData
+            });
+            
+            // Cloud Run用により詳細なエラー情報を含める
+            const detailedError = new Error(`物件データ更新エラー (ID: ${id}): ${error.message}`);
+            detailedError.originalError = error;
+            detailedError.context = { id, updatedData };
+            
+            throw detailedError;
         }
     }
 

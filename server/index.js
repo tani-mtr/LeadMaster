@@ -216,14 +216,59 @@ apiRouter.put('/property/:id', async (req, res) => {
         const { id } = req.params;
         const updatedData = req.body;
 
-        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
-            console.log('BigQueryで物件データを更新中...', { id, updatedData });
-            const result = await bigQueryService.updateProperty(id, updatedData);
-            res.json({
-                success: true,
-                message: '物件情報が正常に更新されました',
-                data: result
+        console.log(`PUT /property/${id} - リクエスト受信:`, {
+            id,
+            updatedData: JSON.stringify(updatedData, null, 2),
+            bodySize: JSON.stringify(updatedData).length,
+            env: {
+                GOOGLE_CLOUD_PROJECT_ID: process.env.GOOGLE_CLOUD_PROJECT_ID ? 'set' : 'not set',
+                NODE_ENV: process.env.NODE_ENV
+            }
+        });
+
+        // 入力データの検証
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                error: '物件IDが指定されていません'
             });
+        }
+
+        if (!updatedData || typeof updatedData !== 'object') {
+            return res.status(400).json({
+                success: false,
+                error: '更新データが無効です'
+            });
+        }
+
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log('BigQueryで物件データを更新中...');
+            
+            try {
+                const result = await bigQueryService.updateProperty(id, updatedData);
+                console.log('BigQuery更新成功:', result ? 'データあり' : 'データなし');
+                
+                res.json({
+                    success: true,
+                    message: '物件情報が正常に更新されました',
+                    data: result
+                });
+            } catch (bigQueryError) {
+                console.error('BigQuery更新エラー - 詳細:', {
+                    message: bigQueryError.message,
+                    stack: bigQueryError.stack,
+                    name: bigQueryError.name,
+                    originalError: bigQueryError.originalError,
+                    context: bigQueryError.context
+                });
+                
+                res.status(500).json({
+                    success: false,
+                    error: 'BigQueryでの物件データ更新中にエラーが発生しました',
+                    details: bigQueryError.message,
+                    errorType: bigQueryError.name || 'Unknown'
+                });
+            }
         } else {
             console.log('BigQuery設定がないため、モック更新レスポンスを返します');
             res.json({
@@ -233,11 +278,21 @@ apiRouter.put('/property/:id', async (req, res) => {
             });
         }
     } catch (error) {
-        console.error('物件データ更新エラー:', error);
+        console.error('物件データ更新エンドポイントエラー - 詳細:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            url: req.url,
+            method: req.method,
+            params: req.params,
+            bodyPreview: JSON.stringify(req.body).substring(0, 200)
+        });
+        
         res.status(500).json({
             success: false,
             error: '物件データの更新中にエラーが発生しました',
-            details: error.message
+            details: error.message,
+            errorType: error.name || 'Unknown'
         });
     }
 });
