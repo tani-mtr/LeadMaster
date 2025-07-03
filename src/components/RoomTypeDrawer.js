@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
+import { formatDisplayValue } from '../utils/formatUtils';
 
 // ドロワーのオーバーレイ
 const DrawerOverlay = styled.div`
@@ -278,9 +279,12 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
   };
 
   // 表示用の値を取得するヘルパー関数
-  const getDisplayValue = (value) => {
+  const getDisplayValue = (fieldName, value) => {
     const safeValue = getSafeValue(value);
-    return safeValue || 'N/A';
+    if (!safeValue || safeValue === '') {
+      return '';
+    }
+    return formatDisplayValue(fieldName, safeValue);
   };
 
   // データ取得
@@ -460,14 +464,7 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                     />
                   </FormGroup>
 
-                  <FormGroup>
-                    <Label>建物ID</Label>
-                    <Input
-                      type="text"
-                      value={getSafeValue(editData.lead_property_id)}
-                      onChange={(e) => handleInputChange('lead_property_id', e.target.value)}
-                    />
-                  </FormGroup>
+
 
                   <FormGroup>
                     <Label>部屋タイプ作成日</Label>
@@ -1024,326 +1021,323 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                 <DataContainer>
                   <DataSectionTitle>基本情報</DataSectionTitle>                                    <DataItem>
                     <HeaderText>部屋タイプID</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.id)}</DataValue>
+                    <DataValue>{getDisplayValue('id', roomTypeData.id)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>部屋タイプ名</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.name)}</DataValue>
+                    <DataValue>{getDisplayValue('name', roomTypeData.name)}</DataValue>
                   </DataItem>
 
-                  <DataItem>
-                    <HeaderText>建物ID</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.lead_property_id)}</DataValue>
-                  </DataItem>
+
 
                   <DataItem>
                     <HeaderText>部屋タイプ作成日</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.create_date)}</DataValue>
+                    <DataValue>{getDisplayValue('create_date', roomTypeData.create_date)}</DataValue>
                   </DataItem>                                    <DataSectionTitle>価格・運営情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>民泊単価</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.minpaku_price)}</DataValue>
+                    <DataValue>{getDisplayValue('minpaku_price', roomTypeData.minpaku_price)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>マンスリー単価</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.monthly_price)}</DataValue>
+                    <DataValue>{getDisplayValue('monthly_price', roomTypeData.monthly_price)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>収容人数</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.pax)}</DataValue>
+                    <DataValue>{getDisplayValue('pax', roomTypeData.pax)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>所有者属性</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.owner_type)}</DataValue>
+                    <DataValue>{getDisplayValue('owner_type', roomTypeData.owner_type)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>運営形態</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.register_type)}</DataValue>
+                    <DataValue>{getDisplayValue('register_type', roomTypeData.register_type)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>費用情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>賃料</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.payment_rent)}</DataValue>
+                    <DataValue>{getDisplayValue('payment_rent', roomTypeData.payment_rent)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>管理費</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.management_expenses)}</DataValue>
+                    <DataValue>{getDisplayValue('management_expenses', roomTypeData.management_expenses)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>仲介手数料</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.brokerage_commission)}</DataValue>
+                    <DataValue>{getDisplayValue('brokerage_commission', roomTypeData.brokerage_commission)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>敷金</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.deposit)}</DataValue>
+                    <DataValue>{getDisplayValue('deposit', roomTypeData.deposit)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>礼金</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.key_money)}</DataValue>
+                    <DataValue>{getDisplayValue('key_money', roomTypeData.key_money)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>鍵交換費用</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.key_exchange_money)}</DataValue>
+                    <DataValue>{getDisplayValue('key_exchange_money', roomTypeData.key_exchange_money)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>リフォーム費用</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.renovation_cost)}</DataValue>
+                    <DataValue>{getDisplayValue('renovation_cost', roomTypeData.renovation_cost)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>物件紹介手数料</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.property_introduction_fee)}</DataValue>
+                    <DataValue>{getDisplayValue('property_introduction_fee', roomTypeData.property_introduction_fee)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>初期その他項目</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.other_initial_cost_name)}</DataValue>
+                    <DataValue>{getDisplayValue('other_initial_cost_name', roomTypeData.other_initial_cost_name)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>初期その他金額</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.other_initial_cost)}</DataValue>
+                    <DataValue>{getDisplayValue('other_initial_cost', roomTypeData.other_initial_cost)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>契約情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>契約種類</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.contract_type)}</DataValue>
+                    <DataValue>{getDisplayValue('contract_type', roomTypeData.contract_type)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>契約期間 年間</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.contract_period)}</DataValue>
+                    <DataValue>{getDisplayValue('contract_period', roomTypeData.contract_period)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>更新料</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.renewal_fee)}</DataValue>
+                    <DataValue>{getDisplayValue('renewal_fee', roomTypeData.renewal_fee)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>日付情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>入居日</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.date_moving_in)}</DataValue>
+                    <DataValue>{getDisplayValue('date_moving_in', roomTypeData.date_moving_in)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>賃発日</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.rent_accrual_date)}</DataValue>
+                    <DataValue>{getDisplayValue('rent_accrual_date', roomTypeData.rent_accrual_date)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>運営開始日</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.operation_start_date)}</DataValue>
+                    <DataValue>{getDisplayValue('operation_start_date', roomTypeData.operation_start_date)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>保証・保険情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>保証会社利用</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.use_guarantee_company)}</DataValue>
+                    <DataValue>{getDisplayValue('use_guarantee_company', roomTypeData.use_guarantee_company)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>初回保証料割合 %</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.Initial_guarantee_rate)}</DataValue>
+                    <DataValue>{getDisplayValue('Initial_guarantee_rate', roomTypeData.Initial_guarantee_rate)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>月額保証料割合 %</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.monthly_guarantee_fee_rate)}</DataValue>
+                    <DataValue>{getDisplayValue('monthly_guarantee_fee_rate', roomTypeData.monthly_guarantee_fee_rate)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>共済会 保険</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.maa_insurance)}</DataValue>
+                    <DataValue>{getDisplayValue('maa_insurance', roomTypeData.maa_insurance)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>住所・立地情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>都道府県</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.prefectures)}</DataValue>
+                    <DataValue>{getDisplayValue('prefectures', roomTypeData.prefectures)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>市区</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.city)}</DataValue>
+                    <DataValue>{getDisplayValue('city', roomTypeData.city)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>以後住所</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.town)}</DataValue>
+                    <DataValue>{getDisplayValue('town', roomTypeData.town)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>用途地域情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>用途地域</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.area_zoned_for_use)}</DataValue>
+                    <DataValue>{getDisplayValue('area_zoned_for_use', roomTypeData.area_zoned_for_use)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>用途地域確認依頼</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.request_checking_area_zoned_for_use)}</DataValue>
+                    <DataValue>{getDisplayValue('request_checking_area_zoned_for_use', roomTypeData.request_checking_area_zoned_for_use)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>用途地域確認済</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.done_checking_area_zoned_for_use)}</DataValue>
+                    <DataValue>{getDisplayValue('done_checking_area_zoned_for_use', roomTypeData.done_checking_area_zoned_for_use)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>特別用途地区</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.special_use_areas)}</DataValue>
+                    <DataValue>{getDisplayValue('special_use_areas', roomTypeData.special_use_areas)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>交通情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>路線1</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.route_1)}</DataValue>
+                    <DataValue>{getDisplayValue('route_1', roomTypeData.route_1)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>駅1</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.station_1)}</DataValue>
+                    <DataValue>{getDisplayValue('station_1', roomTypeData.station_1)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>徒歩分数1</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.walk_min_1)}</DataValue>
+                    <DataValue>{getDisplayValue('walk_min_1', roomTypeData.walk_min_1)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>路線2</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.route_2)}</DataValue>
+                    <DataValue>{getDisplayValue('route_2', roomTypeData.route_2)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>駅2</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.station_2)}</DataValue>
+                    <DataValue>{getDisplayValue('station_2', roomTypeData.station_2)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>徒歩分数2</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.walk_min_2)}</DataValue>
+                    <DataValue>{getDisplayValue('walk_min_2', roomTypeData.walk_min_2)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>建物・部屋仕様</DataSectionTitle>
                   <DataItem>
                     <HeaderText>間取り</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.floor_plan)}</DataValue>
+                    <DataValue>{getDisplayValue('floor_plan', roomTypeData.floor_plan)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>EVの有無</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.ev)}</DataValue>
+                    <DataValue>{getDisplayValue('ev', roomTypeData.ev)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>広さ</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.sqm)}</DataValue>
+                    <DataValue>{getDisplayValue('sqm', roomTypeData.sqm)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>部屋種別</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.room_type)}</DataValue>
+                    <DataValue>{getDisplayValue('room_type', roomTypeData.room_type)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>建物構造</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.building_structure)}</DataValue>
+                    <DataValue>{getDisplayValue('building_structure', roomTypeData.building_structure)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>竣工年</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.completion_year)}</DataValue>
+                    <DataValue>{getDisplayValue('completion_year', roomTypeData.completion_year)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>民泊利用 自社運営予定 予定数</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.minpaku_plan)}</DataValue>
+                    <DataValue>{getDisplayValue('minpaku_plan', roomTypeData.minpaku_plan)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>部屋所在階</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.room_floor)}</DataValue>
+                    <DataValue>{getDisplayValue('room_floor', roomTypeData.room_floor)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>建物階数</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.building_floor)}</DataValue>
+                    <DataValue>{getDisplayValue('building_floor', roomTypeData.building_floor)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>建物全体部屋数</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.num_of_room_per_building)}</DataValue>
+                    <DataValue>{getDisplayValue('num_of_room_per_building', roomTypeData.num_of_room_per_building)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>階段位置</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.staircase_location)}</DataValue>
+                    <DataValue>{getDisplayValue('staircase_location', roomTypeData.staircase_location)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>建物延床面積</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.total_sqm)}</DataValue>
+                    <DataValue>{getDisplayValue('total_sqm', roomTypeData.total_sqm)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>平面図の有無</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.availability_of_floor_plan)}</DataValue>
+                    <DataValue>{getDisplayValue('availability_of_floor_plan', roomTypeData.availability_of_floor_plan)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>他フロアの用途</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.applications_for_other_floors)}</DataValue>
+                    <DataValue>{getDisplayValue('applications_for_other_floors', roomTypeData.applications_for_other_floors)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>消防・設備情報</DataSectionTitle>
                   <DataItem>
                     <HeaderText>現況消防設備</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.firefighting_equipment)}</DataValue>
+                    <DataValue>{getDisplayValue('firefighting_equipment', roomTypeData.firefighting_equipment)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>消防設備費用 自動</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.firefighting_equipment_cost)}</DataValue>
+                    <DataValue>{getDisplayValue('firefighting_equipment_cost', roomTypeData.firefighting_equipment_cost)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>消防設備費用 手動</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.firefighting_equipment_cost_manual)}</DataValue>
+                    <DataValue>{getDisplayValue('firefighting_equipment_cost_manual', roomTypeData.firefighting_equipment_cost_manual)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>家具譲渡の有無</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.furniture_transfer_availability)}</DataValue>
+                    <DataValue>{getDisplayValue('furniture_transfer_availability', roomTypeData.furniture_transfer_availability)}</DataValue>
                   </DataItem>
 
                   <DataSectionTitle>その他費用</DataSectionTitle>
                   <DataItem>
                     <HeaderText>check-in原価</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.checkin_cost)}</DataValue>
+                    <DataValue>{getDisplayValue('checkin_cost', roomTypeData.checkin_cost)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>月額その他項目</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.other_cost_name)}</DataValue>
+                    <DataValue>{getDisplayValue('other_cost_name', roomTypeData.other_cost_name)}</DataValue>
                   </DataItem>
 
                   <DataItem>
                     <HeaderText>月額その他費用</HeaderText>
-                    <DataValue>{getDisplayValue(roomTypeData.other_cost)}</DataValue>
+                    <DataValue>{getDisplayValue('other_cost', roomTypeData.other_cost)}</DataValue>
                   </DataItem>
                 </DataContainer>
               )}

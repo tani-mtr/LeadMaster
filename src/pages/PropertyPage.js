@@ -1054,33 +1054,6 @@ const PropertyPage = () => {
                         </div>
                     </div>
 
-                    <FormGroup style={{ marginTop: '20px' }}>
-                        <Label>備考</Label>
-                        <textarea
-                            style={{
-                                width: '100%',
-                                padding: '8px',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                fontSize: '14px',
-                                minHeight: '100px',
-                                resize: 'vertical'
-                            }}
-                            value={editMode ? editData.note : property.note}
-                            disabled={!editMode}
-                            onChange={(e) => handleInputChange('note', e.target.value)}
-                        />
-                    </FormGroup>
-
-                    <FormGroup>
-                        <Label>関連部屋データ</Label>
-                        <Input
-                            type="text"
-                            value={property.has_related_rooms ? 'あり' : 'なし'}
-                            disabled={true}
-                        />
-                    </FormGroup>
-
                     {editMode && (
                         <Button onClick={handleSave}>保存</Button>
                     )}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
+import { formatDisplayValue } from '../utils/formatUtils';
 
 // ドロワーのオーバーレイ
 const DrawerOverlay = styled.div`
@@ -243,80 +244,63 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                         <DataContainer>
                             <DataItem>
                                 <HeaderText>部屋ID</HeaderText>
-                                <DataValue>{roomData.id || 'N/A'}</DataValue>
+                                <DataValue>{roomData.id || ''}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>進捗</HeaderText>
-                                <DataValue>{roomData.status || 'N/A'}</DataValue>
+                                <DataValue>{roomData.status || ''}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>部屋名</HeaderText>
-                                <DataValue>{roomData.name || 'N/A'}</DataValue>
+                                <DataValue>{roomData.name || ''}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>部屋番号</HeaderText>
-                                <DataValue>{roomData.room_number || 'N/A'}</DataValue>
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>建物ID</HeaderText>
-                                <DataValue>{roomData.lead_property_id || 'N/A'}</DataValue>
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>部屋タイプID</HeaderText>
-                                <DataValue>{roomData.lead_room_type_id || 'N/A'}</DataValue>
+                                <DataValue>{roomData.room_number || ''}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>部屋登録日</HeaderText>
-                                <DataValue>{roomData.create_date || 'N/A'}</DataValue>
+                                <DataValue>{formatDisplayValue('create_date', roomData.create_date)}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>鍵引き渡し予定日</HeaderText>
-                                <DataValue>{roomData.key_handover_scheduled_date || 'N/A'}</DataValue>
+                                <DataValue>{formatDisplayValue('key_handover_scheduled_date', roomData.key_handover_scheduled_date)}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>鍵引き渡し予定日①</HeaderText>
-                                <DataValue>{roomData.possible_key_handover_scheduled_date_1 || 'N/A'}</DataValue>
+                                <DataValue>{formatDisplayValue('possible_key_handover_scheduled_date_1', roomData.possible_key_handover_scheduled_date_1)}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>鍵引き渡し予定日②</HeaderText>
-                                <DataValue>{roomData.possible_key_handover_scheduled_date_2 || 'N/A'}</DataValue>
+                                <DataValue>{formatDisplayValue('possible_key_handover_scheduled_date_2', roomData.possible_key_handover_scheduled_date_2)}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>鍵引き渡し予定日③</HeaderText>
-                                <DataValue>{roomData.possible_key_handover_scheduled_date_3 || 'N/A'}</DataValue>
+                                <DataValue>{formatDisplayValue('possible_key_handover_scheduled_date_3', roomData.possible_key_handover_scheduled_date_3)}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>退去SU</HeaderText>
-                                <DataValue>{roomData.vacate_setup || 'N/A'}</DataValue>
+                                <DataValue>{roomData.vacate_setup || ''}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>契約書回収予定日</HeaderText>
-                                <DataValue>{roomData.contract_collection_date || 'N/A'}</DataValue>
+                                <DataValue>{formatDisplayValue('contract_collection_date', roomData.contract_collection_date)}</DataValue>
                             </DataItem>
 
                             <DataItem>
                                 <HeaderText>申請予定日</HeaderText>
-                                <DataValue>{roomData.application_intended_date || 'N/A'}</DataValue>
+                                <DataValue>{formatDisplayValue('application_intended_date', roomData.application_intended_date)}</DataValue>
                             </DataItem>
-
-                            {roomData.lead_property_name && (
-                                <DataItem style={{ gridColumn: '1 / -1' }}>
-                                    <HeaderText>物件名</HeaderText>
-                                    <DataValue>{roomData.lead_property_name}</DataValue>
-                                </DataItem>
-                            )}
 
                             {roomData.lead_room_type_name && (
                                 <DataItem style={{ gridColumn: '1 / -1' }}>

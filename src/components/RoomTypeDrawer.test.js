@@ -28,7 +28,6 @@ const mockRoomTypeData = {
     building_structure: 'RC',
     floor_level: '3階',
     create_date: '2024-01-01',
-    lead_property_name: 'サンプル物件',
     remarks: 'テスト用の部屋タイプです'
 };
 
