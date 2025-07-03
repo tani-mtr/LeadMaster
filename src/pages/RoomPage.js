@@ -186,6 +186,11 @@ const RoomPage = () => {
                 </DataItem>
 
                 <DataItem>
+                    <HeaderText>建物ID</HeaderText>
+                    <DataValue>{roomData.lead_property_id || 'N/A'}</DataValue>
+                </DataItem>
+
+                <DataItem>
                     <HeaderText>部屋タイプID</HeaderText>
                     <DataValue>{roomData.lead_room_type_id || 'N/A'}</DataValue>
                 </DataItem>

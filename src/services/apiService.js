@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 // APIのベースURL
-const API_BASE_URL = 'http://localhost:8080/api';  // 一時的に直接指定
+// 環境変数から取得するか、環境に応じてフォールバック値を使用
+const API_BASE_URL = process.env.REACT_APP_API_URL ||
+    (process.env.NODE_ENV === 'production'
+        ? '/api' // Cloud Run環境ではリバースプロキシを使用するため相対パスを使用
+        : 'http://localhost:8080/api'); // 開発環境用
 
 console.log('API Service 初期化:', {
     REACT_APP_API_URL: process.env.REACT_APP_API_URL,
@@ -419,4 +423,69 @@ export const apiService = {
             throw error;
         }
     },
+
+    // API接続のデバッグ
+    testApiConnection: async () => {
+        try {
+            console.log(`API Connection Test: GET /health`);
+            const response = await apiClient.get('/health');
+            console.log('API Health Response:', response.data);
+            return {
+                success: true,
+                message: 'API接続テスト成功',
+                data: response.data,
+                details: {
+                    baseURL: apiClient.defaults.baseURL,
+                    headers: apiClient.defaults.headers,
+                    env: {
+                        NODE_ENV: process.env.NODE_ENV,
+                        REACT_APP_API_URL: process.env.REACT_APP_API_URL
+                    }
+                }
+            };
+        } catch (error) {
+            console.error('API接続テストエラー:', error);
+            return {
+                success: false,
+                message: 'API接続テスト失敗',
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    config: {
+                        baseURL: error.config?.baseURL,
+                        url: error.config?.url,
+                        method: error.config?.method
+                    }
+                }
+            };
+        }
+    },
+
+    // CORSデバッグ
+    testCorsSettings: async () => {
+        try {
+            console.log(`CORS Debug: GET /debug/cors`);
+            const response = await apiClient.get('/debug/cors');
+            console.log('CORS Debug Response:', response.data);
+            return {
+                success: true,
+                message: 'CORSテスト成功',
+                data: response.data
+            };
+        } catch (error) {
+            console.error('CORSテストエラー:', error);
+            return {
+                success: false,
+                message: 'CORSテスト失敗',
+                error: {
+                    message: error.message,
+                    code: error.code,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                }
+            };
+        }
+    }
 };

@@ -337,7 +337,6 @@ const PropertyPage = () => {
     const [editMode, setEditMode] = useState(false);
     const [editData, setEditData] = useState({});
     const [originalData, setOriginalData] = useState({}); // 元のデータを保存
-    const [forceUpdateKey, setForceUpdateKey] = useState(0); // 強制再レンダリング用
 
     // ドロワー関連の状態
     const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
@@ -750,41 +749,20 @@ const PropertyPage = () => {
             // BigQueryの物件データを更新（変更されたフィールドのみ）
             const response = await apiService.updatePropertyData(id, changedFields);
 
-            // レスポンスの構造をログで確認
-            console.log('更新レスポンス:', response);
+            if (response.success) {
+                // 更新後のデータで表示を更新
+                setProperty(response.data || editData);
+                setOriginalData(response.data || editData); // 新しい元データとして保存
+                setEditMode(false);
+                alert('保存しました');
 
-            alert('保存しました');
-
-            // 編集モードを終了
-            setEditMode(false);
-
-            // サーバーから返された更新後のデータがあればそれを使用
-            if (response && response.data) {
-                console.log('サーバーから返された更新後のデータを使用:', response.data);
-                console.log('更新前のproperty:', property);
-                setProperty(response.data);
-                setOriginalData(response.data);
-                setEditData(response.data);
-                setForceUpdateKey(prev => prev + 1); // 強制再レンダリング
-                console.log('更新後のproperty設定完了');
-            } else {
-                // フォールバック: 最新のデータを再取得
-                console.log('フォールバック: データを再取得します');
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                const latestData = await apiService.getPropertyData(id, true);
-                console.log('再取得したデータ:', latestData);
-                console.log('更新前のproperty:', property);
-
+                // 最新のデータを再取得
+                const latestData = await apiService.getPropertyData(id);
                 setProperty(latestData);
                 setOriginalData(latestData);
-                setEditData(latestData);
-                setForceUpdateKey(prev => prev + 1); // 強制再レンダリング
-                console.log('再取得データ設定完了');
+            } else {
+                throw new Error(response.error || '更新に失敗しました');
             }
-
-            // 強制的に再レンダリングを促すための少しの遅延
-            await new Promise(resolve => setTimeout(resolve, 100));
         } catch (err) {
             console.error('保存エラー:', err);
             setError('保存中にエラーが発生しました: ' + (err.message || err));
@@ -833,7 +811,7 @@ const PropertyPage = () => {
     }
 
     return (
-        <Container key={forceUpdateKey}>
+        <Container>
             <Header>{property.name} - 物件管理</Header>
 
             <TabContainer>
@@ -894,17 +872,7 @@ const PropertyPage = () => {
                                 <Label required>建物名</Label>
                                 <Input
                                     type="text"
-                                    value={(() => {
-                                        const displayValue = editMode ? editData.name : property.name;
-                                        console.log('建物名表示値:', {
-                                            editMode,
-                                            editDataName: editData.name,
-                                            propertyName: property.name,
-                                            displayValue,
-                                            forceUpdateKey
-                                        });
-                                        return displayValue;
-                                    })()}
+                                    value={editMode ? editData.name : property.name}
                                     disabled={!editMode}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
                                     required
@@ -1679,6 +1647,46 @@ const PropertyPage = () => {
                 onClose={handleCloseRoomTypeDrawer}
                 roomTypeId={selectedRoomTypeId}
             />
+
+            {/* 開発環境でのみデバッグセクションを表示 */}
+            {process.env.NODE_ENV !== 'production' && (
+                <div style={{
+                    marginTop: '30px',
+                    padding: '15px',
+                    border: '1px solid #ddd',
+                    borderRadius: '5px',
+                    backgroundColor: '#f9f9f9'
+                }}>
+                    <h3>API接続デバッグ</h3>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                        <button
+                            onClick={async () => {
+                                const result = await apiService.testApiConnection();
+                                console.log('API接続テスト結果:', result);
+                                alert(JSON.stringify(result, null, 2));
+                            }}
+                            style={{ padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
+                        >
+                            API接続テスト
+                        </button>
+                        <button
+                            onClick={async () => {
+                                const result = await apiService.testCorsSettings();
+                                console.log('CORSテスト結果:', result);
+                                alert(JSON.stringify(result, null, 2));
+                            }}
+                            style={{ padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}
+                        >
+                            CORSテスト
+                        </button>
+                    </div>
+                    <div>
+                        <p>
+                            <strong>環境情報:</strong> {process.env.NODE_ENV} / API URL: {process.env.REACT_APP_API_URL || '(未設定)'}
+                        </p>
+                    </div>
+                </div>
+            )}
         </Container>
     );
 };

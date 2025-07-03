@@ -62,8 +62,12 @@ app.use(helmet({
 // CORS設定を詳細に指定
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://lead-master-webapp-342064a.us-central1.run.app', 'https://lead-master-webapp.vercel.app']
-        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8081'],
+        ? [
+            'https://lead-master-webapp-342064a.us-central1.run.app',
+            'https://lead-master-webapp.vercel.app',
+            /^https:\/\/leadmaster-.*\.asia-northeast1\.run\.app$/  // Cloud Run URL形式に対応
+        ]
+        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8081', 'http://localhost:8080'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -85,6 +89,60 @@ app.use(morgan('combined', {
 // ヘルスチェックエンドポイント
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
+});
+
+// CORSデバッグエンドポイント
+app.get('/debug/cors', (req, res) => {
+    res.status(200).json({
+        message: 'CORS設定のデバッグ情報',
+        headers: req.headers,
+        origin: req.headers.origin,
+        host: req.headers.host,
+        env: {
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT
+        },
+        corsSettings: {
+            production: [
+                'https://lead-master-webapp-342064a.us-central1.run.app',
+                'https://lead-master-webapp.vercel.app',
+                '/^https:\\/\\/leadmaster-.*\\.asia-northeast1\\.run\\.app$/'  // 正規表現は文字列として表示
+            ],
+            development: [
+                'http://localhost:3000',
+                'http://localhost:3001', 
+                'http://localhost:8081',
+                'http://localhost:8080'
+            ]
+        }
+    });
+});
+
+// CORSデバッグエンドポイント
+app.get('/debug/cors', (req, res) => {
+    res.status(200).json({
+        message: 'CORS設定のデバッグ情報',
+        headers: req.headers,
+        origin: req.headers.origin,
+        host: req.headers.host,
+        env: {
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT
+        },
+        corsSettings: {
+            production: [
+                'https://lead-master-webapp-342064a.us-central1.run.app',
+                'https://lead-master-webapp.vercel.app',
+                /^https:\/\/leadmaster-.*\.asia-northeast1\.run\.app$/
+            ],
+            development: [
+                'http://localhost:3000',
+                'http://localhost:3001',
+                'http://localhost:8081',
+                'http://localhost:8080'
+            ]
+        }
+    });
 });
 
 // API ルート
