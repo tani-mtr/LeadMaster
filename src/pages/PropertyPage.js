@@ -424,6 +424,7 @@ const PropertyPage = () => {
                 const requests = [apiService.getPropertyData(id)];
 
                 // 最初から全データを並行取得（部屋データの有無は物件データ取得後に判断）
+                console.log(`物件ID ${id} のデータ取得を開始します`);
                 requests.push(
                     apiService.getRoomList(id).catch(err => {
                         console.warn('部屋データ取得失敗（スキップ）:', err.message);
@@ -441,11 +442,17 @@ const PropertyPage = () => {
                 setEditData(propertyData);
                 setOriginalData(propertyData); // 元のデータを保存
 
-                // 部屋データがある場合のみ設定
-                if (propertyData.has_related_rooms) {
-                    setRooms(roomData);
-                    setRoomTypes(roomTypeData);
-                }
+                // 部屋データとタイプデータを常に設定（空配列でも設定）
+                setRooms(roomData || []);
+                setRoomTypes(roomTypeData || []);
+
+                console.log('データ取得完了:', {
+                    propertyId: id,
+                    propertyName: propertyData?.name,
+                    hasRelatedRooms: propertyData?.has_related_rooms,
+                    roomsCount: (roomData || []).length,
+                    roomTypesCount: (roomTypeData || []).length
+                });
             } catch (err) {
                 setError(err.message || 'データの取得中にエラーが発生しました');
             } finally {
@@ -462,15 +469,13 @@ const PropertyPage = () => {
 
     // 部屋データの手動更新（更新ボタン用）
     const fetchRoomsData = async () => {
-        if (!property?.has_related_rooms) return;
-
         try {
             setRoomsLoading(true);
             setRoomsError(null);
 
             // BigQueryから部屋データを取得
             const roomData = await apiService.getRoomList(id);
-            setRooms(roomData);
+            setRooms(roomData || []);
 
             // 検索結果をリセット
             setSearchTerm('');
@@ -486,15 +491,13 @@ const PropertyPage = () => {
 
     // 部屋タイプデータの手動更新（更新ボタン用）
     const fetchRoomTypesData = async () => {
-        if (!property?.has_related_rooms) return;
-
         try {
             setRoomTypesLoading(true);
             setRoomTypesError(null);
 
             // 部屋タイプデータを取得
             const roomTypeData = await apiService.getRoomTypeList(id);
-            setRoomTypes(roomTypeData);
+            setRoomTypes(roomTypeData || []);
         } catch (err) {
             setRoomTypesError(err.message || '部屋タイプデータの取得中にエラーが発生しました');
         } finally {

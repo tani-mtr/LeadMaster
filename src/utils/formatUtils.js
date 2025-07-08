@@ -182,17 +182,27 @@ export const formatDisplayValue = (fieldName, value) => {
         return '';
     }
 
+    // BigQueryから返されるオブジェクト形式の値を処理
+    let actualValue = value;
+    if (typeof value === 'object' && value !== null && 'value' in value) {
+        actualValue = value.value;
+        // 再度null/undefinedチェック
+        if (actualValue === null || actualValue === undefined || actualValue === '') {
+            return '';
+        }
+    }
+
     if (isTimestampField(fieldName)) {
-        return formatJapaneseDateTime(value);
+        return formatJapaneseDateTime(actualValue);
     }
 
     if (isDateField(fieldName)) {
-        return formatJapaneseDate(value);
+        return formatJapaneseDate(actualValue);
     }
 
     if (isCurrencyField(fieldName)) {
-        return formatCurrency(value);
+        return formatCurrency(actualValue);
     }
 
-    return String(value);
+    return String(actualValue);
 };

@@ -90,10 +90,21 @@ apiClient.interceptors.response.use(
             config: {
                 baseURL: error.config?.baseURL,
                 url: error.config?.url,
-                method: error.config?.method
+                method: error.config?.method,
+                fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'Unknown'
             },
             errorCode: error.code,
-            errorType: error.name
+            errorType: error.name,
+            isAxiosError: error.isAxiosError,
+            networkError: !error.response && error.request ? true : false,
+            errorDetails: {
+                request: error.request ? {
+                    readyState: error.request.readyState,
+                    status: error.request.status,
+                    responseURL: error.request.responseURL
+                } : null,
+                stack: error.stack
+            }
         });
 
         // エラー処理（認証エラーなど）
