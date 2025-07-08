@@ -157,7 +157,8 @@ export const apiService = {
         }
 
         try {
-            const response = await apiClient.get(`/property/${id}`);
+            const url = forceRefresh ? `/property/${id}?forceRefresh=true` : `/property/${id}`;
+            const response = await apiClient.get(url);
             setCache(cacheKey, response.data);
             return response.data;
         } catch (error) {

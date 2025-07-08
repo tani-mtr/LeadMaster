@@ -750,14 +750,11 @@ const PropertyPage = () => {
             const response = await apiService.updatePropertyData(id, changedFields);
 
             if (response.success) {
-                // 更新後のデータで表示を更新
-                setProperty(response.data || editData);
-                setOriginalData(response.data || editData); // 新しい元データとして保存
                 setEditMode(false);
                 alert('保存しました');
 
-                // 最新のデータを再取得
-                const latestData = await apiService.getPropertyData(id);
+                // キャッシュを無効化して最新のデータを強制的に再取得
+                const latestData = await apiService.getPropertyData(id, true);
                 setProperty(latestData);
                 setOriginalData(latestData);
             } else {

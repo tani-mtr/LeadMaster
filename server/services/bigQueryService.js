@@ -100,6 +100,7 @@ class BigQueryService {
                 location: process.env.BIGQUERY_LOCATION || 'US',
                 timeoutMs: 30000, // 30秒のタイムアウト
                 maxResults: 1000, // 結果の上限設定
+                useQueryCache: useCache, // BigQueryのクエリキャッシュを制御
             };
 
             // クエリを実行
@@ -349,9 +350,10 @@ class BigQueryService {
     /**
      * 指定されたIDの物件データを取得（GASのgetPropertyData関数と同様）
      * @param {string} id 物件ID
+     * @param {boolean} forceRefresh キャッシュを無効化するかどうか
      * @returns {Promise<Array>} 物件データの配列
      */
-    async getPropertyData(id) {
+    async getPropertyData(id, forceRefresh = false) {
         try {
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
 
@@ -405,7 +407,7 @@ class BigQueryService {
             `;
 
             const params = { id: id };
-            const rows = await this.executeQuery(query, params);
+            const rows = await this.executeQuery(query, params, !forceRefresh);
 
             // データが見つからない場合は空配列を返す
             if (!rows || rows.length === 0) {
@@ -500,7 +502,7 @@ class BigQueryService {
 
             // まず現在のデータを取得
             console.log('現在のデータを取得中...');
-            const currentDataArray = await this.getPropertyData(id);
+            const currentDataArray = await this.getPropertyData(id, false);
             if (currentDataArray.length === 0) {
                 const errorMsg = `更新対象の物件が見つかりません (ID: ${id})`;
                 console.error(errorMsg);
@@ -602,9 +604,9 @@ class BigQueryService {
                 throw new Error(`BigQuery更新に失敗しました: ${queryError.message}`);
             }
 
-            // 最新のデータを取得
+            // 最新のデータを取得（キャッシュを無効化）
             console.log('更新後のデータを取得中...');
-            const latestData = await this.getPropertyData(id);
+            const latestData = await this.getPropertyData(id, true);
 
             if (latestData.length === 0) {
                 const errorMsg = '更新後のデータ取得に失敗しました';

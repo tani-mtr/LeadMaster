@@ -110,7 +110,7 @@ app.get('/debug/cors', (req, res) => {
             ],
             development: [
                 'http://localhost:3000',
-                'http://localhost:3001', 
+                'http://localhost:3001',
                 'http://localhost:8081',
                 'http://localhost:8080'
             ]
@@ -229,6 +229,16 @@ apiRouter.put('/buildings/:id', (req, res) => {
 // 物件データを取得（GASのgetPropertyData関数と同様）
 apiRouter.get('/property/:id', async (req, res) => {
     const id = req.params.id;
+    const forceRefresh = req.query.forceRefresh === 'true';
+
+    // キャッシュ無効化のヘッダーを設定
+    if (forceRefresh) {
+        res.set({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
+    }
 
     // モック物件データ（全カラムを含む）
     const mockPropertyData = {
@@ -266,8 +276,8 @@ apiRouter.get('/property/:id', async (req, res) => {
     try {
         // BigQueryの設定がある場合はBigQueryから取得を試行、そうでなければモックデータを返す
         if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
-            console.log(`BigQueryから物件ID ${id} のデータを取得中...`);
-            const propertyData = await bigQueryService.getPropertyData(id);
+            console.log(`BigQueryから物件ID ${id} のデータを取得中... (forceRefresh: ${forceRefresh})`);
+            const propertyData = await bigQueryService.getPropertyData(id, forceRefresh);
 
             if (propertyData && propertyData.length > 0) {
                 return res.json(propertyData[0]); // BigQueryからデータが取得できた場合
