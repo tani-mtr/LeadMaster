@@ -1500,7 +1500,26 @@ class BigQueryService {
                 // 変更履歴データを整形
                 const groupedHistory = {};
                 historyResults.forEach(record => {
-                    const changedAt = record.changed_at;
+                    // BigQueryの日付フィールドを適切に処理
+                    let changedAt = record.changed_at;
+
+                    // BigQueryから取得した日付データの正規化
+                    if (changedAt && typeof changedAt === 'object' && changedAt.value) {
+                        changedAt = changedAt.value;
+                    }
+
+                    // 日付形式を統一（ISO形式に変換）
+                    if (changedAt) {
+                        try {
+                            const date = new Date(changedAt);
+                            if (!isNaN(date.getTime())) {
+                                changedAt = date.toISOString();
+                            }
+                        } catch (error) {
+                            console.warn('Invalid date in history record:', changedAt, error);
+                        }
+                    }
+
                     const key = `${changedAt}_${record.changed_by}`;
 
                     if (!groupedHistory[key]) {
@@ -1558,10 +1577,26 @@ class BigQueryService {
 
                 // 作成日がある場合は作成履歴を追加
                 if (room.create_date) {
+                    // BigQueryの日付フィールドを正規化
+                    let createDate = room.create_date;
+                    if (createDate && typeof createDate === 'object' && createDate.value) {
+                        createDate = createDate.value;
+                    }
+
+                    // 日付形式を統一
+                    try {
+                        const date = new Date(createDate);
+                        if (!isNaN(date.getTime())) {
+                            createDate = date.toISOString();
+                        }
+                    } catch (error) {
+                        console.warn('Invalid create_date:', createDate, error);
+                    }
+
                     simpleHistory.push({
                         id: `${roomId}_created`,
                         room_id: roomId,
-                        changed_at: room.create_date,
+                        changed_at: createDate,
                         changed_by: 'システム',
                         changes: {
                             status: {
@@ -1574,10 +1609,26 @@ class BigQueryService {
 
                 // 更新日がある場合は更新履歴を追加
                 if (room.update_date && room.update_date !== room.create_date) {
+                    // BigQueryの日付フィールドを正規化
+                    let updateDate = room.update_date;
+                    if (updateDate && typeof updateDate === 'object' && updateDate.value) {
+                        updateDate = updateDate.value;
+                    }
+
+                    // 日付形式を統一
+                    try {
+                        const date = new Date(updateDate);
+                        if (!isNaN(date.getTime())) {
+                            updateDate = date.toISOString();
+                        }
+                    } catch (error) {
+                        console.warn('Invalid update_date:', updateDate, error);
+                    }
+
                     simpleHistory.push({
                         id: `${roomId}_updated`,
                         room_id: roomId,
-                        changed_at: room.update_date,
+                        changed_at: updateDate,
                         changed_by: 'ユーザー',
                         changes: {
                             status: {

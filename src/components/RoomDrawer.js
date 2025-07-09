@@ -3,6 +3,63 @@ import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import { formatDisplayValue } from '../utils/formatUtils';
 
+// 変更履歴の日付をフォーマットするヘルパー関数
+const formatHistoryDate = (dateValue) => {
+    if (!dateValue) {
+        return '日付不明';
+    }
+
+    try {
+        let date;
+
+        // BigQueryから返される日付形式に応じて処理
+        if (typeof dateValue === 'object' && dateValue.value) {
+            // BigQueryのDATETIME型オブジェクトの場合
+            date = new Date(dateValue.value);
+        } else if (typeof dateValue === 'string') {
+            // 文字列の場合
+            // ISO形式、YYYY-MM-DD HH:mm:ss形式など様々な形式をサポート
+            date = new Date(dateValue);
+
+            // Invalid Dateの場合、BigQueryの特殊な日付形式を試す
+            if (isNaN(date.getTime())) {
+                // BigQueryのDATETIME形式（例：2023-01-01T12:00:00）を試す
+                const isoDate = dateValue.includes('T') ? dateValue : dateValue.replace(' ', 'T');
+                date = new Date(isoDate);
+            }
+
+            // それでもInvalid Dateの場合、日付部分のみを抽出してみる
+            if (isNaN(date.getTime())) {
+                const dateMatch = dateValue.match(/(\d{4}-\d{2}-\d{2})/);
+                if (dateMatch) {
+                    date = new Date(dateMatch[1]);
+                }
+            }
+        } else {
+            // その他の形式（数値など）の場合
+            date = new Date(dateValue);
+        }
+
+        // 日付が有効かチェック
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateValue);
+            return `Invalid Date (${dateValue})`;
+        }
+
+        return date.toLocaleString('ja-JP', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (error) {
+        console.error('Error formatting date:', dateValue, error);
+        return `日付エラー (${dateValue})`;
+    }
+};
+
 // ドロワーのオーバーレイ
 const DrawerOverlay = styled.div`
   position: fixed;
@@ -445,6 +502,17 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             const historyResponse = await apiService.getRoomHistory(roomId);
 
             if (historyResponse && historyResponse.length > 0) {
+                // 各履歴項目の日付形式をデバッグ
+                historyResponse.forEach((item, index) => {
+                    console.log(`履歴項目 ${index}:`, {
+                        changed_at: item.changed_at,
+                        changed_at_type: typeof item.changed_at,
+                        changed_at_value: JSON.stringify(item.changed_at),
+                        changed_by: item.changed_by,
+                        formatResult: formatHistoryDate(item.changed_at)
+                    });
+                });
+
                 setHistoryData(historyResponse);
                 console.log('部屋変更履歴を取得しました:', historyResponse);
             } else {
@@ -660,6 +728,17 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
         if (value === null || value === undefined || value === '') {
             return '(空)';
         }
+
+        // オブジェクト形式の値を処理
+        if (typeof value === 'object' && value !== null) {
+            // BigQueryから取得した日付データ等の処理
+            if (value.value !== undefined) {
+                return value.value || '(空)';
+            }
+            // その他のオブジェクトはJSON文字列として表示（デバッグ用）
+            return JSON.stringify(value);
+        }
+
         return String(value);
     };
 
@@ -772,7 +851,7 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                     <HistoryItem key={index}>
                         <HistoryHeader>
                             <HistoryDate>
-                                {new Date(historyItem.changed_at).toLocaleString('ja-JP')}
+                                {formatHistoryDate(historyItem.changed_at)}
                             </HistoryDate>
                             <HistoryUser>
                                 {historyItem.changed_by || '不明'}

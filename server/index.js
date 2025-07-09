@@ -1047,6 +1047,19 @@ apiRouter.get('/room/:id/history', async (req, res) => {
 
                 if (result.success) {
                     console.log('BigQueryでの部屋変更履歴取得成功:', result.data?.length, '件');
+
+                    // 日付フィールドのデバッグログを出力
+                    if (result.data && result.data.length > 0) {
+                        result.data.forEach((item, index) => {
+                            console.log(`履歴項目 ${index}:`, {
+                                changed_at: item.changed_at,
+                                changed_at_type: typeof item.changed_at,
+                                changed_by: item.changed_by,
+                                isValidDate: item.changed_at ? !isNaN(new Date(item.changed_at).getTime()) : false
+                            });
+                        });
+                    }
+
                     return res.json(result.data || []);
                 } else {
                     console.error('BigQueryでの部屋変更履歴取得失敗:', result.error);
