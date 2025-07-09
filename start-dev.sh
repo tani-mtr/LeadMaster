@@ -22,7 +22,7 @@ cd ..
 # バックエンドサーバーを起動（バックグラウンド）
 echo -e "${YELLOW}バックエンドサーバーを起動しています...${NC}"
 cd server
-npx nodemon index.js &
+PORT=8080 npx nodemon index.js &
 SERVER_PID=$!
 cd ..
 

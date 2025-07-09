@@ -1,17 +1,10 @@
 import axios from 'axios';
 
 // APIのベースURL
-// 環境変数から取得するか、環境に応じてフォールバック値を使用
-const API_BASE_URL = process.env.REACT_APP_API_URL ||
-    (process.env.NODE_ENV === 'production'
-        ? '/api' // Cloud Run環境ではリバースプロキシを使用するため相対パスを使用
-        : 'http://localhost:8080/api'); // 開発環境用
+// 開発環境では常にプロキシを使用（相対パス）
+const API_BASE_URL = '/api';
 
-console.log('API Service 初期化:', {
-    REACT_APP_API_URL: process.env.REACT_APP_API_URL,
-    API_BASE_URL: API_BASE_URL,
-    NODE_ENV: process.env.NODE_ENV
-});
+console.log('API Service 初期化 - Base URL:', API_BASE_URL);
 
 // シンプルなメモリキャッシュ
 const cache = new Map();
