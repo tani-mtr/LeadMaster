@@ -138,6 +138,123 @@ const CloseButton = styled.button`
   }
 `;
 
+// タブボタンコンテナ
+const TabContainer = styled.div`
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+`;
+
+// タブボタン
+const TabButton = styled.button`
+  background: none;
+  border: none;
+  padding: 15px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: ${props => props.active ? '#007bff' : '#666'};
+  border-bottom: 2px solid ${props => props.active ? '#007bff' : 'transparent'};
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: #e9ecef;
+    color: #007bff;
+  }
+`;
+
+// 変更履歴コンテナ
+const HistoryContainer = styled.div`
+  padding: 20px;
+`;
+
+// 変更履歴アイテム
+const HistoryItem = styled.div`
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: white;
+`;
+
+// 変更履歴ヘッダー
+const HistoryHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+`;
+
+// 変更日時
+const HistoryDate = styled.div`
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+`;
+
+// 変更者
+const HistoryUser = styled.div`
+  font-size: 12px;
+  color: #999;
+`;
+
+// 変更内容
+const HistoryChanges = styled.div`
+  margin-top: 10px;
+`;
+
+// 変更フィールド
+const ChangeField = styled.div`
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 3px;
+  font-size: 13px;
+`;
+
+// フィールド名
+const FieldName = styled.span`
+  font-weight: bold;
+  color: #333;
+  margin-right: 8px;
+`;
+
+// 変更値
+const ChangeValue = styled.div`
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+// 古い値
+const OldValue = styled.span`
+  color: #dc3545;
+  text-decoration: line-through;
+  background: #fdf2f2;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+`;
+
+// 新しい値
+const NewValue = styled.span`
+  color: #28a745;
+  background: #f0f8f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+// 矢印アイコン
+const Arrow = styled.span`
+  color: #666;
+  font-size: 12px;
+`;
+
 // ドロワーコンテンツ
 const DrawerContent = styled.div`
   padding: 20px;
@@ -160,7 +277,6 @@ const LoadingContainer = styled.div`
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-  }
 `;
 
 // データ表示コンテナ
@@ -261,6 +377,12 @@ const SaveMessage = styled.div`
     border: 1px solid #f5c6cb;
     color: #721c24;
   }
+  
+  &.info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+  }
 `;
 
 // エラー表示
@@ -279,6 +401,10 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
     const [editData, setEditData] = useState({});
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
+    const [activeTab, setActiveTab] = useState('details'); // 'details' or 'history'
+    const [historyData, setHistoryData] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState(null);
 
     // データ取得
     const fetchRoomData = useCallback(async () => {
@@ -304,6 +430,33 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             setError('部屋データの取得に失敗しました');
         } finally {
             setLoading(false);
+        }
+    }, [roomId, isOpen]);
+
+    // 変更履歴データ取得
+    const fetchHistoryData = useCallback(async () => {
+        if (!roomId || !isOpen) return;
+
+        try {
+            setHistoryLoading(true);
+            setHistoryError(null);
+
+            console.log(`部屋変更履歴を取得中: ID=${roomId}`);
+            const historyResponse = await apiService.getRoomHistory(roomId);
+
+            if (historyResponse && historyResponse.length > 0) {
+                setHistoryData(historyResponse);
+                console.log('部屋変更履歴を取得しました:', historyResponse);
+            } else {
+                setHistoryData([]);
+                console.log('変更履歴はありません');
+            }
+
+        } catch (error) {
+            console.error('Error fetching room history:', error);
+            setHistoryError('変更履歴の取得に失敗しました');
+        } finally {
+            setHistoryLoading(false);
         }
     }, [roomId, isOpen]);
 
@@ -399,8 +552,8 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             console.log('変更されたフィールド:', changedData);
             console.log('BigQueryに送信するデータ:', changedData);
 
-            // APIを呼び出してBigQueryのデータを更新（変更されたフィールドのみ）
-            const updatedData = await apiService.updateRoomData(roomId, changedData);
+            // APIを呼び出してBigQueryのデータを更新（変更されたフィールドのみ、変更者情報付き）
+            const updatedData = await apiService.updateRoomData(roomId, changedData, 'user@example.com');
 
             // 成功した場合、表示データを更新
             setRoomData(prev => ({ ...prev, ...changedData }));
@@ -415,6 +568,10 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             // データを再取得して最新状態を確保
             setTimeout(() => {
                 fetchRoomData();
+                // 変更履歴タブがアクティブまたは変更履歴データが既に存在する場合は更新
+                if (activeTab === 'history' || historyData.length > 0) {
+                    fetchHistoryData();
+                }
             }, 1000);
 
         } catch (error) {
@@ -431,7 +588,18 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
     // ドロワーが開いたときにデータを取得
     useEffect(() => {
         fetchRoomData();
-    }, [fetchRoomData]);
+        if (activeTab === 'history') {
+            fetchHistoryData();
+        }
+    }, [fetchRoomData, fetchHistoryData, activeTab]);
+
+    // タブ切り替え時の処理
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        if (tab === 'history' && historyData.length === 0 && !historyLoading) {
+            fetchHistoryData();
+        }
+    };
 
     // ドロワーが閉じたときにデータをクリア
     useEffect(() => {
@@ -441,6 +609,9 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             setIsEditing(false);
             setEditData({});
             setSaveMessage(null);
+            setActiveTab('details');
+            setHistoryData([]);
+            setHistoryError(null);
         }
     }, [isOpen]);
 
@@ -464,6 +635,33 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             return () => document.removeEventListener('keydown', handleEsc);
         }
     }, [isOpen, onClose]);
+
+    // フィールド名を日本語に変換する関数
+    const getFieldDisplayName = (fieldName) => {
+        const fieldMap = {
+            'status': '進捗',
+            'room_number': '部屋番号',
+            'key_handover_scheduled_date': '鍵引き渡し予定日',
+            'possible_key_handover_scheduled_date_1': '鍵引き渡し予定日①',
+            'possible_key_handover_scheduled_date_2': '鍵引き渡し予定日②',
+            'possible_key_handover_scheduled_date_3': '鍵引き渡し予定日③',
+            'vacate_setup': '退去SU',
+            'contract_collection_date': '契約書回収予定日',
+            'application_intended_date': '申請予定日',
+            'name': '部屋名',
+            'create_date': '部屋登録日'
+        };
+
+        return fieldMap[fieldName] || fieldName;
+    };
+
+    // 値を表示用にフォーマットする関数
+    const formatHistoryValue = (value) => {
+        if (value === null || value === undefined || value === '') {
+            return '(空)';
+        }
+        return String(value);
+    };
 
     // 編集可能なフィールドをレンダリングする関数
     const renderEditableField = (field, value, type = 'text', options = null) => {
@@ -541,6 +739,69 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
         );
     };
 
+    // 変更履歴を表示するコンポーネント
+    const renderHistoryContent = () => {
+        if (historyLoading) {
+            return (
+                <LoadingContainer>
+                    <div className="spinner">⟳</div>
+                    変更履歴を読み込んでいます...
+                </LoadingContainer>
+            );
+        }
+
+        if (historyError) {
+            return (
+                <ErrorMessage>{historyError}</ErrorMessage>
+            );
+        }
+
+        if (historyData.length === 0) {
+            return (
+                <HistoryContainer>
+                    <div style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
+                        変更履歴はありません
+                    </div>
+                </HistoryContainer>
+            );
+        }
+
+        return (
+            <HistoryContainer>
+                {historyData.map((historyItem, index) => (
+                    <HistoryItem key={index}>
+                        <HistoryHeader>
+                            <HistoryDate>
+                                {new Date(historyItem.changed_at).toLocaleString('ja-JP')}
+                            </HistoryDate>
+                            <HistoryUser>
+                                {historyItem.changed_by || '不明'}
+                            </HistoryUser>
+                        </HistoryHeader>
+                        <HistoryChanges>
+                            {historyItem.changes && typeof historyItem.changes === 'object' ?
+                                Object.entries(historyItem.changes).map(([field, change]) => (
+                                    <ChangeField key={field}>
+                                        <FieldName>{getFieldDisplayName(field)}</FieldName>
+                                        <ChangeValue>
+                                            <OldValue>{formatHistoryValue(change.old_value)}</OldValue>
+                                            <Arrow>→</Arrow>
+                                            <NewValue>{formatHistoryValue(change.new_value)}</NewValue>
+                                        </ChangeValue>
+                                    </ChangeField>
+                                )) : (
+                                    <div style={{ color: '#666', fontStyle: 'italic' }}>
+                                        変更内容の詳細が利用できません
+                                    </div>
+                                )
+                            }
+                        </HistoryChanges>
+                    </HistoryItem>
+                ))}
+            </HistoryContainer>
+        );
+    };
+
     return (
         <>
             <DrawerOverlay isOpen={isOpen} onClick={handleOverlayClick} />
@@ -575,6 +836,22 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                     </HeaderButtons>
                 </DrawerHeader>
 
+                {/* タブ */}
+                <TabContainer>
+                    <TabButton
+                        active={activeTab === 'details'}
+                        onClick={() => handleTabChange('details')}
+                    >
+                        基本情報
+                    </TabButton>
+                    <TabButton
+                        active={activeTab === 'history'}
+                        onClick={() => handleTabChange('history')}
+                    >
+                        変更履歴
+                    </TabButton>
+                </TabContainer>
+
                 <DrawerContent>
                     {saveMessage && (
                         <SaveMessage className={saveMessage.type}>
@@ -582,104 +859,110 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                         </SaveMessage>
                     )}
 
-                    {loading && (
-                        <LoadingContainer>
-                            <div className="spinner">⟳</div>
-                            データを読み込んでいます...
-                        </LoadingContainer>
-                    )}
-
-                    {error && (
-                        <ErrorMessage>{error}</ErrorMessage>
-                    )}
-
-                    {roomData && !loading && !error && (
-                        <DataContainer>
-                            <DataItem>
-                                <HeaderText>部屋ID</HeaderText>
-                                <DataValue>{roomData.id || ''}</DataValue>
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>進捗</HeaderText>
-                                {renderEditableField('status', roomData.status, 'select', [
-                                    { value: 'A', label: 'A' },
-                                    { value: 'B', label: 'B' },
-                                    { value: 'C', label: 'C' },
-                                    { value: 'D', label: 'D' },
-                                    { value: 'E', label: 'E' },
-                                    { value: 'F', label: 'F' },
-                                    { value: 'クローズ', label: 'クローズ' },
-                                    { value: '運営判断中', label: '運営判断中' },
-                                    { value: '試算入力待ち', label: '試算入力待ち' },
-                                    { value: '試算入力済み', label: '試算入力済み' },
-                                    { value: '試算依頼済み', label: '試算依頼済み' },
-                                    { value: '他決', label: '他決' },
-                                    { value: '見送り', label: '見送り' }
-                                ])}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>部屋名</HeaderText>
-                                <DataValue>{roomData.name || ''}</DataValue>
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>部屋番号 <span style={{ color: 'red' }}>*</span></HeaderText>
-                                {renderEditableField('room_number', roomData.room_number)}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>部屋登録日</HeaderText>
-                                <DataValue>{formatDisplayValue('create_date', roomData.create_date)}</DataValue>
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>鍵引き渡し予定日</HeaderText>
-                                {renderEditableField('key_handover_scheduled_date', roomData.key_handover_scheduled_date, 'date')}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>鍵引き渡し予定日①</HeaderText>
-                                {renderEditableField('possible_key_handover_scheduled_date_1', roomData.possible_key_handover_scheduled_date_1, 'date')}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>鍵引き渡し予定日②</HeaderText>
-                                {renderEditableField('possible_key_handover_scheduled_date_2', roomData.possible_key_handover_scheduled_date_2, 'date')}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>鍵引き渡し予定日③</HeaderText>
-                                {renderEditableField('possible_key_handover_scheduled_date_3', roomData.possible_key_handover_scheduled_date_3, 'date')}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>退去SU</HeaderText>
-                                {renderEditableField('vacate_setup', roomData.vacate_setup, 'select', [
-                                    { value: '一般賃貸中', label: '一般賃貸中' },
-                                    { value: '退去SU', label: '退去SU' }
-                                ])}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>契約書回収予定日</HeaderText>
-                                {renderEditableField('contract_collection_date', roomData.contract_collection_date, 'date')}
-                            </DataItem>
-
-                            <DataItem>
-                                <HeaderText>申請予定日</HeaderText>
-                                {renderEditableField('application_intended_date', roomData.application_intended_date, 'date')}
-                            </DataItem>
-
-                            {roomData.lead_room_type_name && (
-                                <DataItem style={{ gridColumn: '1 / -1' }}>
-                                    <HeaderText>部屋タイプ名</HeaderText>
-                                    <DataValue>{roomData.lead_room_type_name}</DataValue>
-                                </DataItem>
+                    {activeTab === 'details' && (
+                        <>
+                            {loading && (
+                                <LoadingContainer>
+                                    <div className="spinner">⟳</div>
+                                    データを読み込んでいます...
+                                </LoadingContainer>
                             )}
-                        </DataContainer>
+
+                            {error && (
+                                <ErrorMessage>{error}</ErrorMessage>
+                            )}
+
+                            {roomData && !loading && !error && (
+                                <DataContainer>
+                                    <DataItem>
+                                        <HeaderText>部屋ID</HeaderText>
+                                        <DataValue>{roomData.id || ''}</DataValue>
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>進捗</HeaderText>
+                                        {renderEditableField('status', roomData.status, 'select', [
+                                            { value: 'A', label: 'A' },
+                                            { value: 'B', label: 'B' },
+                                            { value: 'C', label: 'C' },
+                                            { value: 'D', label: 'D' },
+                                            { value: 'E', label: 'E' },
+                                            { value: 'F', label: 'F' },
+                                            { value: 'クローズ', label: 'クローズ' },
+                                            { value: '運営判断中', label: '運営判断中' },
+                                            { value: '試算入力待ち', label: '試算入力待ち' },
+                                            { value: '試算入力済み', label: '試算入力済み' },
+                                            { value: '試算依頼済み', label: '試算依頼済み' },
+                                            { value: '他決', label: '他決' },
+                                            { value: '見送り', label: '見送り' }
+                                        ])}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>部屋名</HeaderText>
+                                        <DataValue>{roomData.name || ''}</DataValue>
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>部屋番号 <span style={{ color: 'red' }}>*</span></HeaderText>
+                                        {renderEditableField('room_number', roomData.room_number)}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>部屋登録日</HeaderText>
+                                        <DataValue>{formatDisplayValue('create_date', roomData.create_date)}</DataValue>
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>鍵引き渡し予定日</HeaderText>
+                                        {renderEditableField('key_handover_scheduled_date', roomData.key_handover_scheduled_date, 'date')}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>鍵引き渡し予定日①</HeaderText>
+                                        {renderEditableField('possible_key_handover_scheduled_date_1', roomData.possible_key_handover_scheduled_date_1, 'date')}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>鍵引き渡し予定日②</HeaderText>
+                                        {renderEditableField('possible_key_handover_scheduled_date_2', roomData.possible_key_handover_scheduled_date_2, 'date')}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>鍵引き渡し予定日③</HeaderText>
+                                        {renderEditableField('possible_key_handover_scheduled_date_3', roomData.possible_key_handover_scheduled_date_3, 'date')}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>退去SU</HeaderText>
+                                        {renderEditableField('vacate_setup', roomData.vacate_setup, 'select', [
+                                            { value: '一般賃貸中', label: '一般賃貸中' },
+                                            { value: '退去SU', label: '退去SU' }
+                                        ])}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>契約書回収予定日</HeaderText>
+                                        {renderEditableField('contract_collection_date', roomData.contract_collection_date, 'date')}
+                                    </DataItem>
+
+                                    <DataItem>
+                                        <HeaderText>申請予定日</HeaderText>
+                                        {renderEditableField('application_intended_date', roomData.application_intended_date, 'date')}
+                                    </DataItem>
+
+                                    {roomData.lead_room_type_name && (
+                                        <DataItem style={{ gridColumn: '1 / -1' }}>
+                                            <HeaderText>部屋タイプ名</HeaderText>
+                                            <DataValue>{roomData.lead_room_type_name}</DataValue>
+                                        </DataItem>
+                                    )}
+                                </DataContainer>
+                            )}
+                        </>
                     )}
+
+                    {activeTab === 'history' && renderHistoryContent()}
                 </DrawerContent>
             </DrawerContainer>
         </>

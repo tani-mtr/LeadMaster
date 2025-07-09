@@ -398,10 +398,16 @@ export const apiService = {
     },
 
     // 部屋データの更新
-    updateRoomData: async (id, data) => {
+    updateRoomData: async (id, data, changedBy = 'user') => {
         try {
-            console.log(`API Request: PUT /room/${id}`, data);
-            const response = await apiClient.put(`/room/${id}`, data);
+            // 変更者情報を含むリクエストボディを作成
+            const requestBody = {
+                data: data,
+                changedBy: changedBy
+            };
+
+            console.log(`API Request: PUT /room/${id}`, requestBody);
+            const response = await apiClient.put(`/room/${id}`, requestBody);
             console.log('API Response: room updated', response.data);
 
             // キャッシュをクリア
@@ -411,6 +417,19 @@ export const apiService = {
             return response.data;
         } catch (error) {
             console.error(`Error updating room with id ${id}:`, error);
+            throw error;
+        }
+    },
+
+    // 部屋データの変更履歴を取得
+    getRoomHistory: async (id) => {
+        try {
+            console.log(`API Request: GET /room/${id}/history`);
+            const response = await apiClient.get(`/room/${id}/history`);
+            console.log('API Response: room history received', response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching room history for id ${id}:`, error);
             throw error;
         }
     },

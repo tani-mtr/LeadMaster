@@ -674,21 +674,29 @@ apiRouter.get('/dropdown-options/:propertyId', async (req, res) => {
 apiRouter.put('/room/:id', async (req, res) => {
     try {
         const roomId = req.params.id;
-        const updateData = req.body;
-        console.log(`部屋データ更新リクエスト: ${roomId}`, updateData);
+        const { data: updateData, changedBy } = req.body;
+
+        // リクエストボディの構造確認
+        const actualUpdateData = updateData || req.body;
+        const actualChangedBy = changedBy || 'system';
+
+        console.log(`部屋データ更新リクエスト: ${roomId}`, {
+            updateData: actualUpdateData,
+            changedBy: actualChangedBy
+        });
 
         if (bigQueryService.isConfigured()) {
             try {
-                // BigQueryでの更新処理
+                // BigQueryでの更新処理（変更者情報付き）
                 console.log('BigQueryで部屋データを更新中...');
-                const result = await bigQueryService.updateRoomData(roomId, updateData);
+                const result = await bigQueryService.updateRoomData(roomId, actualUpdateData, actualChangedBy);
 
                 if (result.success) {
                     console.log('BigQueryでの部屋データ更新成功:', result.message);
                     return res.json({
                         success: true,
                         message: result.message,
-                        data: result.data || updateData
+                        data: result.data || actualUpdateData
                     });
                 } else {
                     console.error('BigQueryでの部屋データ更新失敗:', result.error);
@@ -703,7 +711,7 @@ apiRouter.put('/room/:id', async (req, res) => {
                 return res.json({
                     success: true,
                     message: '部屋データが更新されました（BigQueryエラーのためモック）',
-                    data: updateData,
+                    data: actualUpdateData,
                     note: 'BigQueryエラーが発生しましたが、処理は継続されました'
                 });
             }
@@ -713,7 +721,7 @@ apiRouter.put('/room/:id', async (req, res) => {
             return res.json({
                 success: true,
                 message: '部屋データが更新されました（モック）',
-                data: updateData
+                data: actualUpdateData
             });
         }
     } catch (error) {
@@ -1023,5 +1031,153 @@ process.on('SIGINT', () => {
     server.close(() => {
         process.exit(0);
     });
+});
+
+// 部屋データの変更履歴取得
+apiRouter.get('/room/:id/history', async (req, res) => {
+    try {
+        const roomId = req.params.id;
+        console.log(`部屋変更履歴取得リクエスト: ${roomId}`);
+
+        if (bigQueryService.isConfigured()) {
+            try {
+                // BigQueryでの変更履歴取得処理
+                console.log('BigQueryで部屋変更履歴を取得中...');
+                const result = await bigQueryService.getRoomHistory(roomId);
+
+                if (result.success) {
+                    console.log('BigQueryでの部屋変更履歴取得成功:', result.data?.length, '件');
+                    return res.json(result.data || []);
+                } else {
+                    console.error('BigQueryでの部屋変更履歴取得失敗:', result.error);
+                    // エラーでもモックデータを返す
+                    return res.json(generateMockHistory(roomId));
+                }
+            } catch (error) {
+                console.error('BigQuery部屋変更履歴取得エラー:', error);
+                // BigQueryエラーの場合はモックデータを返す
+                console.log('BigQueryエラーのため、モック変更履歴を返します');
+                return res.json(generateMockHistory(roomId));
+            }
+        } else {
+            // モック変更履歴データ
+            console.log('モック環境での部屋変更履歴取得');
+            return res.json(generateMockHistory(roomId));
+        }
+    } catch (error) {
+        console.error('部屋変更履歴取得エラー:', error);
+        return res.status(500).json({ error: '変更履歴の取得に失敗しました' });
+    }
+});
+
+// モック変更履歴データを生成する関数
+function generateMockHistory(roomId, type = 'room') {
+    const baseId = type === 'property' ? `property_${roomId}` : roomId;
+    return [
+        {
+            id: `${baseId}_history_1`,
+            room_id: roomId,
+            changed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1日前
+            changed_by: 'user@example.com',
+            changes: {
+                status: {
+                    old_value: 'A',
+                    new_value: 'B'
+                },
+                room_number: {
+                    old_value: '101',
+                    new_value: '102'
+                }
+            }
+        },
+        {
+            id: `${baseId}_history_2`,
+            room_id: roomId,
+            changed_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1週間前
+            changed_by: 'admin@example.com',
+            changes: {
+                key_handover_scheduled_date: {
+                    old_value: null,
+                    new_value: '2024-08-01'
+                },
+                vacate_setup: {
+                    old_value: '一般賃貸中',
+                    new_value: '退去SU'
+                }
+            }
+        },
+        {
+            id: `${baseId}_history_3`,
+            room_id: roomId,
+            changed_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 2週間前
+            changed_by: 'system@example.com',
+            changes: {
+                status: {
+                    old_value: null,
+                    new_value: 'A'
+                }
+            }
+        }
+    ];
+}
+
+// 物件データの変更履歴取得
+apiRouter.get('/property/:id/history', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        console.log(`物件変更履歴取得リクエスト: ${propertyId}`);
+
+        if (bigQueryService.isConfigured()) {
+            try {
+                const result = await bigQueryService.getPropertyHistory(propertyId);
+                if (result.success) {
+                    console.log('BigQueryでの物件変更履歴取得成功:', result.data?.length, '件');
+                    return res.json(result.data || []);
+                } else {
+                    console.error('BigQueryでの物件変更履歴取得失敗:', result.error);
+                    return res.json(generateMockHistory(propertyId, 'property'));
+                }
+            } catch (error) {
+                console.error('BigQuery物件変更履歴取得エラー:', error);
+                return res.json(generateMockHistory(propertyId, 'property'));
+            }
+        } else {
+            console.log('モック環境での物件変更履歴取得');
+            return res.json(generateMockHistory(propertyId, 'property'));
+        }
+    } catch (error) {
+        console.error('物件変更履歴取得エラー:', error);
+        return res.status(500).json({ error: '変更履歴の取得に失敗しました' });
+    }
+});
+
+// 部屋タイプデータの変更履歴取得
+apiRouter.get('/room-type/:id/history', async (req, res) => {
+    try {
+        const roomTypeId = req.params.id;
+        console.log(`部屋タイプ変更履歴取得リクエスト: ${roomTypeId}`);
+
+        if (bigQueryService.isConfigured()) {
+            try {
+                const result = await bigQueryService.getRoomTypeHistory(roomTypeId);
+                if (result.success) {
+                    console.log('BigQueryでの部屋タイプ変更履歴取得成功:', result.data?.length, '件');
+                    return res.json(result.data || []);
+                } else {
+                    console.error('BigQueryでの部屋タイプ変更履歴取得失敗:', result.error);
+                    return res.json(generateMockHistory(roomTypeId, 'room_type'));
+                }
+            } catch (error) {
+                console.error('BigQuery部屋タイプ変更履歴取得エラー:', error);
+                return res.json(generateMockHistory(roomTypeId, 'room_type'));
+            }
+        } else {
+            console.log('モック環境での部屋タイプ変更履歴取得');
+            return res.json(generateMockHistory(roomTypeId, 'room_type'));
+        }
+    } catch (error) {
+        console.error('部屋タイプ変更履歴取得エラー:', error);
+        return res.status(500).json({ error: '変更履歴の取得に失敗しました' });
+    }
 });
 

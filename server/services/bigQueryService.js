@@ -1063,9 +1063,10 @@ class BigQueryService {
      * 部屋データを更新（変更されたフィールドのみを更新）
      * @param {string} roomId - 部屋ID
      * @param {Object} data - 更新データ
+     * @param {string} changedBy - 変更者情報
      * @returns {Promise<Object>} 更新結果
      */
-    async updateRoomData(roomId, data) {
+    async updateRoomData(roomId, data, changedBy = 'system') {
         try {
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
 
@@ -1350,6 +1351,9 @@ class BigQueryService {
 
                 console.log(`部屋ID ${roomId} のデータを更新しました（${updateFields.length}個のフィールド）`);
 
+                // 変更履歴を記録（履歴テーブルが存在する場合のみ）
+                await this.recordChangeHistory(roomId, updateParams, currentData, 'system@leadmaster.com');
+
                 // 更新後のデータを取得して確認
                 console.log('★★★ 更新後データ取得開始 ★★★');
                 const updatedRoomData = await this.executeQuery(
@@ -1393,6 +1397,25 @@ class BigQueryService {
                     }
                 }
 
+                // 変更履歴を記録
+                const changeHistory = {};
+                for (const field of Object.keys(updateParams)) {
+                    if (field !== 'roomId') {
+                        changeHistory[field] = {
+                            old_value: currentData[field],
+                            new_value: updateParams[field]
+                        };
+                    }
+                }
+
+                // 変更履歴記録（同期的に実行）
+                try {
+                    const historyResult = await this.recordChangeHistory('room', roomId, changeHistory, changedBy, 'UPDATE');
+                    console.log('変更履歴記録結果:', historyResult.message);
+                } catch (historyError) {
+                    console.warn('変更履歴記録でエラーが発生しましたが、主処理は継続します:', historyError.message);
+                }
+
                 return {
                     success: true,
                     message: `部屋データを更新しました（${updateFields.length}個のフィールド）`,
@@ -1419,6 +1442,382 @@ class BigQueryService {
                 success: true,
                 message: `部屋データを更新しました（全体エラーのためモック）（${Object.keys(data).length}個のフィールド）`,
                 data: data
+            };
+        }
+    }    /**
+     * 部屋データの変更履歴を取得
+     * 変更履歴専用テーブルが存在しない場合は、更新日時ベースの簡易履歴を返す
+     * @param {string} roomId - 部屋ID
+     * @returns {Promise<Object>} 変更履歴取得結果
+     */
+    async getRoomHistory(roomId) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            console.log(`部屋ID ${roomId} の変更履歴を取得中`);
+
+            // まず、専用の変更履歴テーブルがあるかチェック
+            const historyTableQuery = `
+                SELECT table_name
+                FROM \`${projectId}.zzz_taniguchi.INFORMATION_SCHEMA.TABLES\`
+                WHERE table_name = 'room_change_history'
+            `;
+
+            let historyTableExists = false;
+            try {
+                const tableCheck = await this.executeQuery(historyTableQuery, {}, false);
+                historyTableExists = tableCheck.length > 0;
+                console.log('変更履歴テーブル存在確認:', historyTableExists);
+            } catch (error) {
+                console.log('テーブル存在確認エラー（テーブルが存在しない可能性）:', error.message);
+            }
+
+            if (historyTableExists) {
+                // 専用の変更履歴テーブルが存在する場合
+                const historyQuery = `
+                    SELECT 
+                        id,
+                        room_id,
+                        changed_at,
+                        changed_by,
+                        field_name,
+                        old_value,
+                        new_value,
+                        change_type
+                    FROM \`${projectId}.zzz_taniguchi.room_change_history\`
+                    WHERE room_id = @roomId
+                    ORDER BY changed_at DESC
+                    LIMIT 50
+                `;
+
+                const historyResults = await this.executeQuery(
+                    historyQuery,
+                    { roomId: roomId },
+                    true,
+                    { roomId: 'STRING' }
+                );
+
+                // 変更履歴データを整形
+                const groupedHistory = {};
+                historyResults.forEach(record => {
+                    const changedAt = record.changed_at;
+                    const key = `${changedAt}_${record.changed_by}`;
+
+                    if (!groupedHistory[key]) {
+                        groupedHistory[key] = {
+                            id: record.id,
+                            room_id: record.room_id,
+                            changed_at: changedAt,
+                            changed_by: record.changed_by,
+                            changes: {}
+                        };
+                    }
+
+                    groupedHistory[key].changes[record.field_name] = {
+                        old_value: record.old_value,
+                        new_value: record.new_value,
+                        change_type: record.change_type
+                    };
+                });
+
+                return {
+                    success: true,
+                    data: Object.values(groupedHistory)
+                };
+            } else {
+                // 変更履歴テーブルが存在しない場合は、基本情報から簡易履歴を生成
+                console.log('変更履歴テーブルが存在しないため、基本情報から簡易履歴を生成します');
+
+                const roomQuery = `
+                    SELECT 
+                        id,
+                        create_date,
+                        update_date,
+                        status,
+                        room_number
+                    FROM \`${projectId}.zzz_taniguchi.lead_room\`
+                    WHERE id = @roomId
+                `;
+
+                const roomResults = await this.executeQuery(
+                    roomQuery,
+                    { roomId: roomId },
+                    false,
+                    { roomId: 'STRING' }
+                );
+
+                if (roomResults.length === 0) {
+                    return {
+                        success: true,
+                        data: []
+                    };
+                }
+
+                const room = roomResults[0];
+                const simpleHistory = [];
+
+                // 作成日がある場合は作成履歴を追加
+                if (room.create_date) {
+                    simpleHistory.push({
+                        id: `${roomId}_created`,
+                        room_id: roomId,
+                        changed_at: room.create_date,
+                        changed_by: 'システム',
+                        changes: {
+                            status: {
+                                old_value: null,
+                                new_value: '作成'
+                            }
+                        }
+                    });
+                }
+
+                // 更新日がある場合は更新履歴を追加
+                if (room.update_date && room.update_date !== room.create_date) {
+                    simpleHistory.push({
+                        id: `${roomId}_updated`,
+                        room_id: roomId,
+                        changed_at: room.update_date,
+                        changed_by: 'ユーザー',
+                        changes: {
+                            status: {
+                                old_value: '変更前',
+                                new_value: room.status || '現在の状態'
+                            }
+                        }
+                    });
+                }
+
+                // 日付順にソート（新しい順）
+                simpleHistory.sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
+
+                console.log(`簡易変更履歴を生成しました: ${simpleHistory.length}件`);
+
+                return {
+                    success: true,
+                    data: simpleHistory
+                };
+            }
+
+        } catch (error) {
+            console.error(`変更履歴取得エラー (部屋ID: ${roomId}):`, error);
+
+            // エラーの場合は空の履歴を返す
+            return {
+                success: true,
+                data: []
+            };
+        }
+    }
+
+    /**
+     * 変更履歴を記録
+     * @param {string} entityType - エンティティタイプ ('property', 'room', 'room_type')
+     * @param {string} entityId - エンティティID
+     * @param {Object} fieldChanges - 変更されたフィールドの詳細
+     * @param {string} changedBy - 変更者
+     * @param {string} operationType - 操作タイプ ('INSERT', 'UPDATE', 'DELETE')
+     * @param {Object} metadata - 追加情報 (userAgent, ipAddress, sessionId等)
+     * @returns {Promise<Object>} 記録結果
+     */
+    async recordChangeHistory(entityType, entityId, fieldChanges, changedBy, operationType = 'UPDATE', metadata = {}) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            // 変更がない場合は記録しない
+            if (!fieldChanges || Object.keys(fieldChanges).length === 0) {
+                console.log('変更がないため履歴記録をスキップ');
+                return { success: true, message: '変更がないため履歴記録をスキップしました' };
+            }
+
+            const historyId = this.generateUUID();
+            const now = new Date();
+
+            const insertQuery = `
+                INSERT INTO \`${projectId}.zzz_taniguchi.lead_change_history\`
+                (id, entity_type, entity_id, changed_at, changed_by, operation_type, field_changes, user_agent, ip_address, session_id, comment, created_at)
+                VALUES (@id, @entity_type, @entity_id, CURRENT_TIMESTAMP(), @changed_by, @operation_type, @field_changes, @user_agent, @ip_address, @session_id, @comment, CURRENT_TIMESTAMP())
+            `;
+
+            const params = {
+                id: historyId,
+                entity_type: entityType,
+                entity_id: entityId,
+                changed_by: changedBy || 'system',
+                operation_type: operationType,
+                field_changes: JSON.stringify(fieldChanges),
+                user_agent: metadata.userAgent || null,
+                ip_address: metadata.ipAddress || null,
+                session_id: metadata.sessionId || null,
+                comment: metadata.comment || null
+            };
+
+            const types = {
+                id: 'STRING',
+                entity_type: 'STRING',
+                entity_id: 'STRING',
+                changed_by: 'STRING',
+                operation_type: 'STRING',
+                field_changes: 'JSON',
+                user_agent: 'STRING',
+                ip_address: 'STRING',
+                session_id: 'STRING',
+                comment: 'STRING'
+            };
+
+            console.log(`変更履歴を記録中: ${entityType}:${entityId}`);
+            console.log('変更内容:', fieldChanges);
+
+            try {
+                await this.executeQuery(insertQuery, params, false, types);
+                console.log('変更履歴記録成功');
+                return {
+                    success: true,
+                    message: '変更履歴を記録しました',
+                    historyId: historyId
+                };
+            } catch (error) {
+                console.warn('変更履歴記録エラー:', error.message);
+                // 履歴記録の失敗は主要な処理を止めない
+                return {
+                    success: false,
+                    message: '変更履歴の記録に失敗しましたが、メイン処理は継続されます',
+                    error: error.message
+                };
+            }
+
+        } catch (error) {
+            console.error('変更履歴記録処理エラー:', error);
+            return {
+                success: false,
+                message: '変更履歴記録処理でエラーが発生しました',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * UUIDを生成
+     * @returns {string} UUID文字列
+     */
+    generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    /**
+     * 部屋データの変更履歴を取得（統合版）
+     * @param {string} roomId - 部屋ID
+     * @returns {Promise<Object>} 変更履歴取得結果
+     */
+    async getRoomHistory(roomId) {
+        return this.getChangeHistory('room', roomId);
+    }
+
+    /**
+     * 物件データの変更履歴を取得
+     * @param {string} propertyId - 物件ID
+     * @returns {Promise<Object>} 変更履歴取得結果
+     */
+    async getPropertyHistory(propertyId) {
+        return this.getChangeHistory('property', propertyId);
+    }
+
+    /**
+     * 部屋タイプデータの変更履歴を取得
+     * @param {string} roomTypeId - 部屋タイプID
+     * @returns {Promise<Object>} 変更履歴取得結果
+     */
+    async getRoomTypeHistory(roomTypeId) {
+        return this.getChangeHistory('room_type', roomTypeId);
+    }
+
+    /**
+     * エンティティの変更履歴を取得
+     * @param {string} entityType - エンティティタイプ ('property', 'room', 'room_type')
+     * @param {string} entityId - エンティティID
+     * @param {number} limit - 取得件数制限
+     * @returns {Promise<Object>} 変更履歴取得結果
+     */
+    async getChangeHistory(entityType, entityId, limit = 50) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            console.log(`${entityType}:${entityId} の変更履歴を取得中`);
+
+            // 統合変更履歴テーブルから取得
+            const historyQuery = `
+                SELECT 
+                    id,
+                    entity_type,
+                    entity_id,
+                    changed_at,
+                    changed_by,
+                    operation_type,
+                    field_changes,
+                    comment
+                FROM \`${projectId}.zzz_taniguchi.lead_change_history\`
+                WHERE entity_type = @entity_type 
+                  AND entity_id = @entity_id
+                ORDER BY changed_at DESC
+                LIMIT @limit
+            `;
+
+            try {
+                const historyResults = await this.executeQuery(
+                    historyQuery,
+                    {
+                        entity_type: entityType,
+                        entity_id: entityId,
+                        limit: limit
+                    },
+                    true,
+                    {
+                        entity_type: 'STRING',
+                        entity_id: 'STRING',
+                        limit: 'INT64'
+                    }
+                );
+
+                console.log(`変更履歴取得成功: ${historyResults.length}件`);
+
+                // JSONフィールドをパース
+                const formattedHistory = historyResults.map(record => ({
+                    id: record.id,
+                    entity_type: record.entity_type,
+                    entity_id: record.entity_id,
+                    changed_at: record.changed_at,
+                    changed_by: record.changed_by,
+                    operation_type: record.operation_type,
+                    changes: typeof record.field_changes === 'string'
+                        ? JSON.parse(record.field_changes)
+                        : record.field_changes,
+                    comment: record.comment
+                }));
+
+                return {
+                    success: true,
+                    data: formattedHistory
+                };
+
+            } catch (queryError) {
+                console.warn('変更履歴テーブルが存在しないか、クエリに失敗しました:', queryError.message);
+
+                // 変更履歴テーブルが存在しない場合は空の配列を返す
+                return {
+                    success: true,
+                    data: []
+                };
+            }
+
+        } catch (error) {
+            console.error(`変更履歴取得エラー (${entityType}:${entityId}):`, error);
+            return {
+                success: false,
+                error: '変更履歴の取得に失敗しました'
             };
         }
     }
