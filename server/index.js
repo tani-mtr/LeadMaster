@@ -1083,57 +1083,6 @@ apiRouter.get('/room/:id/history', async (req, res) => {
     }
 });
 
-// モック変更履歴データを生成する関数
-function generateMockHistory(roomId, type = 'room') {
-    const baseId = type === 'property' ? `property_${roomId}` : roomId;
-    return [
-        {
-            id: `${baseId}_history_1`,
-            room_id: roomId,
-            changed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1日前
-            changed_by: 'user@example.com',
-            changes: {
-                status: {
-                    old_value: 'A',
-                    new_value: 'B'
-                },
-                room_number: {
-                    old_value: '101',
-                    new_value: '102'
-                }
-            }
-        },
-        {
-            id: `${baseId}_history_2`,
-            room_id: roomId,
-            changed_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1週間前
-            changed_by: 'admin@example.com',
-            changes: {
-                key_handover_scheduled_date: {
-                    old_value: null,
-                    new_value: '2024-08-01'
-                },
-                vacate_setup: {
-                    old_value: '一般賃貸中',
-                    new_value: '退去SU'
-                }
-            }
-        },
-        {
-            id: `${baseId}_history_3`,
-            room_id: roomId,
-            changed_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 2週間前
-            changed_by: 'system@example.com',
-            changes: {
-                status: {
-                    old_value: null,
-                    new_value: 'A'
-                }
-            }
-        }
-    ];
-}
-
 // 物件データの変更履歴取得
 apiRouter.get('/property/:id/history', async (req, res) => {
     try {
@@ -1142,19 +1091,39 @@ apiRouter.get('/property/:id/history', async (req, res) => {
 
         if (bigQueryService.isConfigured()) {
             try {
+                // BigQueryでの変更履歴取得処理
+                console.log('BigQueryで物件変更履歴を取得中...');
                 const result = await bigQueryService.getPropertyHistory(propertyId);
+
                 if (result.success) {
                     console.log('BigQueryでの物件変更履歴取得成功:', result.data?.length, '件');
+
+                    // 日付フィールドのデバッグログを出力
+                    if (result.data && result.data.length > 0) {
+                        result.data.forEach((item, index) => {
+                            console.log(`履歴項目 ${index}:`, {
+                                changed_at: item.changed_at,
+                                changed_at_type: typeof item.changed_at,
+                                changed_by: item.changed_by,
+                                isValidDate: item.changed_at ? !isNaN(new Date(item.changed_at).getTime()) : false
+                            });
+                        });
+                    }
+
                     return res.json(result.data || []);
                 } else {
                     console.error('BigQueryでの物件変更履歴取得失敗:', result.error);
+                    // エラーでもモックデータを返す
                     return res.json(generateMockHistory(propertyId, 'property'));
                 }
             } catch (error) {
                 console.error('BigQuery物件変更履歴取得エラー:', error);
+                // BigQueryエラーの場合はモックデータを返す
+                console.log('BigQueryエラーのため、モック変更履歴を返します');
                 return res.json(generateMockHistory(propertyId, 'property'));
             }
         } else {
+            // モック変更履歴データ
             console.log('モック環境での物件変更履歴取得');
             return res.json(generateMockHistory(propertyId, 'property'));
         }
@@ -1163,6 +1132,108 @@ apiRouter.get('/property/:id/history', async (req, res) => {
         return res.status(500).json({ error: '変更履歴の取得に失敗しました' });
     }
 });
+
+// モック変更履歴データを生成する関数
+function generateMockHistory(itemId, type = 'room') {
+    const baseId = type === 'property' ? `property_${itemId}` : itemId;
+    const idField = type === 'property' ? 'property_id' : 'room_id';
+
+    if (type === 'property') {
+        return [
+            {
+                id: `${baseId}_history_1`,
+                [idField]: itemId,
+                changed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1日前
+                changed_by: 'user@example.com',
+                changes: {
+                    name: {
+                        old_value: 'サンプル物件',
+                        new_value: 'サンプル物件（更新済み）'
+                    },
+                    lead_from: {
+                        old_value: '旧担当者',
+                        new_value: '新担当者'
+                    }
+                }
+            },
+            {
+                id: `${baseId}_history_2`,
+                [idField]: itemId,
+                changed_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1週間前
+                changed_by: 'admin@example.com',
+                changes: {
+                    is_trade: {
+                        old_value: '',
+                        new_value: '売買'
+                    },
+                    minpaku_feasibility: {
+                        old_value: '確認中',
+                        new_value: '可'
+                    }
+                }
+            },
+            {
+                id: `${baseId}_history_3`,
+                [idField]: itemId,
+                changed_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 2週間前
+                changed_by: 'system@example.com',
+                changes: {
+                    done_property_viewing: {
+                        old_value: '未内見',
+                        new_value: '内見済み'
+                    }
+                }
+            }
+        ];
+    } else {
+        return [
+            {
+                id: `${baseId}_history_1`,
+                [idField]: itemId,
+                changed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1日前
+                changed_by: 'user@example.com',
+                changes: {
+                    status: {
+                        old_value: 'A',
+                        new_value: 'B'
+                    },
+                    room_number: {
+                        old_value: '101',
+                        new_value: '102'
+                    }
+                }
+            },
+            {
+                id: `${baseId}_history_2`,
+                [idField]: itemId,
+                changed_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1週間前
+                changed_by: 'admin@example.com',
+                changes: {
+                    key_handover_scheduled_date: {
+                        old_value: null,
+                        new_value: '2024-08-01'
+                    },
+                    vacate_setup: {
+                        old_value: '一般賃貸中',
+                        new_value: '退去SU'
+                    }
+                }
+            },
+            {
+                id: `${baseId}_history_3`,
+                [idField]: itemId,
+                changed_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 2週間前
+                changed_by: 'system@example.com',
+                changes: {
+                    status: {
+                        old_value: null,
+                        new_value: 'A'
+                    }
+                }
+            }
+        ];
+    }
+}
 
 // 部屋タイプデータの変更履歴取得
 apiRouter.get('/room-type/:id/history', async (req, res) => {

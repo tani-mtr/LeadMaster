@@ -639,6 +639,39 @@ class BigQueryService {
 
             console.log(`物件ID ${id} の更新が完了しました`);
 
+            // 変更履歴を記録
+            try {
+                // 値の正規化関数（変更履歴記録用）
+                const normalizeValue = (value) => {
+                    if (value === null || value === undefined || value === '') {
+                        return null;
+                    }
+                    return value;
+                };
+
+                const changeHistory = {};
+                for (const key in updatedData) {
+                    if (updatedData.hasOwnProperty(key) && key !== 'id' && !excludeFields.includes(key)) {
+                        const normalizedNewValue = normalizeValue(updatedData[key]);
+                        const normalizedCurrentValue = normalizeValue(currentData[key]);
+
+                        if (normalizedNewValue !== normalizedCurrentValue) {
+                            changeHistory[key] = {
+                                old_value: normalizedCurrentValue,
+                                new_value: normalizedNewValue
+                            };
+                        }
+                    }
+                }
+
+                if (Object.keys(changeHistory).length > 0) {
+                    const historyResult = await this.recordChangeHistory('property', id, changeHistory, 'user@example.com', 'UPDATE');
+                    console.log('物件変更履歴記録結果:', historyResult.message);
+                }
+            } catch (historyError) {
+                console.warn('物件変更履歴記録でエラーが発生しましたが、主処理は継続します:', historyError.message);
+            }
+
             return latestData[0];
 
         } catch (error) {
@@ -1869,6 +1902,182 @@ class BigQueryService {
             return {
                 success: false,
                 error: '変更履歴の取得に失敗しました'
+            };
+        }
+    }
+
+    /**
+     * 物件データの変更履歴を取得
+     * @param {string} propertyId - 物件ID
+     * @returns {Promise<Object>} 変更履歴取得結果
+     */
+    async getPropertyHistory(propertyId) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            console.log(`物件ID ${propertyId} の変更履歴を取得中`);
+
+            // まず、専用の変更履歴テーブルがあるかチェック
+            const historyTableQuery = `
+                SELECT table_name
+                FROM \`${projectId}.zzz_taniguchi.INFORMATION_SCHEMA.TABLES\`
+                WHERE table_name = 'property_change_history'
+            `;
+
+            let historyTableExists = false;
+            try {
+                const tableCheck = await this.executeQuery(historyTableQuery, {}, false);
+                historyTableExists = tableCheck.length > 0;
+                console.log('物件変更履歴テーブル存在確認:', historyTableExists);
+            } catch (error) {
+                console.log('テーブル存在確認エラー（テーブルが存在しない可能性）:', error.message);
+            }
+
+            if (historyTableExists) {
+                // 専用の変更履歴テーブルが存在する場合
+                const historyQuery = `
+                    SELECT 
+                        id,
+                        property_id,
+                        changed_at,
+                        changed_by,
+                        field_name,
+                        old_value,
+                        new_value,
+                        change_type
+                    FROM \`${projectId}.zzz_taniguchi.property_change_history\`
+                    WHERE property_id = @propertyId
+                    ORDER BY changed_at DESC
+                    LIMIT 50
+                `;
+
+                const historyResults = await this.executeQuery(
+                    historyQuery,
+                    { propertyId: propertyId },
+                    true,
+                    { propertyId: 'STRING' }
+                );
+
+                // 変更履歴データを整形
+                const groupedHistory = {};
+                historyResults.forEach(record => {
+                    // BigQueryの日付フィールドを適切に処理
+                    let changedAt = record.changed_at;
+
+                    // BigQueryから取得した日付データの正規化
+                    if (changedAt && typeof changedAt === 'object' && changedAt.value) {
+                        changedAt = changedAt.value;
+                    }
+
+                    // 日付形式を統一（ISO形式に変換）
+                    if (changedAt) {
+                        try {
+                            const date = new Date(changedAt);
+                            if (!isNaN(date.getTime())) {
+                                changedAt = date.toISOString();
+                            }
+                        } catch (error) {
+                            console.warn('Invalid date in property history record:', changedAt, error);
+                        }
+                    }
+
+                    const key = `${changedAt}_${record.changed_by}`;
+
+                    if (!groupedHistory[key]) {
+                        groupedHistory[key] = {
+                            id: record.id,
+                            property_id: record.property_id,
+                            changed_at: changedAt,
+                            changed_by: record.changed_by,
+                            changes: {}
+                        };
+                    }
+
+                    groupedHistory[key].changes[record.field_name] = {
+                        old_value: record.old_value,
+                        new_value: record.new_value,
+                        change_type: record.change_type
+                    };
+                });
+
+                return {
+                    success: true,
+                    data: Object.values(groupedHistory)
+                };
+            } else {
+                // 変更履歴テーブルが存在しない場合は、基本情報から簡易履歴を生成
+                console.log('物件変更履歴テーブルが存在しないため、基本情報から簡易履歴を生成します');
+
+                const propertyQuery = `
+                    SELECT 
+                        id,
+                        create_date,
+                        update_date,
+                        name
+                    FROM \`${projectId}.zzz_taniguchi.lead_property\`
+                    WHERE id = @propertyId
+                `;
+
+                const propertyResults = await this.executeQuery(
+                    propertyQuery,
+                    { propertyId: propertyId },
+                    false,
+                    { propertyId: 'STRING' }
+                );
+
+                if (propertyResults.length === 0) {
+                    return {
+                        success: true,
+                        data: []
+                    };
+                }
+
+                const property = propertyResults[0];
+                const simpleHistory = [];
+
+                // 作成日がある場合は作成履歴を追加
+                if (property.create_date) {
+                    // BigQueryの日付フィールドを正規化
+                    let createDate = property.create_date;
+                    if (createDate && typeof createDate === 'object' && createDate.value) {
+                        createDate = createDate.value;
+                    }
+
+                    // 日付形式を統一
+                    try {
+                        const date = new Date(createDate);
+                        if (!isNaN(date.getTime())) {
+                            createDate = date.toISOString();
+                        }
+                    } catch (error) {
+                        console.warn('Invalid create_date:', createDate, error);
+                    }
+
+                    simpleHistory.push({
+                        id: `${propertyId}_created`,
+                        property_id: propertyId,
+                        changed_at: createDate,
+                        changed_by: 'システム',
+                        changes: {
+                            'status': {
+                                old_value: null,
+                                new_value: '作成済み'
+                            }
+                        }
+                    });
+                }
+
+                return {
+                    success: true,
+                    data: simpleHistory
+                };
+            }
+
+        } catch (error) {
+            console.error(`物件変更履歴取得エラー (${propertyId}):`, error);
+            return {
+                success: false,
+                error: '物件変更履歴の取得に失敗しました'
             };
         }
     }

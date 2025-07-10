@@ -318,22 +318,17 @@ const RoomTypeContainer = styled.div`
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
-// 履歴表示用のスタイル
+// 変更履歴関連のスタイル
 const HistoryContainer = styled.div`
-  max-height: 500px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 10px;
+  padding: 20px;
 `;
 
 const HistoryItem = styled.div`
-  border-bottom: 1px solid #eee;
-  padding: 15px 0;
-  
-  &:last-child {
-    border-bottom: none;
-  }
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: white;
 `;
 
 const HistoryHeader = styled.div`
@@ -341,87 +336,67 @@ const HistoryHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
 `;
 
 const HistoryDate = styled.div`
-  font-weight: bold;
-  color: #333;
   font-size: 14px;
+  color: #666;
+  font-weight: 500;
 `;
 
 const HistoryUser = styled.div`
-  color: #666;
   font-size: 12px;
+  color: #999;
 `;
 
 const HistoryChanges = styled.div`
-  background: #f8f9fa;
-  padding: 10px;
-  border-radius: 4px;
-  border-left: 4px solid #007bff;
+  margin-top: 10px;
 `;
 
 const ChangeField = styled.div`
   margin-bottom: 8px;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 3px;
+  font-size: 13px;
 `;
 
-const FieldName = styled.div`
+const FieldName = styled.span`
   font-weight: bold;
-  font-size: 12px;
-  color: #495057;
-  margin-bottom: 2px;
+  color: #333;
+  margin-right: 8px;
 `;
 
 const ChangeValue = styled.div`
+  margin-top: 4px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
 `;
 
 const OldValue = styled.span`
   color: #dc3545;
   text-decoration: line-through;
-  background: #f8d7da;
-  padding: 2px 4px;
+  background: #fdf2f2;
+  padding: 2px 6px;
   border-radius: 3px;
+  font-size: 12px;
 `;
 
 const NewValue = styled.span`
   color: #28a745;
-  background: #d4edda;
-  padding: 2px 4px;
+  background: #f0f8f0;
+  padding: 2px 6px;
   border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
 `;
 
 const Arrow = styled.span`
-  color: #6c757d;
-  font-weight: bold;
-`;
-
-const HistoryTabContainer = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #ddd;
-`;
-
-const HistoryTab = styled.button`
-  padding: 10px 15px;
-  border: none;
-  background: ${props => props.active ? '#007bff' : 'transparent'};
-  color: ${props => props.active ? 'white' : '#333'};
-  cursor: pointer;
-  border-radius: 5px 5px 0 0;
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
-  
-  &:hover {
-    background: ${props => props.active ? '#0056b3' : '#f8f9fa'};
-  }
+  color: #666;
+  font-size: 12px;
 `;
 
 const PropertyPage = () => {
@@ -444,7 +419,7 @@ const PropertyPage = () => {
     const [editData, setEditData] = useState({});
     const [originalData, setOriginalData] = useState({}); // 元のデータを保存
 
-    // 履歴関連の状態
+    // 変更履歴関連の状態
     const [historyData, setHistoryData] = useState([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState(null);
@@ -804,115 +779,6 @@ const PropertyPage = () => {
         }));
     }, []);
 
-    // 履歴データ取得
-    const fetchHistoryData = useCallback(async () => {
-        if (!id) return;
-
-        try {
-            setHistoryLoading(true);
-            setHistoryError(null);
-
-            console.log(`物件変更履歴を取得中: ID=${id}`);
-            const historyResponse = await apiService.getPropertyHistory(id);
-
-            if (historyResponse && historyResponse.length > 0) {
-                setHistoryData(historyResponse);
-                console.log('物件変更履歴を取得しました:', historyResponse);
-            } else {
-                setHistoryData([]);
-                console.log('変更履歴はありません');
-            }
-
-        } catch (error) {
-            console.error('Error fetching property history:', error);
-            setHistoryError('変更履歴の取得に失敗しました');
-        } finally {
-            setHistoryLoading(false);
-        }
-    }, [id]);
-
-    // 履歴の日付をフォーマットするヘルパー関数
-    const formatHistoryDate = (dateValue) => {
-        if (!dateValue) {
-            return '日付不明';
-        }
-
-        try {
-            let date;
-
-            if (typeof dateValue === 'object' && dateValue.value) {
-                date = new Date(dateValue.value);
-            } else if (typeof dateValue === 'string') {
-                date = new Date(dateValue);
-
-                if (isNaN(date.getTime())) {
-                    const isoDate = dateValue.includes('T') ? dateValue : dateValue.replace(' ', 'T');
-                    date = new Date(isoDate);
-                }
-
-                if (isNaN(date.getTime())) {
-                    const dateMatch = dateValue.match(/(\d{4}-\d{2}-\d{2})/);
-                    if (dateMatch) {
-                        date = new Date(dateMatch[1]);
-                    }
-                }
-            } else {
-                date = new Date(dateValue);
-            }
-
-            if (isNaN(date.getTime())) {
-                console.warn('Invalid date value:', dateValue);
-                return `Invalid Date (${dateValue})`;
-            }
-
-            return date.toLocaleString('ja-JP', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        } catch (error) {
-            console.error('Error formatting date:', dateValue, error);
-            return `日付エラー (${dateValue})`;
-        }
-    };
-
-    // 履歴の値をフォーマットするヘルパー関数
-    const formatHistoryValue = (value) => {
-        if (value === null || value === undefined) {
-            return '(空)';
-        }
-        if (value === '') {
-            return '(空文字)';
-        }
-        return String(value);
-    };
-
-    // フィールド名を表示名に変換するヘルパー関数
-    const getFieldDisplayName = (fieldName) => {
-        const fieldNames = {
-            'name': '建物名',
-            'tag': 'タグ',
-            'is_trade': '売買',
-            'is_lease': '借上',
-            'lead_from': 'lead元',
-            'is_fund': 'ファンド物件',
-            'lead_channel': 'Leadチャネル',
-            'trade_form': '取引形態',
-            'lead_from_representative': '先方担当',
-            'lead_from_tel': '担当者tel',
-            'lead_from_mail': '担当者mail',
-            'minpaku_feasibility': 'minpaku可否',
-            'sp_feasibility': 'SP必要性',
-            'done_property_viewing': '内見済み',
-            'done_antisocial_check': '反社チェック済み',
-            'memo': 'メモ'
-        };
-        return fieldNames[fieldName] || fieldName;
-    };
-
     // 保存処理
     const handleSave = async () => {
         try {
@@ -980,18 +846,6 @@ const PropertyPage = () => {
                 const latestData = await apiService.getPropertyData(id, true);
                 setProperty(latestData);
                 setOriginalData(latestData);
-
-                // 履歴データがあれば更新
-                if (historyData.length > 0) {
-                    setTimeout(() => {
-                        fetchHistoryData();
-                    }, 1000);
-                } else {
-                    // 初回保存時は履歴を自動的に取得して表示
-                    setTimeout(() => {
-                        fetchHistoryData();
-                    }, 1000);
-                }
             } else {
                 throw new Error(response.error || '更新に失敗しました');
             }
@@ -1497,75 +1351,6 @@ const PropertyPage = () => {
                             {loading ? '保存中...' : '保存'}
                         </Button>
                     )}
-
-                    {/* 変更履歴セクション */}
-                    <div style={{ marginTop: '40px', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h3>変更履歴</h3>
-                            <Button
-                                onClick={() => {
-                                    if (historyData.length === 0 && !historyLoading) {
-                                        fetchHistoryData();
-                                    }
-                                }}
-                                disabled={historyLoading}
-                            >
-                                {historyLoading ? '読み込み中...' : '履歴を表示'}
-                            </Button>
-                        </div>
-
-                        {historyLoading && (
-                            <LoadingMessage>
-                                <div className="spinner"></div>
-                                変更履歴を読み込んでいます...
-                            </LoadingMessage>
-                        )}
-
-                        {historyError && (
-                            <ErrorMessage>{historyError}</ErrorMessage>
-                        )}
-
-                        {!historyLoading && !historyError && historyData.length > 0 && (
-                            <HistoryContainer>
-                                {historyData.map((historyItem, index) => (
-                                    <HistoryItem key={index}>
-                                        <HistoryHeader>
-                                            <HistoryDate>
-                                                {formatHistoryDate(historyItem.changed_at)}
-                                            </HistoryDate>
-                                            <HistoryUser>
-                                                {historyItem.changed_by || '不明'}
-                                            </HistoryUser>
-                                        </HistoryHeader>
-                                        <HistoryChanges>
-                                            {historyItem.changes && typeof historyItem.changes === 'object' ?
-                                                Object.entries(historyItem.changes).map(([field, change]) => (
-                                                    <ChangeField key={field}>
-                                                        <FieldName>{getFieldDisplayName(field)}</FieldName>
-                                                        <ChangeValue>
-                                                            <OldValue>{formatHistoryValue(change.old_value)}</OldValue>
-                                                            <Arrow>→</Arrow>
-                                                            <NewValue>{formatHistoryValue(change.new_value)}</NewValue>
-                                                        </ChangeValue>
-                                                    </ChangeField>
-                                                )) : (
-                                                    <div style={{ color: '#666', fontStyle: 'italic' }}>
-                                                        変更内容の詳細が利用できません
-                                                    </div>
-                                                )
-                                            }
-                                        </HistoryChanges>
-                                    </HistoryItem>
-                                ))}
-                            </HistoryContainer>
-                        )}
-
-                        {!historyLoading && !historyError && historyData.length === 0 && (
-                            <div style={{ textAlign: 'center', color: '#666', padding: '20px', border: '1px solid #eee', borderRadius: '5px' }}>
-                                変更履歴はまだありません。「履歴を表示」ボタンをクリックして履歴を確認してください。
-                            </div>
-                        )}
-                    </div>
                 </Section>
             )}
 
@@ -1598,87 +1383,6 @@ const PropertyPage = () => {
                                     更新中...
                                 </div>
                             )}
-                            {rooms.length > 1 ? (
-                                <>
-                                    {/* 検索バー */}
-                                    <SearchInput
-                                        type="text"
-                                        placeholder="部屋名で検索"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-
-                                    {/* 一括操作ボタン */}
-                                    <BulkActions>
-                                        <span>選択された部屋: {selectedRooms.size}件</span>
-                                        <Button
-                                            onClick={handleBulkUpdate}
-                                            disabled={selectedRooms.size === 0}
-                                        >
-                                            一括更新
-                                        </Button>
-                                        <Button
-                                            onClick={handleBulkDelete}
-                                            disabled={selectedRooms.size === 0}
-                                            style={{ backgroundColor: '#dc3545' }}
-                                        >
-                                            一括削除
-                                        </Button>
-                                        <Button onClick={() => alert('新規部屋追加機能は今後実装予定です。')}>
-                                            新規追加
-                                        </Button>
-                                    </BulkActions>
-
-                                    {/* 部屋一覧テーブル */}
-                                    <Table>
-                                        <thead>
-                                            <tr>
-                                                <TableHeader>
-                                                    <CheckboxWrapper>
-                                                        <Checkbox
-                                                            type="checkbox"
-                                                            checked={selectAll}
-                                                            onChange={(e) => handleSelectAll(e.target.checked)}
-                                                        />
-                                                    </CheckboxWrapper>
-                                                </TableHeader>
-                                                {rooms[0].map((header, index) => (
-                                                    <TableHeader key={index}>{header}</TableHeader>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {currentRooms.map((room, rowIndex) => {
-                                                const roomId = room[1];
-                                                const roomName = room[2];
-                                                const isOperationEnabled = room[4] !== 'false';
-
-                                                return (
-                                                    <TableRow key={rowIndex}>
-                                                        <TableCell>
-                                                            <CheckboxWrapper>
-                                                                <Checkbox
-                                                                    type="checkbox"
-                                                                    checked={selectedRooms.has(roomId)}
-                                                                    onChange={(e) => handleRoomSelect(roomId, e.target.checked)}
-                                                                />
-                                                            </CheckboxWrapper>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <StatusBadge status={room[0]}>
-                                                                {room[0]}
-                                                            </StatusBadge>
-                                                        </TableCell>
-                                                        <TableCell>{roomId}</TableCell>
-                                                        <TableCell>
-                                                            <RoomNameButton onClick={() => handleOpenRoomDrawer(roomId)}>
-                                                                {roomName}
-                                                            </RoomNameButton>
-                                                        </TableCell>
-                                                        <TableCell>{room[3]}</TableCell>
-                                                        <TableCell>
-                                                            <ActionButtons>
-                                                                <IconButton
                                                                     variant="primary"
                                                                     disabled={!isOperationEnabled}
                                                                     onClick={() => handleOpenRoomDrawer(roomId)}

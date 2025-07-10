@@ -434,6 +434,19 @@ export const apiService = {
         }
     },
 
+    // 物件データの変更履歴を取得
+    getPropertyHistory: async (id) => {
+        try {
+            console.log(`API Request: GET /property/${id}/history`);
+            const response = await apiClient.get(`/property/${id}/history`);
+            console.log('API Response: property history received', response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching property history for id ${id}:`, error);
+            throw error;
+        }
+    },
+
     // 重複チェック
     checkDuplication: async (type, value) => {
         try {
