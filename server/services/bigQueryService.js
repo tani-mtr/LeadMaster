@@ -93,21 +93,89 @@ class BigQueryService {
             }
 
             console.log('BigQuery カスタムクエリを実行中:', query.substring(0, 100) + '...');
-            console.log('パラメータ:', params);
+            console.log('パラメータ:', params);            // パラメータの型変換処理
+            const processedParams = {};
+            const parameterMode = Object.keys(types).length > 0 ? 'NAMED' : 'POSITIONAL';
+
+            for (const key in params) {
+                if (params.hasOwnProperty(key)) {
+                    const value = params[key];
+                    const type = types[key];
+
+                    if (type === 'DATE' && value !== null && value !== undefined) {
+                        // DATE型の場合は、YYYY-MM-DD形式の文字列に変換
+                        try {
+                            const dateValue = new Date(value);
+                            if (!isNaN(dateValue.getTime())) {
+                                // BigQueryのDATE型用にYYYY-MM-DD形式に変換
+                                const year = dateValue.getFullYear();
+                                const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+                                const day = String(dateValue.getDate()).padStart(2, '0');
+                                processedParams[key] = `${year}-${month}-${day}`;
+                                console.log(`Date converted for ${key}: ${value} -> ${processedParams[key]}`);
+                            } else {
+                                console.warn(`Invalid date value for ${key}: ${value}`);
+                                processedParams[key] = null;
+                            }
+                        } catch (error) {
+                            console.warn(`Error converting date for ${key}: ${value}`, error);
+                            processedParams[key] = null;
+                        }
+                    } else {
+                        processedParams[key] = value;
+                    }
+                }
+            }
 
             const options = {
                 query: query,
-                params: params,
+                params: processedParams,
                 location: process.env.BIGQUERY_LOCATION || 'US',
                 timeoutMs: 30000, // 30秒のタイムアウト
                 maxResults: 1000, // 結果の上限設定
                 useQueryCache: useCache, // BigQueryのクエリキャッシュを制御
+                parameterMode: parameterMode, // パラメータモードを明示的に指定
             };
 
             // 型定義が提供されている場合は追加
             if (Object.keys(types).length > 0) {
-                options.types = types;
+                // BigQueryのパラメータ形式に変換
+                const queryParameters = [];
+                for (const key in processedParams) {
+                    const value = processedParams[key];
+                    const type = types[key];
+
+                    queryParameters.push({
+                        name: key,
+                        parameterType: {
+                            type: type
+                        },
+                        parameterValue: {
+                            value: value
+                        }
+                    });
+                }
+
+                options.queryParameters = queryParameters;
+                options.parameterMode = 'NAMED';
+                delete options.params; // paramsを削除してqueryParametersを使用
+                delete options.types; // typesを削除してqueryParametersを使用
+
                 console.log('パラメータ型定義:', types);
+                console.log('処理後のパラメータ:', processedParams);
+                console.log('元のパラメータ:', params);
+                console.log('BigQueryパラメータ:', queryParameters);
+
+                // 各パラメータの詳細情報をログ出力
+                for (const key in processedParams) {
+                    console.log(`パラメータ ${key}:`, {
+                        original: params[key],
+                        processed: processedParams[key],
+                        type: types[key],
+                        originalType: typeof params[key],
+                        processedType: typeof processedParams[key]
+                    });
+                }
             }
 
             // クエリを実行
@@ -124,14 +192,25 @@ class BigQueryService {
 
             // ジョブの統計情報を取得
             const jobMetadata = await job.getMetadata();
+            const statistics = jobMetadata[0]?.statistics;
             console.log('Job統計情報:', {
-                totalBytesProcessed: jobMetadata[0]?.statistics?.totalBytesProcessed,
-                totalSlotMs: jobMetadata[0]?.statistics?.totalSlotMs,
-                creationTime: jobMetadata[0]?.statistics?.creationTime,
-                startTime: jobMetadata[0]?.statistics?.startTime,
-                endTime: jobMetadata[0]?.statistics?.endTime,
-                numDmlAffectedRows: jobMetadata[0]?.statistics?.numDmlAffectedRows
+                totalBytesProcessed: statistics?.totalBytesProcessed,
+                totalSlotMs: statistics?.totalSlotMs,
+                creationTime: statistics?.creationTime,
+                startTime: statistics?.startTime,
+                endTime: statistics?.endTime,
+                numDmlAffectedRows: statistics?.numDmlAffectedRows,
+                queryParameters: jobMetadata[0]?.configuration?.query?.queryParameters
             });
+
+            // DMLクエリの場合は影響を受けた行数を確認
+            if (statistics?.numDmlAffectedRows !== undefined) {
+                console.log(`DML操作で影響を受けた行数: ${statistics.numDmlAffectedRows}`);
+                if (statistics.numDmlAffectedRows === '0') {
+                    console.warn('⚠️  UPDATEクエリが実行されましたが、影響を受けた行がありません');
+                    console.warn('⚠️  WHERE条件に一致するレコードが存在しない可能性があります');
+                }
+            }
 
             console.log(`${rows.length} 件のレコードを取得しました。`);
 
