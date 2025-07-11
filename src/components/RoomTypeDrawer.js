@@ -717,13 +717,26 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
     } else {
       // 通常の入力フィールドの場合
       let inputType = 'text';
-      if (fieldName.includes('date') || fieldName.includes('Date')) {
+
+      // BigQueryスキーマに基づく型判定
+      const numericFields = [
+        'minpaku_price', 'monthly_price', 'payment_rent', 'management_expenses',
+        'brokerage_commission', 'deposit', 'key_money', 'key_exchange_money',
+        'renovation_cost', 'property_introduction_fee', 'other_initial_cost',
+        'renewal_fee', 'Initial_guarantee_rate', 'monthly_guarantee_fee_rate',
+        'walk_min_1', 'walk_min_2', 'sqm', 'pax', 'completion_year',
+        'minpaku_plan', 'num_of_room_per_building', 'total_sqm',
+        'firefighting_equipment_cost', 'firefighting_equipment_cost_manual',
+        'checkin_cost', 'other_cost'
+      ];
+
+      const dateFields = [
+        'date_moving_in', 'rent_accrual_date', 'operation_start_date'
+      ];
+
+      if (dateFields.includes(fieldName)) {
         inputType = 'date';
-      } else if (fieldName.includes('price') || fieldName.includes('cost') || fieldName.includes('fee') ||
-        fieldName.includes('rate') || fieldName.includes('money') || fieldName.includes('rent') ||
-        fieldName.includes('expenses') || fieldName.includes('commission') || fieldName.includes('deposit') ||
-        fieldName.includes('pax') || fieldName.includes('year') || fieldName.includes('min') ||
-        fieldName.includes('sqm') || fieldName.includes('plan') || fieldName.includes('num')) {
+      } else if (numericFields.includes(fieldName)) {
         inputType = 'number';
       }
 
@@ -832,15 +845,96 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
       ...prev,
       [field]: value
     }));
-  };  // 保存処理
+  };  // 保存処理（変更されたフィールドのみを送信）
   const handleSave = async () => {
     try {
       setSaving(true);
       setError(null);
 
-      // 必須項目の検証
+      console.log('部屋タイプデータを更新中:', editData);
+      console.log('元の部屋タイプデータ:', roomTypeData);
+
+      // 変更されたフィールドのみを抽出
+      const changedData = {};
+
+      // 値の正規化関数（BigQueryの型に合わせた変換）
+      const normalizeValue = (value, fieldName) => {
+        if (value === null || value === undefined || value === '') {
+          return null;
+        }
+
+        // BigQueryの型に合わせて値を変換
+        if (fieldName === 'minpaku_price' || fieldName === 'monthly_price' ||
+          fieldName === 'payment_rent' || fieldName === 'management_expenses' ||
+          fieldName === 'brokerage_commission' || fieldName === 'deposit' ||
+          fieldName === 'key_money' || fieldName === 'key_exchange_money' ||
+          fieldName === 'renovation_cost' || fieldName === 'property_introduction_fee' ||
+          fieldName === 'other_initial_cost' || fieldName === 'renewal_fee' ||
+          fieldName === 'Initial_guarantee_rate' || fieldName === 'monthly_guarantee_fee_rate' ||
+          fieldName === 'walk_min_1' || fieldName === 'walk_min_2' ||
+          fieldName === 'sqm' || fieldName === 'pax' || fieldName === 'completion_year' ||
+          fieldName === 'minpaku_plan' || fieldName === 'num_of_room_per_building' ||
+          fieldName === 'total_sqm' || fieldName === 'firefighting_equipment_cost' ||
+          fieldName === 'firefighting_equipment_cost_manual' || fieldName === 'checkin_cost' ||
+          fieldName === 'other_cost') {
+          // NUMERIC型フィールドの場合、数値に変換
+          const numValue = parseFloat(value);
+          return isNaN(numValue) ? null : numValue;
+        }
+
+        if (fieldName === 'date_moving_in' || fieldName === 'rent_accrual_date' ||
+          fieldName === 'operation_start_date') {
+          // DATE型フィールドの場合、日付形式をチェック
+          if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return value;
+          }
+          return null;
+        }
+
+        // STRING型フィールドの場合、文字列に変換
+        return String(value);
+      };
+
+      // 各フィールドを比較して変更があるもののみを抽出
+      Object.keys(editData).forEach(key => {
+        let newValue = editData[key];
+        let currentValue = roomTypeData[key];
+
+        // BigQueryのオブジェクト形式の値を処理
+        if (newValue && typeof newValue === 'object' && newValue.value !== undefined) {
+          newValue = newValue.value;
+        }
+        if (currentValue && typeof currentValue === 'object' && currentValue.value !== undefined) {
+          currentValue = currentValue.value;
+        }
+
+        // 値を正規化して比較
+        const normalizedNewValue = normalizeValue(newValue, key);
+        const normalizedCurrentValue = normalizeValue(currentValue, key);
+
+        // 値が変更されている場合のみ送信データに含める
+        if (normalizedNewValue !== normalizedCurrentValue) {
+          console.log(`フィールド ${key} が変更されました: "${normalizedCurrentValue}" -> "${normalizedNewValue}"`);
+          changedData[key] = normalizedNewValue;
+        }
+      });
+
+      // 変更がない場合は早期リターン
+      if (Object.keys(changedData).length === 0) {
+        setError('変更されたデータがないため、更新は行われませんでした');
+        setEditMode(false);
+        setSaving(false);
+        return;
+      }
+
+      // 必須項目の検証（変更されたフィールドのみ）
       const requiredFields = Object.keys(fieldConfig).filter(key => fieldConfig[key].required);
-      const missingFields = requiredFields.filter(field => !editData[field] || editData[field] === '');
+      const missingFields = requiredFields.filter(field => {
+        // 変更されたフィールドまたは既存のデータがない場合のみチェック
+        const fieldValue = changedData.hasOwnProperty(field) ? changedData[field] : roomTypeData[field];
+        const normalizedValue = normalizeValue(fieldValue, field);
+        return normalizedValue === null || normalizedValue === '';
+      });
 
       if (missingFields.length > 0) {
         const fieldNames = missingFields.map(field => getFieldDisplayName(field));
@@ -849,24 +943,31 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
         return;
       }
 
-      // APIサービスに保存処理を追加する必要があります
-      await apiService.updateRoomTypeData(roomTypeId, editData);
+      console.log('変更されたフィールド:', changedData);
+      console.log('BigQueryに送信するデータ:', changedData);
 
-      // データを再取得
-      await fetchRoomTypeData();
+      // APIを呼び出してBigQueryのデータを更新（変更されたフィールドのみ）
+      await apiService.updateRoomTypeData(roomTypeId, changedData);
 
-      // 履歴データも更新
-      if (activeTab === 'history' || historyData.length > 0) {
-        setTimeout(() => {
-          fetchHistoryData();
-        }, 1000);
-      }
-
+      // 成功した場合、表示データを更新
+      setRoomTypeData(prev => ({ ...prev, ...changedData }));
       setEditMode(false);
-      alert('部屋タイプデータを保存しました。');
+      alert(`部屋タイプデータが正常に更新されました（${Object.keys(changedData).length}個のフィールド）`);
+
+      console.log('BigQueryの部屋タイプデータが更新されました:', changedData);
+
+      // データを再取得して最新状態を確保
+      setTimeout(() => {
+        fetchRoomTypeData();
+        // 履歴データも更新
+        if (activeTab === 'history' || historyData.length > 0) {
+          fetchHistoryData();
+        }
+      }, 1000);
+
     } catch (error) {
       console.error('Error saving room type data:', error);
-      setError('部屋タイプデータの保存に失敗しました');
+      setError('部屋タイプデータの保存に失敗しました: ' + (error.response?.data?.message || error.message));
     } finally {
       setSaving(false);
     }

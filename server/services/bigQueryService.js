@@ -1010,7 +1010,7 @@ class BigQueryService {
     }
 
     /**
-     * 部屋タイプデータを更新
+     * 部屋タイプデータを更新（変更されたフィールドのみを更新）
      * @param {string} roomTypeId 部屋タイプID
      * @param {Object} data 更新するデータ
      * @returns {Promise<Object>} 更新結果
@@ -1019,9 +1019,11 @@ class BigQueryService {
         try {
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
 
-            // IDカラムの特定（元のgetRoomTypeDataと同じロジック）
+            console.log(`部屋タイプID ${roomTypeId} のデータを更新中:`, JSON.stringify(data, null, 2));
+
+            // IDカラムの特定
             const schemaQuery = `
-                SELECT column_name
+                SELECT column_name, data_type, is_nullable
                 FROM \`${projectId}.zzz_taniguchi.INFORMATION_SCHEMA.COLUMNS\`
                 WHERE table_name = 'lead_room_type'
                 ORDER BY ordinal_position
@@ -1031,7 +1033,7 @@ class BigQueryService {
             try {
                 availableColumns = await this.executeQuery(schemaQuery, {}, true);
             } catch (schemaError) {
-                console.warn('スキーマ取得に失敗:', schemaError.message);
+                console.warn('部屋タイプテーブルのスキーマ取得に失敗:', schemaError.message);
                 return { success: false, error: 'スキーマ取得に失敗しました' };
             }
 
@@ -1048,25 +1050,116 @@ class BigQueryService {
                     columnMap.type_id ? 'type_id' :
                         null;
 
+            console.log('使用するIDカラム:', idColumn);
+
             if (!idColumn) {
                 console.error('部屋タイプテーブルにIDカラムが見つかりません');
                 return { success: false, error: 'IDカラムが見つかりません' };
             }
 
-            // 更新可能なフィールドのフィルタリング
+            // まず現在の部屋タイプデータを取得
+            console.log('現在の部屋タイプデータを取得中...');
+            const currentRoomTypeQuery = `
+                SELECT *
+                FROM \`${projectId}.zzz_taniguchi.lead_room_type\`
+                WHERE ${idColumn} = @roomTypeId
+            `;
+
+            let currentRoomTypeData;
+            try {
+                currentRoomTypeData = await this.executeQuery(
+                    currentRoomTypeQuery,
+                    { roomTypeId: roomTypeId },
+                    false,
+                    { roomTypeId: 'STRING' }
+                );
+            } catch (dataError) {
+                console.warn('現在の部屋タイプデータ取得に失敗:', dataError.message);
+                return { success: false, error: 'データ取得に失敗しました' };
+            }
+
+            if (currentRoomTypeData.length === 0) {
+                console.warn(`更新対象の部屋タイプが見つかりません (ID: ${roomTypeId})`);
+                return { success: false, error: '更新対象の部屋タイプが見つかりません' };
+            }
+
+            const currentData = currentRoomTypeData[0];
+            console.log('現在の部屋タイプデータ取得完了:', Object.keys(currentData));
+
+            // 変更されたデータのみをフィルタリング
             const updateFields = [];
             const updateParams = { roomTypeId: roomTypeId };
+            const types = { roomTypeId: 'STRING' };
 
-            Object.keys(data).forEach(key => {
-                // IDカラムは更新しない
-                if (key !== idColumn && columnMap[key]) {
-                    updateFields.push(`${key} = @${key}`);
-                    updateParams[key] = data[key];
+            // 除外するフィールド
+            const excludeFields = ['create_date'];
+
+            // 値の正規化関数
+            const normalizeValue = (value) => {
+                if (value === null || value === undefined || value === '') {
+                    return null;
                 }
-            });
+                return value;
+            };
+
+            for (const key in data) {
+                if (data.hasOwnProperty(key) && key !== idColumn && !excludeFields.includes(key) && columnMap[key]) {
+                    let newValue = data[key];
+                    const currentValue = currentData[key];
+
+                    // BigQueryのオブジェクト形式の値を処理
+                    if (newValue && typeof newValue === 'object' && newValue.value !== undefined) {
+                        newValue = newValue.value;
+                    }
+
+                    // 値を正規化して比較
+                    const normalizedNewValue = normalizeValue(newValue);
+                    const normalizedCurrentValue = normalizeValue(currentValue);
+
+                    // 値が変更されている場合のみ更新対象に含める
+                    if (normalizedNewValue !== normalizedCurrentValue) {
+                        console.log(`フィールド ${key} が変更されました: "${normalizedCurrentValue}" -> "${normalizedNewValue}"`);
+
+                        updateFields.push(`${key} = @${key}`);
+                        updateParams[key] = normalizedNewValue;
+
+                        // データ型を決定（BigQueryスキーマに基づく）
+                        if (normalizedNewValue === null || normalizedNewValue === undefined) {
+                            // スキーマに基づいて型を決定
+                            const schemaField = availableColumns.find(col => col.column_name === key);
+                            if (schemaField) {
+                                types[key] = schemaField.data_type;
+                            } else if (key.includes('date') && key !== 'create_date') {
+                                types[key] = 'DATE';
+                            } else if (key === 'create_date' || key.includes('timestamp')) {
+                                types[key] = 'TIMESTAMP';
+                            } else {
+                                types[key] = 'STRING';
+                            }
+                        } else {
+                            // スキーマに基づいて型を決定
+                            const schemaField = availableColumns.find(col => col.column_name === key);
+                            if (schemaField) {
+                                types[key] = schemaField.data_type;
+                            } else if (key.includes('date') && key !== 'create_date') {
+                                types[key] = 'DATE';
+                            } else if (key === 'create_date' || key.includes('timestamp')) {
+                                types[key] = 'TIMESTAMP';
+                            } else {
+                                types[key] = 'STRING';
+                            }
+                        }
+                    }
+                }
+            }
 
             if (updateFields.length === 0) {
-                return { success: false, error: '更新可能なフィールドがありません' };
+                console.log('変更されたデータがないため、更新をスキップします');
+                return {
+                    success: true,
+                    message: '変更されたデータがないため、更新は行われませんでした',
+                    data: currentData
+                };
             }
 
             const updateQuery = `
@@ -1077,14 +1170,19 @@ class BigQueryService {
 
             console.log('部屋タイプ更新クエリ:', updateQuery);
             console.log('更新パラメータ:', updateParams);
+            console.log('パラメータ型定義:', types);
 
-            await this.executeQuery(updateQuery, updateParams, false);
+            await this.executeQuery(updateQuery, updateParams, false, types);
 
             // キャッシュをクリア
             cache.clear();
 
-            console.log(`部屋タイプID ${roomTypeId} のデータを更新しました`);
-            return { success: true, message: '部屋タイプデータを更新しました' };
+            console.log(`部屋タイプID ${roomTypeId} のデータを更新しました（${updateFields.length}個のフィールド）`);
+            return {
+                success: true,
+                message: `部屋タイプデータを更新しました（${updateFields.length}個のフィールド）`,
+                updatedFields: updateFields.length
+            };
 
         } catch (error) {
             console.error(`部屋タイプデータ更新エラー (部屋タイプID: ${roomTypeId}):`, error);
