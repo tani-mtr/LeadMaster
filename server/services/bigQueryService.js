@@ -1174,6 +1174,43 @@ class BigQueryService {
 
             await this.executeQuery(updateQuery, updateParams, false, types);
 
+            // 変更履歴を記録
+            const changeHistory = {};
+            for (const key in data) {
+                if (data.hasOwnProperty(key) && key !== idColumn && !excludeFields.includes(key) && columnMap[key]) {
+                    let newValue = data[key];
+                    const currentValue = currentData[key];
+
+                    // BigQueryのオブジェクト形式の値を処理
+                    if (newValue && typeof newValue === 'object' && newValue.value !== undefined) {
+                        newValue = newValue.value;
+                    }
+
+                    // 値を正規化して比較
+                    const normalizedNewValue = normalizeValue(newValue);
+                    const normalizedCurrentValue = normalizeValue(currentValue);
+
+                    // 値が変更されている場合のみ履歴に記録
+                    if (normalizedNewValue !== normalizedCurrentValue) {
+                        changeHistory[key] = {
+                            old: normalizedCurrentValue,
+                            new: normalizedNewValue
+                        };
+                    }
+                }
+            }
+
+            // 変更履歴を lead_change_history テーブルに記録
+            if (Object.keys(changeHistory).length > 0) {
+                try {
+                    await this.recordChangeHistory('room_type', roomTypeId, changeHistory, 'system@leadmaster.com', 'UPDATE');
+                    console.log('部屋タイプの変更履歴を記録しました');
+                } catch (historyError) {
+                    console.warn('部屋タイプの変更履歴記録に失敗:', historyError.message);
+                    // 履歴記録の失敗は主要な処理を止めない
+                }
+            }
+
             // キャッシュをクリア
             cache.clear();
 

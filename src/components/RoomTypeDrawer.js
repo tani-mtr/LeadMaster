@@ -1048,9 +1048,9 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                   <ChangeField key={field}>
                     <FieldName>{getFieldDisplayName(field)}</FieldName>
                     <ChangeValue>
-                      <OldValue>{formatHistoryValue(change.old_value)}</OldValue>
+                      <OldValue>{formatHistoryValue(change.old || change.old_value)}</OldValue>
                       <Arrow>→</Arrow>
-                      <NewValue>{formatHistoryValue(change.new_value)}</NewValue>
+                      <NewValue>{formatHistoryValue(change.new || change.new_value)}</NewValue>
                     </ChangeValue>
                   </ChangeField>
                 )) : (
