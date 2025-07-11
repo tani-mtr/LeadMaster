@@ -501,6 +501,8 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             console.log(`部屋変更履歴を取得中: ID=${roomId}`);
             const historyResponse = await apiService.getRoomHistory(roomId);
 
+            console.log('取得した履歴データ:', historyResponse);
+
             if (historyResponse && historyResponse.length > 0) {
                 // 各履歴項目の日付形式をデバッグ
                 historyResponse.forEach((item, index) => {
@@ -509,6 +511,7 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                         changed_at_type: typeof item.changed_at,
                         changed_at_value: JSON.stringify(item.changed_at),
                         changed_by: item.changed_by,
+                        changes: item.changes,
                         formatResult: formatHistoryDate(item.changed_at)
                     });
                 });
@@ -733,10 +736,33 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
         if (typeof value === 'object' && value !== null) {
             // BigQueryから取得した日付データ等の処理
             if (value.value !== undefined) {
-                return value.value || '(空)';
+                return formatHistoryValue(value.value);
             }
             // その他のオブジェクトはJSON文字列として表示（デバッグ用）
             return JSON.stringify(value);
+        }
+
+        // 日付形式の値を処理
+        if (typeof value === 'string') {
+            // 日付形式の場合
+            if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+                try {
+                    const date = new Date(value);
+                    if (!isNaN(date.getTime())) {
+                        return date.toLocaleDateString('ja-JP', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                } catch (error) {
+                    console.warn('日付フォーマットエラー:', error);
+                }
+            }
+            // 通常の文字列値
+            return value;
         }
 
         return String(value);
@@ -863,9 +889,9 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                                     <ChangeField key={field}>
                                         <FieldName>{getFieldDisplayName(field)}</FieldName>
                                         <ChangeValue>
-                                            <OldValue>{formatHistoryValue(change.old_value)}</OldValue>
+                                            <OldValue>{formatHistoryValue(change.old_value || change.old)}</OldValue>
                                             <Arrow>→</Arrow>
-                                            <NewValue>{formatHistoryValue(change.new_value)}</NewValue>
+                                            <NewValue>{formatHistoryValue(change.new_value || change.new)}</NewValue>
                                         </ChangeValue>
                                     </ChangeField>
                                 )) : (

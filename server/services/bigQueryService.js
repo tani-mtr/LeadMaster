@@ -1648,15 +1648,33 @@ class BigQueryService {
                 const changeHistory = {};
                 for (const field of Object.keys(updateParams)) {
                     if (field !== 'roomId') {
+                        // 変更前の値を適切に記録
+                        let oldValue = currentData[field];
+                        let newValue = updateParams[field];
+
+                        // 日付形式の場合の処理
+                        if (oldValue && typeof oldValue === 'object' && oldValue.value) {
+                            oldValue = oldValue.value;
+                        }
+                        if (newValue && typeof newValue === 'object' && newValue.value) {
+                            newValue = newValue.value;
+                        }
+
                         changeHistory[field] = {
-                            old_value: currentData[field],
-                            new_value: updateParams[field]
+                            old_value: oldValue,
+                            new_value: newValue
                         };
+
+                        console.log(`フィールド ${field} の変更記録:`, {
+                            old_value: oldValue,
+                            new_value: newValue
+                        });
                     }
                 }
 
                 // 変更履歴記録（同期的に実行）
                 try {
+                    console.log('記録する変更履歴データ:', changeHistory);
                     const historyResult = await this.recordChangeHistory('room', roomId, changeHistory, changedBy, 'UPDATE');
                     console.log('変更履歴記録結果:', historyResult.message);
                 } catch (historyError) {

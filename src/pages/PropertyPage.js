@@ -881,12 +881,43 @@ const PropertyPage = () => {
 
     // 履歴の値をフォーマットするヘルパー関数
     const formatHistoryValue = (value) => {
-        if (value === null || value === undefined) {
+        if (value === null || value === undefined || value === '') {
             return '(空)';
         }
-        if (value === '') {
-            return '(空文字)';
+
+        // オブジェクト形式の値を処理
+        if (typeof value === 'object' && value !== null) {
+            // BigQueryから取得した日付データ等の処理
+            if (value.value !== undefined) {
+                return formatHistoryValue(value.value);
+            }
+            // その他のオブジェクトはJSON文字列として表示（デバッグ用）
+            return JSON.stringify(value);
         }
+
+        // 日付形式の値を処理
+        if (typeof value === 'string') {
+            // 日付形式の場合
+            if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+                try {
+                    const date = new Date(value);
+                    if (!isNaN(date.getTime())) {
+                        return date.toLocaleDateString('ja-JP', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                } catch (error) {
+                    console.warn('日付フォーマットエラー:', error);
+                }
+            }
+            // 通常の文字列値
+            return value;
+        }
+
         return String(value);
     };
 
@@ -1543,9 +1574,9 @@ const PropertyPage = () => {
                                                     <ChangeField key={field}>
                                                         <FieldName>{getFieldDisplayName(field)}</FieldName>
                                                         <ChangeValue>
-                                                            <OldValue>{formatHistoryValue(change.old_value)}</OldValue>
+                                                            <OldValue>{formatHistoryValue(change.old_value || change.old)}</OldValue>
                                                             <Arrow>→</Arrow>
-                                                            <NewValue>{formatHistoryValue(change.new_value)}</NewValue>
+                                                            <NewValue>{formatHistoryValue(change.new_value || change.new)}</NewValue>
                                                         </ChangeValue>
                                                     </ChangeField>
                                                 )) : (

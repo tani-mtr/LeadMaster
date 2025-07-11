@@ -557,8 +557,26 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
       console.log(`部屋タイプ履歴を取得中: ID=${roomTypeId}`);
       const historyResponse = await apiService.getRoomTypeChangeHistory(roomTypeId);
 
-      console.log('履歴データを取得しました:', historyResponse);
-      setHistoryData(historyResponse || []);
+      console.log('取得した履歴データ:', historyResponse);
+
+      if (historyResponse && historyResponse.length > 0) {
+        // 各履歴項目の詳細をデバッグ
+        historyResponse.forEach((item, index) => {
+          console.log(`履歴項目 ${index}:`, {
+            changed_at: item.changed_at,
+            changed_at_type: typeof item.changed_at,
+            changed_by: item.changed_by,
+            changes: item.changes,
+            formatResult: formatHistoryDate(item.changed_at)
+          });
+        });
+
+        setHistoryData(historyResponse);
+        console.log('部屋タイプ変更履歴を取得しました:', historyResponse);
+      } else {
+        setHistoryData([]);
+        console.log('変更履歴はありません');
+      }
     } catch (error) {
       console.error('Error fetching room type change history:', error);
       setHistoryError('変更履歴の取得に失敗しました');
@@ -615,12 +633,43 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
   // 履歴値をフォーマットする関数
   const formatHistoryValue = (value) => {
-    if (value === null || value === undefined) {
+    if (value === null || value === undefined || value === '') {
       return '(空)';
     }
-    if (typeof value === 'object') {
+
+    // オブジェクト形式の値を処理
+    if (typeof value === 'object' && value !== null) {
+      // BigQueryから取得した日付データ等の処理
+      if (value.value !== undefined) {
+        return formatHistoryValue(value.value);
+      }
+      // その他のオブジェクトはJSON文字列として表示（デバッグ用）
       return JSON.stringify(value);
     }
+
+    // 日付形式の値を処理
+    if (typeof value === 'string') {
+      // 日付形式の場合
+      if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+        } catch (error) {
+          console.warn('日付フォーマットエラー:', error);
+        }
+      }
+      // 通常の文字列値
+      return value;
+    }
+
     return String(value);
   };
 
