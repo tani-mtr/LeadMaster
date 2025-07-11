@@ -328,6 +328,20 @@ export const apiService = {
         }
     },
 
+    // 部屋タイプの変更履歴を取得
+    getRoomTypeChangeHistory: async (roomTypeId) => {
+        try {
+            console.log(`API Request: GET /room-type/${roomTypeId}/history`);
+            const response = await apiClient.get(`/room-type/${roomTypeId}/history`);
+            console.log('API Response: room type change history received', response.data);
+
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching room type change history for ID ${roomTypeId}:`, error);
+            throw error;
+        }
+    },
+
     // 部屋データの取得
     getRoomData: async (id) => {
         const cacheKey = getCacheKey(`/room/${id}`);
