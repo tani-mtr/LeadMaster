@@ -33,9 +33,9 @@
         "web-vitals": "^2.1.4"
     },
     "scripts": {
-        "start": "react-scripts start",
-        "build": "react-scripts build && ls -la build",
-        "test": "react-scripts test",
+        "start": "craco start",
+        "build": "craco build && ls -la build",
+        "test": "craco test",
         "eject": "react-scripts eject",
         "docker:build": "docker build -t leadmaster .",
         "docker:run": "docker run -p 8080:8080 leadmaster"
@@ -58,5 +58,8 @@
             "last 1 safari version"
         ]
     },
-    "proxy": "http://localhost:8080"
+    "proxy": "http://localhost:8080",
+    "devDependencies": {
+        "@craco/craco": "^7.1.0"
+    }
 }
