@@ -1979,6 +1979,7 @@ const PropertyPage = () => {
                 isOpen={drawerOpen}
                 onClose={handleCloseRoomDrawer}
                 roomId={selectedRoomId}
+                propertyData={property}
             />
 
             {/* RoomTypeDrawer を追加 */}

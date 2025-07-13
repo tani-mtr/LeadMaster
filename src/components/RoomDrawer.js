@@ -452,7 +452,7 @@ const ErrorMessage = styled.div`
 `;
 
 // RoomDrawerコンポーネント
-const RoomDrawer = ({ isOpen, onClose, roomId }) => {
+const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
     const [loading, setLoading] = useState(false);
     const [roomData, setRoomData] = useState(null);
     const [error, setError] = useState(null);
@@ -464,6 +464,19 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
     const [historyData, setHistoryData] = useState([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState(null);
+
+    // 部屋名を自動生成する関数
+    const generateRoomName = useCallback((roomNumber) => {
+        if (!propertyData?.name || !roomNumber) {
+            return '';
+        }
+        return `${propertyData.name} ${roomNumber}`;
+    }, [propertyData?.name]);
+
+    // 現在の編集データから生成される部屋名を取得
+    const getUpdatedRoomName = useCallback(() => {
+        return generateRoomName(editData.room_number);
+    }, [editData.room_number, generateRoomName]);
 
     // データ取得
     const fetchRoomData = useCallback(async () => {
@@ -611,6 +624,15 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
                 }
             });
 
+            // 部屋番号が変更された場合、部屋名も自動更新
+            if (changedData.room_number !== undefined) {
+                const newRoomName = generateRoomName(changedData.room_number);
+                if (newRoomName && newRoomName !== roomData.name) {
+                    changedData.name = newRoomName;
+                    console.log(`部屋名を自動更新: "${roomData.name}" -> "${newRoomName}"`);
+                }
+            }
+
             // 変更がない場合は早期リターン
             if (Object.keys(changedData).length === 0) {
                 setSaveMessage({
@@ -629,7 +651,9 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
             const updatedData = await apiService.updateRoomData(roomId, changedData, 'user@example.com');
 
             // 成功した場合、表示データを更新
-            setRoomData(prev => ({ ...prev, ...changedData }));
+            const updatedRoomData = { ...roomData, ...changedData };
+            setRoomData(updatedRoomData);
+            setEditData(updatedRoomData); // 編集データも更新
             setIsEditing(false);
             setSaveMessage({
                 type: 'success',
@@ -1007,7 +1031,18 @@ const RoomDrawer = ({ isOpen, onClose, roomId }) => {
 
                                     <DataItem>
                                         <HeaderText>部屋名</HeaderText>
-                                        <DataValue>{roomData.name || ''}</DataValue>
+                                        {isEditing ? (
+                                            <div>
+                                                <DataValue style={{ backgroundColor: '#e3f2fd', border: '1px solid #2196f3', marginBottom: '5px' }}>
+                                                    {getUpdatedRoomName() || '(部屋番号を入力してください)'}
+                                                </DataValue>
+                                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                                    ※部屋番号に基づいて自動生成されます
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <DataValue>{roomData.name || ''}</DataValue>
+                                        )}
                                     </DataItem>
 
                                     <DataItem>
