@@ -1,20 +1,20 @@
 // 住所データを取得するためのサービス
 class AddressService {
-    // HeartRails Geo APIのベースURL
-    static BASE_URL = 'https://geoapi.heartrails.com/api/json';
+    // サーバーサイドAPIのベースURL
+    static BASE_URL = '/api/address';
 
     /**
      * 都道府県一覧を取得
      */
     static async fetchPrefectures() {
         try {
-            const response = await fetch(`${this.BASE_URL}?method=getPrefectures`);
+            const response = await fetch(`${this.BASE_URL}/prefectures`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
 
-            console.log('HeartRails APIレスポンス:', data);
+            console.log('サーバーAPIレスポンス:', data);
             console.log('data.response:', data.response);
             console.log('data.response.prefecture:', data.response?.prefecture);
             console.log('data.response.location:', data.response?.location);
@@ -68,13 +68,13 @@ class AddressService {
      */
     static async fetchCities(prefecture) {
         try {
-            const response = await fetch(`${this.BASE_URL}?method=getCities&prefecture=${encodeURIComponent(prefecture)}`);
+            const response = await fetch(`${this.BASE_URL}/cities/${encodeURIComponent(prefecture)}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
 
-            console.log(`${prefecture}のHeartRails APIレスポンス:`, data);
+            console.log(`${prefecture}のサーバーAPIレスポンス:`, data);
             console.log('data.response:', data.response);
             console.log('data.response.location:', data.response?.location);
 
@@ -122,7 +122,7 @@ class AddressService {
             // ハイフンを除去
             const cleanZipcode = zipcode.replace(/-/g, '');
 
-            const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleanZipcode}`);
+            const response = await fetch(`${this.BASE_URL}/postal/${cleanZipcode}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -150,3 +150,60 @@ class AddressService {
 }
 
 export { AddressService };
+
+// デバッグ用のブラウザテストヘルパー
+if (typeof window !== 'undefined') {
+    window.testAddressService = async () => {
+        console.log('=== AddressService テスト開始 ===');
+        
+        try {
+            console.log('1. 都道府県データ取得テスト...');
+            const prefectures = await AddressService.fetchPrefectures();
+            console.log('都道府県データ:', prefectures?.slice(0, 10));
+            
+            if (prefectures && prefectures.length > 0) {
+                const firstPref = prefectures[0].name;
+                console.log(`2. ${firstPref}の市区町村データ取得テスト...`);
+                const cities = await AddressService.fetchCities(firstPref);
+                console.log(`${firstPref}の市区町村データ:`, cities?.slice(0, 10));
+            }
+            
+            console.log('3. 郵便番号検索テスト (100-0001)...');
+            const address = await AddressService.fetchAddressByZipcode('100-0001');
+            console.log('郵便番号検索結果:', address);
+            
+            console.log('=== AddressService テスト完了 ===');
+        } catch (error) {
+            console.error('AddressService テストエラー:', error);
+        }
+    };
+
+    // サーバーAPIテスト用のヘルパー
+    window.testServerAPI = async () => {
+        console.log('=== サーバーAPI テスト開始 ===');
+        
+        try {
+            console.log('1. 都道府県APIテスト...');
+            const prefResponse = await fetch('/api/address/prefectures');
+            const prefData = await prefResponse.json();
+            console.log('都道府県APIレスポンス:', prefData);
+            
+            if (prefData.response?.location?.length > 0) {
+                const firstPref = prefData.response.location[0].prefecture;
+                console.log(`2. ${firstPref}の市区町村APIテスト...`);
+                const cityResponse = await fetch(`/api/address/cities/${encodeURIComponent(firstPref)}`);
+                const cityData = await cityResponse.json();
+                console.log(`${firstPref}の市区町村APIレスポンス:`, cityData);
+            }
+            
+            console.log('3. 郵便番号APIテスト (100-0001)...');
+            const postalResponse = await fetch('/api/address/postal/1000001');
+            const postalData = await postalResponse.json();
+            console.log('郵便番号APIレスポンス:', postalData);
+            
+            console.log('=== サーバーAPI テスト完了 ===');
+        } catch (error) {
+            console.error('サーバーAPI テストエラー:', error);
+        }
+    };
+}

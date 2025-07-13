@@ -823,133 +823,77 @@ apiRouter.post('/execute-query', async (req, res) => {
     }
 });
 
-// APIルーターをマウント
-app.use('/api', apiRouter);
-
-// 静的ファイルの配信
-if (process.env.NODE_ENV === 'production') {
-    // Dockerコンテナ内では build ディレクトリは同階層にある
-    const buildPath = path.join(__dirname, 'build');
-    console.log(`静的ファイル配信パス: ${buildPath}`);
-    console.log(`buildディレクトリの存在確認: ${require('fs').existsSync(buildPath)}`);
-
-    app.use(express.static(buildPath));
-
-    // React アプリケーションのルートを処理
-    app.get('*', (req, res) => {
-        const indexPath = path.join(buildPath, 'index.html');
-        console.log(`index.htmlパス: ${indexPath}`);
-        console.log(`index.htmlの存在確認: ${require('fs').existsSync(indexPath)}`);
-        res.sendFile(indexPath);
-    });
-} else {
-    // 開発環境では簡単な応答
-    app.get('/', (req, res) => {
-        res.send('Development server is running! API available at /api/*');
-    });
-}
-
-// 部屋タイプデータの更新
-apiRouter.put('/room-type/:id', async (req, res) => {
-    const roomTypeId = req.params.id;
-    const updateData = req.body;
-
+// 住所データ取得エンドポイント
+apiRouter.get('/address/prefectures', async (req, res) => {
     try {
-        console.log(`部屋タイプデータ更新リクエスト: ${roomTypeId}`, updateData);
-
-        // BigQueryの設定がある場合はBigQueryで更新を試行
-        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
-            console.log(`BigQueryで部屋タイプID ${roomTypeId} のデータを更新中...`);
-            const result = await bigQueryService.updateRoomTypeData(roomTypeId, updateData);
-
-            if (result) {
-                console.log('BigQueryで部屋タイプデータを更新しました');
-                return res.json({ success: true, message: '部屋タイプデータが正常に更新されました' });
-            }
+        const fetch = (await import('node-fetch')).default;
+        console.log('外部APIから都道府県データを取得中...');
+        
+        const response = await fetch('https://geoapi.heartrails.com/api/json?method=getPrefectures');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        // BigQuery設定がない場合やエラーの場合はモック応答
-        console.log('BigQuery設定がないため、モック応答を返します');
-        return res.json({ success: true, message: '部屋タイプデータが正常に更新されました（モック）' });
-
+        
+        const data = await response.json();
+        console.log('都道府県データ取得成功:', data.response?.location?.length, '件');
+        
+        res.json(data);
     } catch (error) {
-        console.error('部屋タイプデータ更新エラー:', error);
-        return res.status(500).json({
-            success: false,
-            message: '部屋タイプデータの更新に失敗しました',
-            error: error.message
+        console.error('都道府県データ取得エラー:', error);
+        res.status(500).json({ 
+            error: '都道府県データの取得に失敗しました',
+            details: error.message 
         });
     }
 });
 
-// デバッグ用エンドポイント
-apiRouter.get('/debug/info', (req, res) => {
-    const fs = require('fs');
-    const buildPath = path.join(__dirname, 'build');
-
-    res.json({
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV,
-        workingDirectory: process.cwd(),
-        dirname: __dirname,
-        buildPath: buildPath,
-        buildExists: fs.existsSync(buildPath),
-        buildContents: fs.existsSync(buildPath) ? fs.readdirSync(buildPath) : [],
-        currentDirContents: fs.readdirSync(__dirname)
-    });
-});
-
-// BigQuery接続テスト用エンドポイント
-apiRouter.get('/test-bigquery', async (req, res) => {
+apiRouter.get('/address/cities/:prefecture', async (req, res) => {
     try {
-        const isConnected = await bigQueryService.testConnection();
-        res.json({
-            success: isConnected,
-            message: isConnected ? 'BigQuery接続成功' : 'BigQuery接続失敗',
-            timestamp: new Date().toISOString()
-        });
+        const fetch = (await import('node-fetch')).default;
+        const prefecture = req.params.prefecture;
+        console.log(`外部APIから${prefecture}の市区町村データを取得中...`);
+        
+        const response = await fetch(`https://geoapi.heartrails.com/api/json?method=getCities&prefecture=${encodeURIComponent(prefecture)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`${prefecture}の市区町村データ取得成功:`, data.response?.location?.length, '件');
+        
+        res.json(data);
     } catch (error) {
-        console.error('BigQuery接続テストエラー:', error);
-        res.status(500).json({
-            success: false,
-            message: 'BigQuery接続テスト中にエラーが発生しました',
-            error: error.message,
-            timestamp: new Date().toISOString()
+        console.error(`${req.params.prefecture}の市区町村データ取得エラー:`, error);
+        res.status(500).json({ 
+            error: '市区町村データの取得に失敗しました',
+            details: error.message 
         });
     }
 });
 
-// SQLクエリ実行エンドポイント
-apiRouter.post('/execute-query', async (req, res) => {
+apiRouter.get('/address/postal/:zipcode', async (req, res) => {
     try {
-        const { query } = req.body;
-
-        if (!query) {
-            return res.status(400).json({
-                success: false,
-                message: 'クエリが指定されていません'
-            });
+        const fetch = (await import('node-fetch')).default;
+        const zipcode = req.params.zipcode;
+        console.log(`外部APIから郵便番号${zipcode}の住所データを取得中...`);
+        
+        const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zipcode}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        console.log('受信したクエリ:', query);
-
-        const results = await bigQueryService.executeQuery(query);
-
-        res.json({
-            success: true,
-            data: results,
-            message: `${results.length}件のレコードを取得しました`,
-            timestamp: new Date().toISOString()
-        });
-
+        
+        const data = await response.json();
+        console.log(`郵便番号${zipcode}の住所データ取得成功:`, data.results?.length, '件');
+        
+        res.json(data);
     } catch (error) {
-        console.error('クエリ実行エラー:', error);
-
-        res.status(500).json({
-            success: false,
-            message: 'クエリの実行中にエラーが発生しました',
-            error: error.message,
-            timestamp: new Date().toISOString()
+        console.error(`郵便番号${req.params.zipcode}の住所データ取得エラー:`, error);
+        res.status(500).json({ 
+            error: '郵便番号検索に失敗しました',
+            details: error.message 
         });
     }
 });
