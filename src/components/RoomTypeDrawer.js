@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import { formatDisplayValue } from '../utils/formatUtils';
-import { getPrefectureOptions, getCityOptions } from '../utils/addressData';
+import { AddressService } from '../services/addressService';
 
 // ドロワーのオーバーレイ
 const DrawerOverlay = styled.div`
@@ -220,7 +220,6 @@ const LoadingContainer = styled.div`
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-  }
 `;
 
 // データ表示コンテナ
@@ -403,7 +402,7 @@ const Button = styled.button`
   cursor: pointer;
   font-size: 14px;
   
-  ${props => props.primary ? `
+  ${props => props.$primary ? `
     background: #007bff;
     color: white;
     
@@ -438,6 +437,12 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState(null);
+
+  // 住所データの状態
+  const [prefectureOptions, setPrefectureOptions] = useState(['']);
+  const [cityOptions, setCityOptions] = useState(['']);
+  const [loadingPrefectures, setLoadingPrefectures] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
 
   // フィールドの設定（編集可否と必須項目）
   const fieldConfig = {
@@ -536,8 +541,8 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
     building_structure: ['', 'RC', 'S', 'SRC', '木造', '鉄骨鉄造', 'WRC', 'W'],
     availability_of_floor_plan: ['', '有', '無', '済'],
     furniture_transfer_availability: ['', '有', '無', '済'],
-    prefectures: getPrefectureOptions(),
-    city: getCityOptions(getSafeValue(editData.prefectures))
+    prefectures: prefectureOptions,
+    city: cityOptions
   });
 
   // 表示用の値を取得するヘルパー関数
@@ -805,6 +810,58 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
     }
   };
 
+  // 住所データ取得関数
+  const fetchPrefectures = useCallback(async () => {
+    try {
+      setLoadingPrefectures(true);
+      console.log('外部APIから都道府県データを取得中...');
+      console.log('現在の編集モード:', editMode);
+      console.log('現在の都道府県オプション数:', prefectureOptions.length);
+
+      const prefectures = await AddressService.fetchPrefectures();
+      const prefectureNames = ['', ...prefectures.map(p => p.name)];
+      console.log('setPrefectureOptions実行前 - prefectureNames:', prefectureNames.length, '件');
+      setPrefectureOptions(prefectureNames);
+      console.log('都道府県データを取得しました:', prefectureNames.length, '件');
+      console.log('最初の5件:', prefectureNames.slice(0, 5));
+
+      // 状態更新後の確認用（次のレンダリングで確認される）
+      setTimeout(() => {
+        console.log('setPrefectureOptions実行後の状態確認 - prefectureOptions.length:', prefectureOptions.length);
+      }, 100);
+    } catch (error) {
+      console.error('都道府県データの取得に失敗しました:', error);
+      console.log('外部APIからのデータ取得に失敗したため、空の選択肢のみを表示します');
+      // エラー時は空の選択肢のみを設定
+      setPrefectureOptions(['']);
+    } finally {
+      setLoadingPrefectures(false);
+    }
+  }, []);
+
+  const fetchCities = useCallback(async (prefectureName) => {
+    if (!prefectureName || prefectureName === '') {
+      setCityOptions(['']);
+      return;
+    }
+
+    try {
+      setLoadingCities(true);
+      console.log(`外部APIから${prefectureName}の市区データを取得中...`);
+
+      const cities = await AddressService.fetchCities(prefectureName);
+      const cityNames = ['', ...cities.map(c => c.name)];
+      setCityOptions(cityNames);
+      console.log(`${prefectureName}の市区データを取得しました:`, cityNames);
+    } catch (error) {
+      console.error(`${prefectureName}の市区データ取得に失敗しました:`, error);
+      console.log('外部APIからの市区町村データ取得に失敗したため、空の選択肢のみを表示します');
+      setCityOptions(['']);
+    } finally {
+      setLoadingCities(false);
+    }
+  }, []);
+
   // データ取得
   const fetchRoomTypeData = useCallback(async () => {
     if (!roomTypeId || !isOpen) return;
@@ -862,7 +919,20 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
     if (activeTab === 'history') {
       fetchHistoryData();
     }
-  }, [fetchRoomTypeData, fetchHistoryData, activeTab]);
+    // ドロワーが開いた時に都道府県データを取得
+    if (isOpen) {
+      fetchPrefectures();
+    }
+  }, [fetchRoomTypeData, fetchHistoryData, activeTab, isOpen, fetchPrefectures]);
+
+  // 都道府県が変更されたときに市区の選択肢を更新
+  useEffect(() => {
+    if (editData.prefectures) {
+      fetchCities(editData.prefectures);
+    } else {
+      setCityOptions(['']);
+    }
+  }, [editData.prefectures, fetchCities]);
 
   // タブ切り替え時の処理
   const handleTabChange = (tab) => {
@@ -882,15 +952,27 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
       setActiveTab('details');
       setHistoryData([]);
       setHistoryError(null);
+      // 住所データもクリア
+      setPrefectureOptions(['']);
+      setCityOptions(['']);
     }
   }, [isOpen]);
 
   // 編集データの初期化
   useEffect(() => {
-    if (roomTypeData && !editMode) {
+    if (roomTypeData) {
       setEditData(roomTypeData);
     }
-  }, [roomTypeData, editMode]);
+  }, [roomTypeData]);
+
+  // 編集モードに切り替えたときに都道府県データを取得
+  useEffect(() => {
+    console.log('編集モード切り替え検知:', { editMode, prefectureOptionsLength: prefectureOptions.length });
+    if (editMode && prefectureOptions.length <= 1) {
+      console.log('都道府県データを取得します...');
+      fetchPrefectures();
+    }
+  }, [editMode, prefectureOptions.length, fetchPrefectures]);
 
   // 入力値の変更処理
   const handleInputChange = (field, value) => {
@@ -907,7 +989,9 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
       return newData;
     });
-  };  // 保存処理（変更されたフィールドのみを送信）
+  };
+
+  // 保存処理（変更されたフィールドのみを送信）
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -1040,6 +1124,12 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
     if (editMode) {
       // 編集をキャンセル
       setEditData(roomTypeData);
+    } else {
+      // 編集モードに入る時に都道府県データを取得
+      console.log('編集モードに切り替え - 都道府県データを取得します');
+      if (prefectureOptions.length <= 1) {
+        fetchPrefectures();
+      }
     }
     setEditMode(!editMode);
   };
@@ -1428,16 +1518,33 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                       <SectionTitle>住所・立地情報</SectionTitle>
                       <FormGroup>
                         <Label>都道府県</Label>
+                        {/* デバッグ情報表示 */}
+                        {process.env.NODE_ENV === 'development' && (
+                          <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px' }}>
+                            DEBUG: 選択肢数={getSelectOptions().prefectures.length},
+                            編集モード={editMode ? 'ON' : 'OFF'},
+                            読み込み中={loadingPrefectures ? 'YES' : 'NO'}<br />
+                            prefectureOptions状態: 長さ={prefectureOptions.length},
+                            最初の3件=[{prefectureOptions.slice(0, 3).join(', ')}]
+                          </div>
+                        )}
                         <Select
                           value={getSafeValue(editData.prefectures)}
-                          onChange={(e) => handleInputChange('prefectures', e.target.value)}
-                          disabled={!fieldConfig.prefectures.editable}
+                          onChange={(e) => {
+                            console.log('都道府県選択:', e.target.value);
+                            handleInputChange('prefectures', e.target.value);
+                          }}
+                          disabled={!fieldConfig.prefectures.editable || loadingPrefectures}
                         >
-                          {getSelectOptions().prefectures.map((option, index) => (
-                            <option key={index} value={option}>
-                              {option}
-                            </option>
-                          ))}
+                          {loadingPrefectures ? (
+                            <option value="">読み込み中...</option>
+                          ) : (
+                            getSelectOptions().prefectures.map((option, index) => (
+                              <option key={index} value={option}>
+                                {option || '（空の選択肢）'}
+                              </option>
+                            ))
+                          )}
                         </Select>
                       </FormGroup>
 
@@ -1446,13 +1553,17 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                         <Select
                           value={getSafeValue(editData.city)}
                           onChange={(e) => handleInputChange('city', e.target.value)}
-                          disabled={!fieldConfig.city.editable}
+                          disabled={!fieldConfig.city.editable || loadingCities || !editData.prefectures}
                         >
-                          {getSelectOptions().city.map((option, index) => (
-                            <option key={index} value={option}>
-                              {option}
-                            </option>
-                          ))}
+                          {loadingCities ? (
+                            <option value="">読み込み中...</option>
+                          ) : (
+                            getSelectOptions().city.map((option, index) => (
+                              <option key={index} value={option}>
+                                {option}
+                              </option>
+                            ))
+                          )}
                         </Select>
                       </FormGroup>
 

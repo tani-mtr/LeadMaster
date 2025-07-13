@@ -203,7 +203,9 @@ const TabContainer = styled.div`
 `;
 
 // タブボタン
-const TabButton = styled.button`
+const TabButton = styled.button.withConfig({
+    shouldForwardProp: (prop) => prop !== 'active'
+})`
   background: none;
   border: none;
   padding: 15px 20px;

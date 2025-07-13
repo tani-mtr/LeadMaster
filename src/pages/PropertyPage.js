@@ -34,7 +34,9 @@ const TabContainer = styled.div`
   margin-bottom: 20px;
 `;
 
-const Tab = styled.button`
+const Tab = styled.button.withConfig({
+    shouldForwardProp: (prop) => prop !== 'active'
+})`
   padding: 10px 20px;
   border: none;
   background: ${props => props.active ? '#007bff' : '#f8f9fa'};
@@ -176,7 +178,9 @@ const Pagination = styled.div`
   margin-top: 20px;
 `;
 
-const PageButton = styled.button`
+const PageButton = styled.button.withConfig({
+    shouldForwardProp: (prop) => prop !== 'active'
+})`
   padding: 8px 12px;
   border: 1px solid #ddd;
   background: ${props => props.active ? '#007bff' : 'white'};
@@ -212,7 +216,9 @@ const ActionButtons = styled.div`
   gap: 5px;
 `;
 
-const IconButton = styled.button`
+const IconButton = styled.button.withConfig({
+    shouldForwardProp: (prop) => !['variant'].includes(prop)
+})`
   padding: 6px 8px;
   border: none;
   background: ${props => props.variant === 'danger' ? '#dc3545' : '#007bff'};
@@ -275,7 +281,9 @@ const TableRow = styled.tr`
   }
 `;
 
-const StatusBadge = styled.span`
+const StatusBadge = styled.span.withConfig({
+    shouldForwardProp: (prop) => prop !== 'status'
+})`
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
