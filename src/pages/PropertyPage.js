@@ -1013,7 +1013,66 @@ const PropertyPage = () => {
 
             if (response.success) {
                 setEditMode(false);
-                alert('保存しました');
+
+                // 建物名変更時の成功メッセージを表示
+                let successMessage = '保存しました';
+                if (changedFields.name && property?.has_related_rooms) {
+                    console.log(`建物名変更を検出:`, {
+                        oldName: originalData.name,
+                        newName: changedFields.name,
+                        hasRelatedRooms: property?.has_related_rooms
+                    });
+
+                    try {
+                        const startTime = performance.now();
+                        console.log('一括部屋名更新を開始...');
+
+                        const bulkUpdateResult = await apiService.bulkUpdateRoomNames(
+                            id,
+                            originalData.name,
+                            changedFields.name,
+                            'user'
+                        );
+
+                        const endTime = performance.now();
+                        const duration = Math.round(endTime - startTime);
+
+                        console.log('一括部屋名更新結果:', {
+                            ...bulkUpdateResult,
+                            performanceMs: duration
+                        });
+
+                        if (bulkUpdateResult.success && bulkUpdateResult.updatedCount > 0) {
+                            successMessage += `\n部屋名も自動更新されました（${bulkUpdateResult.updatedCount}件、${duration}ms）`;
+
+                            // 部屋データを再取得
+                            try {
+                                const roomRefreshStart = performance.now();
+                                const updatedRoomsData = await apiService.getRoomList(id);
+                                setRooms(updatedRoomsData || []);
+                                const roomRefreshEnd = performance.now();
+                                console.log(`部屋データ再取得完了 (${Math.round(roomRefreshEnd - roomRefreshStart)}ms)`);
+                            } catch (roomError) {
+                                console.warn('部屋データの再取得に失敗:', roomError);
+                            }
+                        } else if (bulkUpdateResult.success && bulkUpdateResult.totalTargets === 0) {
+                            successMessage += '\n部屋名の更新対象はありませんでした';
+                            if (bulkUpdateResult.debugInfo) {
+                                console.log('更新対象なしの詳細:', bulkUpdateResult.debugInfo);
+                                successMessage += `\n（検索パターン: "${bulkUpdateResult.debugInfo.searchPattern}"）`;
+                                if (bulkUpdateResult.debugInfo.allRoomsCount > 0) {
+                                    successMessage += `\n物件には${bulkUpdateResult.debugInfo.allRoomsCount}件の部屋がありますが、命名パターンが一致しませんでした`;
+                                }
+                            }
+                        } else if (bulkUpdateResult.errorCount > 0) {
+                            successMessage += `\n部屋名更新中にエラーが発生しました（失敗: ${bulkUpdateResult.errorCount}件）`;
+                        }
+                    } catch (bulkUpdateError) {
+                        console.error('部屋名の一括更新でエラーが発生しました:', bulkUpdateError);
+                        successMessage += '\n※部屋名の更新でエラーが発生しました';
+                    }
+                }
+                alert(successMessage);
 
                 // キャッシュを無効化して最新のデータを強制的に再取得
                 const latestData = await apiService.getPropertyData(id, true);

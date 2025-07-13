@@ -2142,6 +2142,380 @@ class BigQueryService {
         }
     }
 
+    /**
+     * 建物名変更に伴う一括部屋名更新（効率化版）
+     * @param {string} propertyId - 物件ID
+     * @param {string} oldPropertyName - 変更前の物件名
+     * @param {string} newPropertyName - 変更後の物件名
+     * @param {string} changedBy - 変更者
+     * @returns {Promise<Object>} 更新結果
+     */
+    async bulkUpdateRoomNames(propertyId, oldPropertyName, newPropertyName, changedBy = 'system') {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            console.log(`一括部屋名更新開始: 物件ID=${propertyId}`, {
+                oldPropertyName,
+                newPropertyName,
+                changedBy
+            });
+
+            // まず、該当物件の全部屋を確認（デバッグ用）
+            const allRoomsQuery = `
+                SELECT id, name, lead_property_id
+                FROM \`${projectId}.zzz_taniguchi.lead_room\`
+                WHERE lead_property_id = @propertyId
+                AND name IS NOT NULL
+                LIMIT 10
+            `;
+
+            console.log('物件の全部屋確認クエリ:', allRoomsQuery);
+
+            const allRooms = await this.executeQuery(
+                allRoomsQuery,
+                { propertyId: propertyId },
+                false,
+                { propertyId: 'STRING' }
+            );
+
+            console.log(`物件ID ${propertyId} の全部屋（最大10件）:`, allRooms.map(room => ({
+                id: room.id,
+                name: room.name,
+                matchesPattern: room.name && room.name.startsWith(oldPropertyName + ' ')
+            })));
+
+            // 1. 更新対象の部屋一覧を取得（変更前後の部屋名も計算）
+            const roomListQuery = `
+                SELECT 
+                    id,
+                    name as old_name,
+                    CONCAT(@newPropertyName, ' ', SUBSTR(name, LENGTH(@oldPropertyName) + 2)) as new_name
+                FROM \`${projectId}.zzz_taniguchi.lead_room\`
+                WHERE lead_property_id = @propertyId
+                AND name IS NOT NULL
+                AND name LIKE @searchPattern
+            `;
+
+            const searchPattern = `${oldPropertyName} %`; // "物件名 " で始まる部屋名を検索
+
+            console.log('部屋一覧取得クエリ:', roomListQuery);
+            console.log('検索パラメータ:', {
+                propertyId,
+                oldPropertyName,
+                newPropertyName,
+                searchPattern
+            });
+
+            const rooms = await this.executeQuery(
+                roomListQuery,
+                {
+                    propertyId: propertyId,
+                    oldPropertyName: oldPropertyName,
+                    newPropertyName: newPropertyName,
+                    searchPattern: searchPattern
+                },
+                false, // キャッシュを使用しない
+                {
+                    propertyId: 'STRING',
+                    oldPropertyName: 'STRING',
+                    newPropertyName: 'STRING',
+                    searchPattern: 'STRING'
+                }
+            );
+
+            console.log(`更新対象の部屋: ${rooms.length}件`);
+            if (rooms.length > 0) {
+                console.log('更新対象の部屋詳細:', rooms.map(room => ({
+                    id: room.id,
+                    oldName: room.old_name,
+                    newName: room.new_name
+                })));
+            }
+
+            if (rooms.length === 0) {
+                console.log(`更新対象が見つからない理由の分析:`, {
+                    物件ID: propertyId,
+                    検索パターン: searchPattern,
+                    旧物件名: oldPropertyName,
+                    新物件名: newPropertyName,
+                    該当物件の全部屋数: allRooms.length,
+                    パターンマッチする部屋: allRooms.filter(room => room.name && room.name.startsWith(oldPropertyName + ' ')).length
+                });
+
+                return {
+                    success: true,
+                    message: `更新対象の部屋がありません（検索パターン: "${searchPattern}"）`,
+                    updatedCount: 0,
+                    errorCount: 0,
+                    totalTargets: 0,
+                    debugInfo: {
+                        propertyId,
+                        searchPattern,
+                        allRoomsCount: allRooms.length,
+                        allRoomsNames: allRooms.map(r => r.name)
+                    }
+                };
+            }
+
+            // 2. 一括UPDATEクエリを実行（シンプルなUPDATE文を使用）
+            const bulkUpdateQuery = `
+                UPDATE \`${projectId}.zzz_taniguchi.lead_room\`
+                SET name = CONCAT(@newPropertyName, ' ', SUBSTR(name, LENGTH(@oldPropertyName) + 2))
+                WHERE lead_property_id = @propertyId
+                AND name IS NOT NULL
+                AND name LIKE @searchPattern
+            `;
+
+            console.log('一括UPDATE実行中:', bulkUpdateQuery);
+            console.log('UPDATEパラメータ:', {
+                propertyId,
+                oldPropertyName,
+                newPropertyName,
+                searchPattern
+            });
+
+            try {
+                const updateResult = await this.executeQuery(
+                    bulkUpdateQuery,
+                    {
+                        propertyId: propertyId,
+                        oldPropertyName: oldPropertyName,
+                        newPropertyName: newPropertyName,
+                        searchPattern: searchPattern
+                    },
+                    false, // キャッシュを使用しない
+                    {
+                        propertyId: 'STRING',
+                        oldPropertyName: 'STRING',
+                        newPropertyName: 'STRING',
+                        searchPattern: 'STRING'
+                    }
+                );
+
+                console.log(`一括UPDATE完了: 期待値${rooms.length}件の部屋名を更新`);
+                console.log('UPDATE実行結果:', updateResult);
+            } catch (updateError) {
+                console.error('UPDATE実行エラー:', updateError);
+                throw updateError;
+            }
+
+            // 更新後の確認クエリ
+            const verificationQuery = `
+                SELECT id, name
+                FROM \`${projectId}.zzz_taniguchi.lead_room\`
+                WHERE lead_property_id = @propertyId
+                AND name IS NOT NULL
+                AND name LIKE @newSearchPattern
+                LIMIT 5
+            `;
+
+            const newSearchPattern = `${newPropertyName} %`;
+
+            try {
+                const updatedRooms = await this.executeQuery(
+                    verificationQuery,
+                    {
+                        propertyId: propertyId,
+                        newSearchPattern: newSearchPattern
+                    },
+                    false,
+                    {
+                        propertyId: 'STRING',
+                        newSearchPattern: 'STRING'
+                    }
+                );
+
+                console.log(`更新確認: 新しい物件名で始まる部屋 ${updatedRooms.length}件:`, updatedRooms.map(room => ({
+                    id: room.id,
+                    name: room.name
+                })));
+            } catch (verificationError) {
+                console.warn('更新確認クエリ失敗:', verificationError.message);
+            }
+
+            // 3. 変更履歴を一括INSERTで記録（一時的にコメントアウト）
+            try {
+                console.log('変更履歴の記録をスキップ（updated_atエラー回避のため）');
+                // await this.insertBulkChangeHistory(rooms, 'room', changedBy, oldPropertyName, newPropertyName);
+                // console.log('変更履歴の一括記録完了');
+            } catch (historyError) {
+                console.warn('変更履歴の記録に失敗しましたが、更新は成功しました:', historyError.message);
+            }
+
+            // キャッシュクリア
+            const cacheKey = getCacheKey(`getRoomList_${propertyId}`);
+            cache.delete(cacheKey);
+
+            return {
+                success: true,
+                message: `一括部屋名更新完了（${rooms.length}件）`,
+                updatedCount: rooms.length,
+                errorCount: 0,
+                totalTargets: rooms.length
+            };
+
+        } catch (error) {
+            console.error('一括部屋名更新エラー:', error);
+            return {
+                success: false,
+                error: `一括部屋名更新中にエラーが発生しました: ${error.message}`,
+                updatedCount: 0,
+                errorCount: 0,
+                totalTargets: 0
+            };
+        }
+    }
+
+    /**
+     * 変更履歴の一括INSERT（ストリーミング挿入使用）
+     * @param {Array} rooms - 更新された部屋のリスト
+     * @param {string} entityType - エンティティタイプ
+     * @param {string} changedBy - 変更者
+     * @param {string} oldPropertyName - 変更前の物件名
+     * @param {string} newPropertyName - 変更後の物件名
+     */
+    async insertBulkChangeHistory(rooms, entityType, changedBy, oldPropertyName, newPropertyName) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            if (rooms.length === 0) {
+                return;
+            }
+
+            // ストリーミング挿入を使用する場合
+            const dataset = this.bigquery.dataset('zzz_taniguchi');
+            const table = dataset.table('change_history');
+
+            // バッチINSERT用のデータを準備
+            const historyRecords = rooms.map(room => ({
+                entity_type: entityType,
+                entity_id: room.id,
+                changed_at: new Date().toISOString().replace('Z', '+00:00'), // BigQuery TIMESTAMP形式
+                changed_by: changedBy,
+                operation_type: 'UPDATE',
+                field_changes: JSON.stringify({
+                    name: {
+                        old_value: room.old_name,
+                        new_value: room.new_name
+                    }
+                }),
+                comment: `物件名変更に伴う自動更新: ${oldPropertyName} → ${newPropertyName}`
+            }));
+
+            console.log(`変更履歴をストリーミング挿入中: ${historyRecords.length}件`);
+
+            // ストリーミング挿入を実行
+            await table.insert(historyRecords);
+
+            console.log('変更履歴のストリーミング挿入完了');
+
+        } catch (error) {
+            // ストリーミング挿入が失敗した場合は、従来のSQL INSERTにフォールバック
+            console.warn('ストリーミング挿入に失敗、SQL INSERTにフォールバック:', error.message);
+
+            try {
+                await this.insertBulkChangeHistorySQL(rooms, entityType, changedBy, oldPropertyName, newPropertyName);
+            } catch (fallbackError) {
+                console.error('SQL INSERTもフォールバックも失敗:', fallbackError);
+                throw fallbackError;
+            }
+        }
+    }
+
+    /**
+     * 変更履歴の一括INSERT（SQLクエリ使用）
+     * @param {Array} rooms - 更新された部屋のリスト
+     * @param {string} entityType - エンティティタイプ
+     * @param {string} changedBy - 変更者
+     * @param {string} oldPropertyName - 変更前の物件名
+     * @param {string} newPropertyName - 変更後の物件名
+     */
+    async insertBulkChangeHistorySQL(rooms, entityType, changedBy, oldPropertyName, newPropertyName) {
+        try {
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
+
+            if (rooms.length === 0) {
+                return;
+            }
+
+            // バッチ処理でINSERTを実行（1000件ずつに分割）
+            const batchSize = 1000;
+            const batches = [];
+
+            for (let i = 0; i < rooms.length; i += batchSize) {
+                batches.push(rooms.slice(i, i + batchSize));
+            }
+
+            console.log(`変更履歴をバッチ挿入中: ${batches.length}バッチ、合計${rooms.length}件`);
+
+            for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+                const batch = batches[batchIndex];
+
+                // VALUES句を動的に生成
+                const valuesClauses = batch.map((room, index) => {
+                    const globalIndex = batchIndex * batchSize + index;
+                    return `(
+                        @entity_type_${globalIndex},
+                        @entity_id_${globalIndex},
+                        CURRENT_TIMESTAMP(),
+                        @changed_by_${globalIndex},
+                        @operation_type_${globalIndex},
+                        @field_changes_${globalIndex},
+                        @comment_${globalIndex}
+                    )`;
+                }).join(',\n');
+
+                const bulkInsertQuery = `
+                    INSERT INTO \`${projectId}.zzz_taniguchi.change_history\`
+                    (entity_type, entity_id, changed_at, changed_by, operation_type, field_changes, comment)
+                    VALUES
+                    ${valuesClauses}
+                `;
+
+                // パラメータを準備
+                const params = {};
+                const types = {};
+
+                batch.forEach((room, index) => {
+                    const globalIndex = batchIndex * batchSize + index;
+                    params[`entity_type_${globalIndex}`] = entityType;
+                    params[`entity_id_${globalIndex}`] = room.id;
+                    params[`changed_by_${globalIndex}`] = changedBy;
+                    params[`operation_type_${globalIndex}`] = 'UPDATE';
+                    params[`field_changes_${globalIndex}`] = JSON.stringify({
+                        name: {
+                            old_value: room.old_name,
+                            new_value: room.new_name
+                        }
+                    });
+                    params[`comment_${globalIndex}`] = `物件名変更に伴う自動更新: ${oldPropertyName} → ${newPropertyName}`;
+
+                    types[`entity_type_${globalIndex}`] = 'STRING';
+                    types[`entity_id_${globalIndex}`] = 'STRING';
+                    types[`changed_by_${globalIndex}`] = 'STRING';
+                    types[`operation_type_${globalIndex}`] = 'STRING';
+                    types[`field_changes_${globalIndex}`] = 'STRING';
+                    types[`comment_${globalIndex}`] = 'STRING';
+                });
+
+                await this.executeQuery(
+                    bulkInsertQuery,
+                    params,
+                    false, // キャッシュを使用しない
+                    types
+                );
+
+                console.log(`バッチ ${batchIndex + 1}/${batches.length} 完了`);
+            }
+
+            console.log('変更履歴の一括INSERT完了');
+
+        } catch (error) {
+            console.error('変更履歴の一括INSERT エラー:', error);
+            throw error;
+        }
+    }
+
 }
 
 module.exports = BigQueryService;

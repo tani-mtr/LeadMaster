@@ -828,22 +828,22 @@ apiRouter.get('/address/prefectures', async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
         console.log('外部APIから都道府県データを取得中...');
-        
+
         const response = await fetch('https://geoapi.heartrails.com/api/json?method=getPrefectures');
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('都道府県データ取得成功:', data.response?.location?.length, '件');
-        
+
         res.json(data);
     } catch (error) {
         console.error('都道府県データ取得エラー:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: '都道府県データの取得に失敗しました',
-            details: error.message 
+            details: error.message
         });
     }
 });
@@ -853,22 +853,22 @@ apiRouter.get('/address/cities/:prefecture', async (req, res) => {
         const fetch = (await import('node-fetch')).default;
         const prefecture = req.params.prefecture;
         console.log(`外部APIから${prefecture}の市区町村データを取得中...`);
-        
+
         const response = await fetch(`https://geoapi.heartrails.com/api/json?method=getCities&prefecture=${encodeURIComponent(prefecture)}`);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log(`${prefecture}の市区町村データ取得成功:`, data.response?.location?.length, '件');
-        
+
         res.json(data);
     } catch (error) {
         console.error(`${req.params.prefecture}の市区町村データ取得エラー:`, error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: '市区町村データの取得に失敗しました',
-            details: error.message 
+            details: error.message
         });
     }
 });
@@ -878,22 +878,22 @@ apiRouter.get('/address/postal/:zipcode', async (req, res) => {
         const fetch = (await import('node-fetch')).default;
         const zipcode = req.params.zipcode;
         console.log(`外部APIから郵便番号${zipcode}の住所データを取得中...`);
-        
+
         const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zipcode}`);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log(`郵便番号${zipcode}の住所データ取得成功:`, data.results?.length, '件');
-        
+
         res.json(data);
     } catch (error) {
         console.error(`郵便番号${req.params.zipcode}の住所データ取得エラー:`, error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: '郵便番号検索に失敗しました',
-            details: error.message 
+            details: error.message
         });
     }
 });
@@ -1206,6 +1206,181 @@ apiRouter.get('/room-type/:id/history', async (req, res) => {
     } catch (error) {
         console.error('部屋タイプ変更履歴取得エラー:', error);
         return res.status(500).json({ error: '変更履歴の取得に失敗しました' });
+    }
+});
+
+// 一括部屋名更新エンドポイント（建物名変更時に使用）
+apiRouter.put('/property/:id/rooms/bulk-update-names', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        const { oldPropertyName, newPropertyName, changedBy = 'system' } = req.body;
+
+        console.log(`一括部屋名更新リクエスト: 物件ID=${propertyId}`, {
+            oldPropertyName,
+            newPropertyName,
+            changedBy
+        });
+
+        // 入力データの検証
+        if (!oldPropertyName || !newPropertyName) {
+            return res.status(400).json({
+                success: false,
+                error: '更新前後の物件名が指定されていません'
+            });
+        }
+
+        if (oldPropertyName === newPropertyName) {
+            return res.json({
+                success: true,
+                message: '物件名に変更がないため、部屋名の更新は不要です',
+                updatedCount: 0
+            });
+        }
+
+        if (bigQueryService.isConfigured()) {
+            try {
+                // BigQueryで一括部屋名更新を実行
+                console.log('BigQueryで一括部屋名更新を実行中...');
+                const result = await bigQueryService.bulkUpdateRoomNames(propertyId, oldPropertyName, newPropertyName, changedBy);
+
+                return res.json(result);
+
+            } catch (error) {
+                console.error('BigQueryでの一括部屋名更新エラー:', error);
+                return res.status(500).json({
+                    success: false,
+                    error: 'BigQueryでの一括部屋名更新中にエラーが発生しました',
+                    details: error.message
+                });
+            }
+        } else {
+            // モック環境での処理
+            console.log('モック環境での一括部屋名更新（実際の更新なし）');
+            return res.json({
+                success: true,
+                message: '部屋名の一括更新が完了しました（モック）',
+                updatedCount: 3, // モックで3件更新したと仮定
+                errorCount: 0,
+                totalTargets: 3
+            });
+        }
+    } catch (error) {
+        console.error('一括部屋名更新エラー:', error);
+        return res.status(500).json({
+            success: false,
+            error: '一括部屋名更新中にエラーが発生しました',
+            details: error.message
+        });
+    }
+});
+
+// デバッグ用エンドポイント: 物件の部屋一覧を詳細表示
+apiRouter.get('/debug/property/:id/rooms', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        console.log(`デバッグ: 物件ID ${propertyId} の部屋一覧を詳細取得`);
+
+        if (bigQueryService.isConfigured()) {
+            // BigQueryから詳細な部屋情報を取得
+            const debugQuery = `
+                SELECT 
+                    id,
+                    name,
+                    lead_property_id,
+                    CASE 
+                        WHEN name IS NULL THEN 'NULL'
+                        WHEN name = '' THEN 'EMPTY'
+                        ELSE 'HAS_VALUE'
+                    END as name_status,
+                    LENGTH(name) as name_length
+                FROM \`m2m-core.zzz_taniguchi.lead_room\`
+                WHERE lead_property_id = @propertyId
+                ORDER BY name
+                LIMIT 20
+            `;
+
+            const rooms = await bigQueryService.executeQuery(
+                debugQuery,
+                { propertyId: propertyId },
+                false,
+                { propertyId: 'STRING' }
+            );
+
+            console.log(`物件ID ${propertyId} の部屋詳細情報:`, rooms);
+
+            res.json({
+                success: true,
+                propertyId: propertyId,
+                roomCount: rooms.length,
+                rooms: rooms,
+                summary: {
+                    withNames: rooms.filter(r => r.name && r.name.trim() !== '').length,
+                    withoutNames: rooms.filter(r => !r.name || r.name.trim() === '').length,
+                    nullNames: rooms.filter(r => r.name === null).length
+                }
+            });
+        } else {
+            res.json({
+                success: false,
+                message: 'BigQuery設定がありません',
+                propertyId: propertyId
+            });
+        }
+    } catch (error) {
+        console.error('部屋一覧デバッグエラー:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            propertyId: req.params.id
+        });
+    }
+});
+
+// デバッグ用エンドポイント: lead_roomテーブルのスキーマ確認
+apiRouter.get('/debug/room-schema', async (req, res) => {
+    try {
+        console.log('デバッグ: lead_roomテーブルのスキーマを確認');
+
+        if (bigQueryService.isConfigured()) {
+            // BigQueryからテーブルスキーマを取得
+            const schemaQuery = `
+                SELECT 
+                    column_name,
+                    data_type,
+                    is_nullable,
+                    column_default
+                FROM \`m2m-core.zzz_taniguchi.INFORMATION_SCHEMA.COLUMNS\`
+                WHERE table_name = 'lead_room'
+                ORDER BY ordinal_position
+            `;
+
+            const schema = await bigQueryService.executeQuery(
+                schemaQuery,
+                {},
+                false,
+                {}
+            );
+
+            console.log('lead_roomテーブルのスキーマ:', schema);
+
+            res.json({
+                success: true,
+                tableName: 'lead_room',
+                columns: schema,
+                hasUpdatedAtColumn: schema.some(col => col.column_name === 'updated_at')
+            });
+        } else {
+            res.json({
+                success: false,
+                message: 'BigQuery設定がありません'
+            });
+        }
+    } catch (error) {
+        console.error('スキーマ確認エラー:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
 });
 

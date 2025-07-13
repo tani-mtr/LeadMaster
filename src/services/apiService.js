@@ -538,5 +538,33 @@ export const apiService = {
                 }
             };
         }
-    }
+    },
+
+    // 一括部屋名更新（建物名変更時に使用）
+    bulkUpdateRoomNames: async (propertyId, oldPropertyName, newPropertyName, changedBy = 'system') => {
+        try {
+            console.log(`API Request: PUT /property/${propertyId}/rooms/bulk-update-names`, {
+                oldPropertyName,
+                newPropertyName,
+                changedBy
+            });
+
+            const response = await apiClient.put(`/property/${propertyId}/rooms/bulk-update-names`, {
+                oldPropertyName,
+                newPropertyName,
+                changedBy
+            });
+
+            console.log('API Response: bulk room names update completed', response.data);
+
+            // 関連するキャッシュをクリア
+            const roomListCacheKey = getCacheKey(`/property/${propertyId}/rooms`);
+            cache.delete(roomListCacheKey);
+
+            return response.data;
+        } catch (error) {
+            console.error(`Error bulk updating room names for property ${propertyId}:`, error);
+            throw error;
+        }
+    },
 };
