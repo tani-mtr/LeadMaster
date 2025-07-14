@@ -155,23 +155,23 @@ export { AddressService };
 if (typeof window !== 'undefined') {
     window.testAddressService = async () => {
         console.log('=== AddressService テスト開始 ===');
-        
+
         try {
             console.log('1. 都道府県データ取得テスト...');
             const prefectures = await AddressService.fetchPrefectures();
             console.log('都道府県データ:', prefectures?.slice(0, 10));
-            
+
             if (prefectures && prefectures.length > 0) {
                 const firstPref = prefectures[0].name;
                 console.log(`2. ${firstPref}の市区町村データ取得テスト...`);
                 const cities = await AddressService.fetchCities(firstPref);
                 console.log(`${firstPref}の市区町村データ:`, cities?.slice(0, 10));
             }
-            
+
             console.log('3. 郵便番号検索テスト (100-0001)...');
             const address = await AddressService.fetchAddressByZipcode('100-0001');
             console.log('郵便番号検索結果:', address);
-            
+
             console.log('=== AddressService テスト完了 ===');
         } catch (error) {
             console.error('AddressService テストエラー:', error);
@@ -181,13 +181,13 @@ if (typeof window !== 'undefined') {
     // サーバーAPIテスト用のヘルパー
     window.testServerAPI = async () => {
         console.log('=== サーバーAPI テスト開始 ===');
-        
+
         try {
             console.log('1. 都道府県APIテスト...');
             const prefResponse = await fetch('/api/address/prefectures');
             const prefData = await prefResponse.json();
             console.log('都道府県APIレスポンス:', prefData);
-            
+
             if (prefData.response?.location?.length > 0) {
                 const firstPref = prefData.response.location[0].prefecture;
                 console.log(`2. ${firstPref}の市区町村APIテスト...`);
@@ -195,12 +195,12 @@ if (typeof window !== 'undefined') {
                 const cityData = await cityResponse.json();
                 console.log(`${firstPref}の市区町村APIレスポンス:`, cityData);
             }
-            
+
             console.log('3. 郵便番号APIテスト (100-0001)...');
             const postalResponse = await fetch('/api/address/postal/1000001');
             const postalData = await postalResponse.json();
             console.log('郵便番号APIレスポンス:', postalData);
-            
+
             console.log('=== サーバーAPI テスト完了 ===');
         } catch (error) {
             console.error('サーバーAPI テストエラー:', error);

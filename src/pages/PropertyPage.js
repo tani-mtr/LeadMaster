@@ -1225,7 +1225,16 @@ const PropertyPage = () => {
                                     <Select
                                         value={editData.is_trade || ''}
                                         onChange={(e) => handleInputChange('is_trade', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) ? '#fff3cd' : 'white',
+                                            borderColor: editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) ? '#ffc107' : '#ddd'
+                                        }}
                                     >
+                                        {editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) && (
+                                            <option value={editData.is_trade} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.is_trade} (不正な値)
+                                            </option>
+                                        )}
                                         {SELECT_OPTIONS.is_trade.map((option, index) => (
                                             <option key={index} value={option}>
                                                 {option || '選択してください'}
@@ -1235,8 +1244,16 @@ const PropertyPage = () => {
                                 ) : (
                                     <Input
                                         type="text"
-                                        value={property.is_trade || ''}
+                                        value={property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade)
+                                            ? `⚠️ ${property.is_trade} (不正な値)`
+                                            : property.is_trade || ''
+                                        }
                                         disabled={true}
+                                        style={{
+                                            backgroundColor: property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade) ? '#ffc107' : '#ddd',
+                                            color: property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade) ? '#856404' : 'inherit'
+                                        }}
                                     />
                                 )}
                             </FormGroup>
@@ -1247,7 +1264,16 @@ const PropertyPage = () => {
                                     <Select
                                         value={editData.is_lease || ''}
                                         onChange={(e) => handleInputChange('is_lease', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.is_lease && !SELECT_OPTIONS.is_lease.includes(editData.is_lease) ? '#fff3cd' : 'white',
+                                            borderColor: editData.is_lease && !SELECT_OPTIONS.is_lease.includes(editData.is_lease) ? '#ffc107' : '#ddd'
+                                        }}
                                     >
+                                        {editData.is_lease && !SELECT_OPTIONS.is_lease.includes(editData.is_lease) && (
+                                            <option value={editData.is_lease} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.is_lease} (不正な値)
+                                            </option>
+                                        )}
                                         {SELECT_OPTIONS.is_lease.map((option, index) => (
                                             <option key={index} value={option}>
                                                 {option || '選択してください'}
@@ -1257,8 +1283,16 @@ const PropertyPage = () => {
                                 ) : (
                                     <Input
                                         type="text"
-                                        value={property.is_lease || ''}
+                                        value={property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease)
+                                            ? `⚠️ ${property.is_lease} (不正な値)`
+                                            : property.is_lease || ''
+                                        }
                                         disabled={true}
+                                        style={{
+                                            backgroundColor: property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease) ? '#ffc107' : '#ddd',
+                                            color: property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease) ? '#856404' : 'inherit'
+                                        }}
                                     />
                                 )}
                             </FormGroup>
@@ -1290,7 +1324,16 @@ const PropertyPage = () => {
                                     <Select
                                         value={editData.lead_channel || ''}
                                         onChange={(e) => handleInputChange('lead_channel', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.lead_channel && !SELECT_OPTIONS.lead_channel.includes(editData.lead_channel) ? '#fff3cd' : 'white',
+                                            borderColor: editData.lead_channel && !SELECT_OPTIONS.lead_channel.includes(editData.lead_channel) ? '#ffc107' : '#ddd'
+                                        }}
                                     >
+                                        {editData.lead_channel && !SELECT_OPTIONS.lead_channel.includes(editData.lead_channel) && (
+                                            <option value={editData.lead_channel} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.lead_channel} (不正な値)
+                                            </option>
+                                        )}
                                         {SELECT_OPTIONS.lead_channel.map((option, index) => (
                                             <option key={index} value={option}>
                                                 {option || '選択してください'}
@@ -1300,8 +1343,16 @@ const PropertyPage = () => {
                                 ) : (
                                     <Input
                                         type="text"
-                                        value={property.lead_channel || ''}
+                                        value={property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel)
+                                            ? `⚠️ ${property.lead_channel} (不正な値)`
+                                            : property.lead_channel || ''
+                                        }
                                         disabled={true}
+                                        style={{
+                                            backgroundColor: property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel) ? '#ffc107' : '#ddd',
+                                            color: property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel) ? '#856404' : 'inherit'
+                                        }}
                                     />
                                 )}
                             </FormGroup>
@@ -1476,7 +1527,16 @@ const PropertyPage = () => {
                                     <Select
                                         value={editData.minpaku_feasibility || ''}
                                         onChange={(e) => handleInputChange('minpaku_feasibility', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(editData.minpaku_feasibility) ? '#fff3cd' : 'white',
+                                            borderColor: editData.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(editData.minpaku_feasibility) ? '#ffc107' : '#ddd'
+                                        }}
                                     >
+                                        {editData.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(editData.minpaku_feasibility) && (
+                                            <option value={editData.minpaku_feasibility} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.minpaku_feasibility} (不正な値)
+                                            </option>
+                                        )}
                                         {SELECT_OPTIONS.minpaku_feasibility.map((option, index) => (
                                             <option key={index} value={option}>
                                                 {option || '選択してください'}
@@ -1486,8 +1546,16 @@ const PropertyPage = () => {
                                 ) : (
                                     <Input
                                         type="text"
-                                        value={property.minpaku_feasibility || ''}
+                                        value={property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility)
+                                            ? `⚠️ ${property.minpaku_feasibility} (不正な値)`
+                                            : property.minpaku_feasibility || ''
+                                        }
                                         disabled={true}
+                                        style={{
+                                            backgroundColor: property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility) ? '#ffc107' : '#ddd',
+                                            color: property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility) ? '#856404' : 'inherit'
+                                        }}
                                     />
                                 )}
                             </FormGroup>
@@ -1498,7 +1566,16 @@ const PropertyPage = () => {
                                     <Select
                                         value={editData.sp_feasibility || ''}
                                         onChange={(e) => handleInputChange('sp_feasibility', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(editData.sp_feasibility) ? '#fff3cd' : 'white',
+                                            borderColor: editData.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(editData.sp_feasibility) ? '#ffc107' : '#ddd'
+                                        }}
                                     >
+                                        {editData.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(editData.sp_feasibility) && (
+                                            <option value={editData.sp_feasibility} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.sp_feasibility} (不正な値)
+                                            </option>
+                                        )}
                                         {SELECT_OPTIONS.sp_feasibility.map((option, index) => (
                                             <option key={index} value={option}>
                                                 {option || '選択してください'}
@@ -1508,8 +1585,16 @@ const PropertyPage = () => {
                                 ) : (
                                     <Input
                                         type="text"
-                                        value={property.sp_feasibility || ''}
+                                        value={property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility)
+                                            ? `⚠️ ${property.sp_feasibility} (不正な値)`
+                                            : property.sp_feasibility || ''
+                                        }
                                         disabled={true}
+                                        style={{
+                                            backgroundColor: property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility) ? '#ffc107' : '#ddd',
+                                            color: property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility) ? '#856404' : 'inherit'
+                                        }}
                                     />
                                 )}
                             </FormGroup>
@@ -1520,7 +1605,16 @@ const PropertyPage = () => {
                                     <Select
                                         value={editData.done_property_viewing || ''}
                                         onChange={(e) => handleInputChange('done_property_viewing', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(editData.done_property_viewing) ? '#fff3cd' : 'white',
+                                            borderColor: editData.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(editData.done_property_viewing) ? '#ffc107' : '#ddd'
+                                        }}
                                     >
+                                        {editData.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(editData.done_property_viewing) && (
+                                            <option value={editData.done_property_viewing} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.done_property_viewing} (不正な値)
+                                            </option>
+                                        )}
                                         {SELECT_OPTIONS.done_property_viewing.map((option, index) => (
                                             <option key={index} value={option}>
                                                 {option || '選択してください'}
@@ -1530,8 +1624,16 @@ const PropertyPage = () => {
                                 ) : (
                                     <Input
                                         type="text"
-                                        value={property.done_property_viewing || ''}
+                                        value={property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing)
+                                            ? `⚠️ ${property.done_property_viewing} (不正な値)`
+                                            : property.done_property_viewing || ''
+                                        }
                                         disabled={true}
+                                        style={{
+                                            backgroundColor: property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing) ? '#ffc107' : '#ddd',
+                                            color: property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing) ? '#856404' : 'inherit'
+                                        }}
                                     />
                                 )}
                             </FormGroup>
@@ -1562,7 +1664,16 @@ const PropertyPage = () => {
                                     <Select
                                         value={editData.done_antisocial_check || ''}
                                         onChange={(e) => handleInputChange('done_antisocial_check', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(editData.done_antisocial_check) ? '#fff3cd' : 'white',
+                                            borderColor: editData.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(editData.done_antisocial_check) ? '#ffc107' : '#ddd'
+                                        }}
                                     >
+                                        {editData.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(editData.done_antisocial_check) && (
+                                            <option value={editData.done_antisocial_check} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.done_antisocial_check} (不正な値)
+                                            </option>
+                                        )}
                                         {SELECT_OPTIONS.done_antisocial_check.map((option, index) => (
                                             <option key={index} value={option}>
                                                 {option || '選択してください'}
@@ -1572,8 +1683,16 @@ const PropertyPage = () => {
                                 ) : (
                                     <Input
                                         type="text"
-                                        value={property.done_antisocial_check || ''}
+                                        value={property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check)
+                                            ? `⚠️ ${property.done_antisocial_check} (不正な値)`
+                                            : property.done_antisocial_check || ''
+                                        }
                                         disabled={true}
+                                        style={{
+                                            backgroundColor: property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check) ? '#ffc107' : '#ddd',
+                                            color: property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check) ? '#856404' : 'inherit'
+                                        }}
                                     />
                                 )}
                             </FormGroup>
