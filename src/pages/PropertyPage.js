@@ -553,9 +553,10 @@ const PropertyPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // URL から roomId パラメータを取得
+    // URL から roomId と roomTypeId パラメータを取得
     const urlParams = new URLSearchParams(location.search);
     const roomIdFromUrl = urlParams.get('roomId');
+    const roomTypeIdFromUrl = urlParams.get('roomTypeId');
 
     const [activeTab, setActiveTab] = useState('info');
     const [property, setProperty] = useState(null);
@@ -579,8 +580,8 @@ const PropertyPage = () => {
     const [selectedRoomId, setSelectedRoomId] = useState(roomIdFromUrl);
 
     // 部屋タイプドロワー関連の状態
-    const [roomTypeDrawerOpen, setRoomTypeDrawerOpen] = useState(false);
-    const [selectedRoomTypeId, setSelectedRoomTypeId] = useState(null);
+    const [roomTypeDrawerOpen, setRoomTypeDrawerOpen] = useState(!!roomTypeIdFromUrl);
+    const [selectedRoomTypeId, setSelectedRoomTypeId] = useState(roomTypeIdFromUrl);
 
     // 部屋一覧の検索・ページネーション・選択機能
     const [searchTerm, setSearchTerm] = useState('');
@@ -627,19 +628,32 @@ const PropertyPage = () => {
     const handleOpenRoomTypeDrawer = useCallback((roomTypeId) => {
         setSelectedRoomTypeId(roomTypeId);
         setRoomTypeDrawerOpen(true);
-    }, []);
+
+        // URLにroomTypeIdパラメータを追加
+        const newParams = new URLSearchParams(location.search);
+        newParams.set('roomTypeId', roomTypeId);
+        navigate(`${location.pathname}?${newParams.toString()}`, { replace: true });
+    }, [navigate, location.pathname, location.search]);
 
     // 部屋タイプドロワーを閉じる関数
     const handleCloseRoomTypeDrawer = useCallback(() => {
         setRoomTypeDrawerOpen(false);
         setSelectedRoomTypeId(null);
-    }, []);
+
+        // URLからroomTypeIdパラメータを削除
+        const newParams = new URLSearchParams(location.search);
+        newParams.delete('roomTypeId');
+        const newSearch = newParams.toString();
+        navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ''}`, { replace: true });
+    }, [navigate, location.pathname, location.search]);
 
     // URLの変更を監視してドロワー状態を同期
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
         const roomIdFromUrl = urlParams.get('roomId');
+        const roomTypeIdFromUrl = urlParams.get('roomTypeId');
 
+        // 部屋ドロワーの状態を同期
         if (roomIdFromUrl && roomIdFromUrl !== selectedRoomId) {
             setSelectedRoomId(roomIdFromUrl);
             setDrawerOpen(true);
@@ -647,7 +661,16 @@ const PropertyPage = () => {
             setDrawerOpen(false);
             setSelectedRoomId(null);
         }
-    }, [location.search, selectedRoomId, drawerOpen]);
+
+        // 部屋タイプドロワーの状態を同期
+        if (roomTypeIdFromUrl && roomTypeIdFromUrl !== selectedRoomTypeId) {
+            setSelectedRoomTypeId(roomTypeIdFromUrl);
+            setRoomTypeDrawerOpen(true);
+        } else if (!roomTypeIdFromUrl && roomTypeDrawerOpen) {
+            setRoomTypeDrawerOpen(false);
+            setSelectedRoomTypeId(null);
+        }
+    }, [location.search, selectedRoomId, drawerOpen, selectedRoomTypeId, roomTypeDrawerOpen]);
 
     // データ取得 - パフォーマンス最適化版
     useEffect(() => {
