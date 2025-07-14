@@ -4,6 +4,24 @@ import { apiService } from '../services/apiService';
 import { formatDisplayValue } from '../utils/formatUtils';
 import { AddressService } from '../services/addressService';
 
+// 選択肢の定数定義
+const SELECT_OPTIONS = {
+  owner_type: ['', '自社', 'ファンド'],
+  register_type: ['', '住宅宿泊事業', '旅館業', '特区民泊'],
+  contract_type: ['', '普通借家', '定期借家'],
+  use_guarantee_company: ['', '有', '無', '済'],
+  maa_insurance: ['', '保険', '共済会'],
+  area_zoned_for_use: ['', '商業', '近隣商業', '工業', '準工業', '工業専用', '第一種低層住居専用', '第二種低層住居専用', '第一種中高層住居専用', '第二種中高層住居専用', '第一種住居地域', '第二種住居', '準住居', '田園住居'],
+  request_checking_area_zoned_for_use: ['', '◯'],
+  done_checking_area_zoned_for_use: ['', '◯'],
+  floor_plan: ['', '1R', '1K', '1DK', '1LDK', '2K', '2DK', '2LDK', '3DK', '3LDK', '5LDK'],
+  ev: ['', '有', '無', '済'],
+  room_type: ['', 'マンション・アパート', '戸建', 'メゾネット', 'ロフト付き', '長屋'],
+  building_structure: ['', 'RC', 'S', 'SRC', '木造', '鉄骨鉄造', 'WRC', 'W'],
+  availability_of_floor_plan: ['', '有', '無', '済'],
+  furniture_transfer_availability: ['', '有', '無', '済']
+};
+
 // ドロワーのオーバーレイ
 const DrawerOverlay = styled.div`
   position: fixed;
@@ -551,7 +569,39 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
     if (!safeValue || safeValue === '') {
       return '';
     }
+
+    // 選択肢フィールドの場合、不正な値を検証
+    if (SELECT_OPTIONS[fieldName]) {
+      const isInvalidValue = safeValue && !SELECT_OPTIONS[fieldName].includes(safeValue);
+      if (isInvalidValue) {
+        return `⚠️ ${safeValue} (不正な値)`;
+      }
+    }
+
     return formatDisplayValue(fieldName, safeValue);
+  };
+
+  // 表示モードでのDataValueをレンダリングするヘルパー関数
+  const renderDisplayValue = (fieldName, value) => {
+    const safeValue = getSafeValue(value);
+    const displayValue = getDisplayValue(fieldName, value);
+
+    // 選択肢フィールドで不正な値の場合のスタイリング
+    if (SELECT_OPTIONS[fieldName] && safeValue && !SELECT_OPTIONS[fieldName].includes(safeValue)) {
+      return (
+        <DataValue
+          style={{
+            backgroundColor: '#fff3cd',
+            borderColor: '#ffc107',
+            color: '#856404'
+          }}
+        >
+          {displayValue}
+        </DataValue>
+      );
+    }
+
+    return <DataValue>{displayValue}</DataValue>;
   };
 
   // 履歴データの取得
@@ -758,16 +808,28 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
     if (options) {
       // ドロップダウンの場合
+      const currentValue = getSafeValue(value);
+      const hasInvalidValue = currentValue && SELECT_OPTIONS[fieldName] && !SELECT_OPTIONS[fieldName].includes(currentValue);
+
       return (
         <Select
-          value={getSafeValue(value)}
+          value={currentValue}
           onChange={(e) => handleInputChange(fieldName, e.target.value)}
           disabled={!config.editable}
           required={config.required}
+          style={{
+            backgroundColor: hasInvalidValue ? '#fff3cd' : 'white',
+            borderColor: hasInvalidValue ? '#ffc107' : '#ddd'
+          }}
         >
+          {hasInvalidValue && (
+            <option value={currentValue} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+              ⚠️ {currentValue} (不正な値)
+            </option>
+          )}
           {options.map(option => (
             <option key={option} value={option}>
-              {option}
+              {option || '選択してください'}
             </option>
           ))}
         </Select>
@@ -1857,12 +1919,12 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
                       <DataItem>
                         <HeaderText>所有者属性</HeaderText>
-                        <DataValue>{getDisplayValue('owner_type', roomTypeData.owner_type)}</DataValue>
+                        {renderDisplayValue('owner_type', roomTypeData.owner_type)}
                       </DataItem>
 
                       <DataItem>
                         <HeaderText>運営形態</HeaderText>
-                        <DataValue>{getDisplayValue('register_type', roomTypeData.register_type)}</DataValue>
+                        {renderDisplayValue('register_type', roomTypeData.register_type)}
                       </DataItem>
 
                       <DataSectionTitle>費用情報</DataSectionTitle>
@@ -1919,7 +1981,7 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                       <DataSectionTitle>契約情報</DataSectionTitle>
                       <DataItem>
                         <HeaderText>契約種類</HeaderText>
-                        <DataValue>{getDisplayValue('contract_type', roomTypeData.contract_type)}</DataValue>
+                        {renderDisplayValue('contract_type', roomTypeData.contract_type)}
                       </DataItem>
 
                       <DataItem>
@@ -1951,7 +2013,7 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                       <DataSectionTitle>保証・保険情報</DataSectionTitle>
                       <DataItem>
                         <HeaderText>保証会社利用</HeaderText>
-                        <DataValue>{getDisplayValue('use_guarantee_company', roomTypeData.use_guarantee_company)}</DataValue>
+                        {renderDisplayValue('use_guarantee_company', roomTypeData.use_guarantee_company)}
                       </DataItem>
 
                       <DataItem>
@@ -1966,7 +2028,7 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
                       <DataItem>
                         <HeaderText>共済会 保険</HeaderText>
-                        <DataValue>{getDisplayValue('maa_insurance', roomTypeData.maa_insurance)}</DataValue>
+                        {renderDisplayValue('maa_insurance', roomTypeData.maa_insurance)}
                       </DataItem>
 
                       <DataSectionTitle>住所・立地情報</DataSectionTitle>
@@ -1988,17 +2050,17 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                       <DataSectionTitle>用途地域情報</DataSectionTitle>
                       <DataItem>
                         <HeaderText>用途地域</HeaderText>
-                        <DataValue>{getDisplayValue('area_zoned_for_use', roomTypeData.area_zoned_for_use)}</DataValue>
+                        {renderDisplayValue('area_zoned_for_use', roomTypeData.area_zoned_for_use)}
                       </DataItem>
 
                       <DataItem>
                         <HeaderText>用途地域確認依頼</HeaderText>
-                        <DataValue>{getDisplayValue('request_checking_area_zoned_for_use', roomTypeData.request_checking_area_zoned_for_use)}</DataValue>
+                        {renderDisplayValue('request_checking_area_zoned_for_use', roomTypeData.request_checking_area_zoned_for_use)}
                       </DataItem>
 
                       <DataItem>
                         <HeaderText>用途地域確認済</HeaderText>
-                        <DataValue>{getDisplayValue('done_checking_area_zoned_for_use', roomTypeData.done_checking_area_zoned_for_use)}</DataValue>
+                        {renderDisplayValue('done_checking_area_zoned_for_use', roomTypeData.done_checking_area_zoned_for_use)}
                       </DataItem>
 
                       <DataItem>
@@ -2040,12 +2102,12 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
                       <DataSectionTitle>建物・部屋仕様</DataSectionTitle>
                       <DataItem>
                         <HeaderText>間取り</HeaderText>
-                        <DataValue>{getDisplayValue('floor_plan', roomTypeData.floor_plan)}</DataValue>
+                        {renderDisplayValue('floor_plan', roomTypeData.floor_plan)}
                       </DataItem>
 
                       <DataItem>
                         <HeaderText>EVの有無</HeaderText>
-                        <DataValue>{getDisplayValue('ev', roomTypeData.ev)}</DataValue>
+                        {renderDisplayValue('ev', roomTypeData.ev)}
                       </DataItem>
 
                       <DataItem>
@@ -2055,12 +2117,12 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
                       <DataItem>
                         <HeaderText>部屋種別</HeaderText>
-                        <DataValue>{getDisplayValue('room_type', roomTypeData.room_type)}</DataValue>
+                        {renderDisplayValue('room_type', roomTypeData.room_type)}
                       </DataItem>
 
                       <DataItem>
                         <HeaderText>建物構造</HeaderText>
-                        <DataValue>{getDisplayValue('building_structure', roomTypeData.building_structure)}</DataValue>
+                        {renderDisplayValue('building_structure', roomTypeData.building_structure)}
                       </DataItem>
 
                       <DataItem>
@@ -2100,7 +2162,7 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
                       <DataItem>
                         <HeaderText>平面図の有無</HeaderText>
-                        <DataValue>{getDisplayValue('availability_of_floor_plan', roomTypeData.availability_of_floor_plan)}</DataValue>
+                        {renderDisplayValue('availability_of_floor_plan', roomTypeData.availability_of_floor_plan)}
                       </DataItem>
 
                       <DataItem>
@@ -2126,7 +2188,7 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
 
                       <DataItem>
                         <HeaderText>家具譲渡の有無</HeaderText>
-                        <DataValue>{getDisplayValue('furniture_transfer_availability', roomTypeData.furniture_transfer_availability)}</DataValue>
+                        {renderDisplayValue('furniture_transfer_availability', roomTypeData.furniture_transfer_availability)}
                       </DataItem>
 
                       <DataSectionTitle>その他費用</DataSectionTitle>

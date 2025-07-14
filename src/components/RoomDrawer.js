@@ -3,6 +3,12 @@ import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import { formatDisplayValue } from '../utils/formatUtils';
 
+// 選択肢の定数定義
+const SELECT_OPTIONS = {
+    status: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'],
+    vacate_setup: ['', '一般賃貸中', '退去SU']
+};
+
 // 変更履歴の日付をフォーマットするヘルパー関数
 const formatHistoryDate = (dateValue) => {
     if (!dateValue) {
@@ -801,16 +807,47 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
             if (type === 'date') {
                 return <DataValue>{formatDisplayValue(field, value)}</DataValue>;
             }
+
+            // 選択肢フィールドの場合、不正な値を検証
+            if (type === 'select' && SELECT_OPTIONS[field]) {
+                const isInvalidValue = value && !SELECT_OPTIONS[field].includes(value);
+
+                if (isInvalidValue) {
+                    return (
+                        <DataValue
+                            style={{
+                                backgroundColor: '#fff3cd',
+                                borderColor: '#ffc107',
+                                color: '#856404'
+                            }}
+                        >
+                            ⚠️ {value} (不正な値)
+                        </DataValue>
+                    );
+                }
+            }
+
             return <DataValue>{value || ''}</DataValue>;
         }
 
         // 編集モード
         if (type === 'select' && options) {
+            const hasInvalidValue = editData[field] && SELECT_OPTIONS[field] && !SELECT_OPTIONS[field].includes(editData[field]);
+
             return (
                 <EditableSelect
                     value={editData[field] || ''}
                     onChange={(e) => handleInputChange(field, e.target.value)}
+                    style={{
+                        backgroundColor: hasInvalidValue ? '#fff3cd' : 'white',
+                        borderColor: hasInvalidValue ? '#ffc107' : '#ddd'
+                    }}
                 >
+                    {hasInvalidValue && (
+                        <option value={editData[field]} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                            ⚠️ {editData[field]} (不正な値)
+                        </option>
+                    )}
                     <option value="">選択してください</option>
                     {options.map(option => (
                         <option key={option.value} value={option.value}>
