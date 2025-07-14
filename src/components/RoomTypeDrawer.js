@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import { formatDisplayValue } from '../utils/formatUtils';
 import { AddressService } from '../services/addressService';
+import { validateRoomTypeName, validateOptionalText } from '../utils/validationUtils';
 
 // 選択肢の定数定義
 const SELECT_OPTIONS = {
@@ -450,6 +451,7 @@ const RoomTypeDrawer = ({ isOpen, onClose, roomTypeId }) => {
   const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
   const [historyData, setHistoryData] = useState([]);

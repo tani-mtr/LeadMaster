@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import { formatDisplayValue } from '../utils/formatUtils';
+import { validateRoomName, validateRoomNumber, validateOptionalText } from '../utils/validationUtils';
 
 // 選択肢の定数定義
 const SELECT_OPTIONS = {
@@ -393,17 +394,137 @@ const DataValue = styled.div`
 // 編集可能な入力フィールド
 const EditableInput = styled.input`
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
-  line-height: 1.3;
+  line-height: 1.4;
   background: white;
+  transition: all 0.2s ease-in-out;
   
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  &.error {
+    border-color: #ef4444;
+    background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  &.error:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+`;
+
+// フィールドコンテナ（成功時のスタイルも含む）
+const FieldContainer = styled.div`
+  position: relative;
+  
+  &.success input {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+`;
+
+// バリデーションエラー表示
+const ValidationError = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  animation: slideDown 0.3s ease-out;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+  
+  &::before {
+    content: "⚠️";
+    font-size: 14px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  }
+  
+  &::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: -6px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid #fecaca;
+  }
+  
+  @keyframes slideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+// 成功メッセージ
+const ValidationSuccess = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #10b981;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  animation: slideDown 0.3s ease-out;
+  
+  &::before {
+    content: "✅";
+    font-size: 14px;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 `;
 
@@ -525,6 +646,7 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
     const [error, setError] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({});
+    const [validationErrors, setValidationErrors] = useState({});
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
     const [activeTab, setActiveTab] = useState('details'); // 'details' or 'history'
@@ -675,6 +797,21 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
 
             return newData;
         });
+
+        // バリデーション実行（必須項目のみ）
+        let validation = { isValid: true, errorMessage: '' };
+
+        if (field === 'name') {
+            validation = validateRoomName(value);
+        } else if (field === 'room_number') {
+            validation = validateRoomNumber(value);
+        }
+
+        // バリデーションエラーの状態を更新
+        setValidationErrors(prev => ({
+            ...prev,
+            [field]: validation.isValid ? '' : validation.errorMessage
+        }));
     };
 
     // 部屋名のフォーマットを修正する関数
@@ -697,6 +834,16 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
         try {
             setSaving(true);
             setSaveMessage(null);
+
+            // バリデーション実行
+            if (!validateAllFields()) {
+                setSaveMessage({
+                    type: 'error',
+                    text: '入力内容にエラーがあります。エラーメッセージを確認してください。'
+                });
+                setSaving(false);
+                return;
+            }
 
             console.log('部屋データを更新中:', editData);
             console.log('元の部屋データ:', roomData);
@@ -805,6 +952,29 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
             setSaving(false);
         }
     };
+
+    // 全体バリデーションチェック
+    const validateAllFields = useCallback(() => {
+        const errors = {};
+        let hasErrors = false;
+
+        // 部屋名のバリデーション（必須項目）
+        const nameValidation = validateRoomName(editData.name);
+        if (!nameValidation.isValid) {
+            errors.name = nameValidation.errorMessage;
+            hasErrors = true;
+        }
+
+        // 部屋番号のバリデーション（必須項目）
+        const roomNumberValidation = validateRoomNumber(editData.room_number);
+        if (!roomNumberValidation.isValid) {
+            errors.room_number = roomNumberValidation.errorMessage;
+            hasErrors = true;
+        }
+
+        setValidationErrors(errors);
+        return !hasErrors;
+    }, [editData]);
 
     // ドロワーが開いたときにデータを取得
     useEffect(() => {
@@ -1007,21 +1177,33 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
             }
 
             return (
-                <EditableInput
-                    type="date"
-                    value={dateValue}
-                    onChange={(e) => handleInputChange(field, e.target.value)}
-                />
+                <div>
+                    <EditableInput
+                        type="date"
+                        value={dateValue}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                        className={validationErrors[field] ? 'error' : ''}
+                    />
+                    {validationErrors[field] && (
+                        <ValidationError>{validationErrors[field]}</ValidationError>
+                    )}
+                </div>
             );
         }
 
         return (
-            <EditableInput
-                type={type}
-                value={editData[field] || ''}
-                onChange={(e) => handleInputChange(field, e.target.value)}
-                placeholder={`${field}を入力`}
-            />
+            <div>
+                <EditableInput
+                    type={type}
+                    value={editData[field] || ''}
+                    onChange={(e) => handleInputChange(field, e.target.value)}
+                    placeholder={`${field}を入力`}
+                    className={validationErrors[field] ? 'error' : ''}
+                />
+                {validationErrors[field] && (
+                    <ValidationError>{validationErrors[field]}</ValidationError>
+                )}
+            </div>
         );
     };
 

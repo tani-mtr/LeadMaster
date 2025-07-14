@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import RoomDrawer from '../components/RoomDrawer';
 import RoomTypeDrawer from '../components/RoomTypeDrawer';
+import { validatePropertyName, validateOptionalText } from '../utils/validationUtils';
 
 // 選択肢の定数定義
 const SELECT_OPTIONS = {
@@ -77,10 +78,125 @@ const Label = styled.label`
 
 const Input = styled.input`
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
+  transition: all 0.2s ease-in-out;
+  background: white;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  &.error {
+    border-color: #ef4444;
+    background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  &.error:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+`;
+
+// 改良されたエラーメッセージスタイル
+const ValidationError = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  animation: slideDown 0.3s ease-out;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+  
+  &::before {
+    content: "⚠️";
+    font-size: 14px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  }
+  
+  &::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: -6px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid #fecaca;
+  }
+  
+  @keyframes slideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+`;
+
+// 成功状態のスタイル改良
+const ValidationSuccess = styled(ValidationError)`
+  color: #10b981;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border-color: #bbf7d0;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+  
+  &::before {
+    content: "✅";
+  }
+  
+  &::after {
+    border-bottom-color: #bbf7d0;
+  }
+`;
+
+// フィールドコンテナの改良
+const FieldContainer = styled.div`
+  position: relative;
+  transition: all 0.3s ease;
+  
+  &.error {
+    animation: errorPulse 0.6s ease-in-out;
+  }
+  
+  &.success {
+    animation: successGlow 0.6s ease-in-out;
+  }
+  
+  @keyframes errorPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes successGlow {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.01); }
+    100% { transform: scale(1); }
 `;
 
 const Select = styled.select`
@@ -451,6 +567,7 @@ const PropertyPage = () => {
     const [editMode, setEditMode] = useState(false);
     const [editData, setEditData] = useState({});
     const [originalData, setOriginalData] = useState({}); // 元のデータを保存
+    const [validationErrors, setValidationErrors] = useState({}); // バリデーションエラー
 
     // 履歴関連の状態
     const [historyData, setHistoryData] = useState([]);
@@ -810,7 +927,36 @@ const PropertyPage = () => {
             ...prev,
             [field]: value
         }));
+
+        // バリデーション実行（必須項目のみ）
+        let validation = { isValid: true, errorMessage: '' };
+
+        if (field === 'name') {
+            validation = validatePropertyName(value);
+        }
+
+        // バリデーションエラーの状態を更新
+        setValidationErrors(prev => ({
+            ...prev,
+            [field]: validation.isValid ? '' : validation.errorMessage
+        }));
     }, []);
+
+    // 全体バリデーションチェック（必須項目のみ）
+    const validateAllFields = useCallback(() => {
+        const errors = {};
+        let hasErrors = false;
+
+        // 建物名のバリデーション（必須項目）
+        const nameValidation = validatePropertyName(editData.name);
+        if (!nameValidation.isValid) {
+            errors.name = nameValidation.errorMessage;
+            hasErrors = true;
+        }
+
+        setValidationErrors(errors);
+        return !hasErrors;
+    }, [editData]);
 
     // 履歴データ取得
     const fetchHistoryData = useCallback(async () => {
@@ -958,7 +1104,14 @@ const PropertyPage = () => {
             setLoading(true);
             setError('');
 
-            // バリデーション - 必須項目チェック
+            // バリデーション実行
+            if (!validateAllFields()) {
+                alert('入力内容にエラーがあります。エラーメッセージを確認してください。');
+                setLoading(false);
+                return;
+            }
+
+            // 必須項目チェック（バリデーション済みだが念のため）
             if (!editData.name || editData.name.trim() === '') {
                 alert('建物名は必須項目です。');
                 setLoading(false);
@@ -1221,13 +1374,19 @@ const PropertyPage = () => {
 
                             <FormGroup>
                                 <Label required>建物名</Label>
-                                <Input
-                                    type="text"
-                                    value={editMode ? editData.name : property.name}
-                                    disabled={!editMode}
-                                    onChange={(e) => handleInputChange('name', e.target.value)}
-                                    required
-                                />
+                                <FieldContainer className={validationErrors.name ? 'error' : ''}>
+                                    <Input
+                                        type="text"
+                                        value={editMode ? editData.name : property.name}
+                                        disabled={!editMode}
+                                        onChange={(e) => handleInputChange('name', e.target.value)}
+                                        required
+                                        className={validationErrors.name ? 'error' : ''}
+                                    />
+                                    {validationErrors.name && (
+                                        <ValidationError>{validationErrors.name}</ValidationError>
+                                    )}
+                                </FieldContainer>
                             </FormGroup>
 
                             <FormGroup>
@@ -1399,7 +1558,7 @@ const PropertyPage = () => {
                             </FormGroup>
 
                             <FormGroup>
-                                <Label>担当者tel</Label>
+                                <Label>担当者電話番号</Label>
                                 <Input
                                     type="text"
                                     value={editMode ? editData.lead_from_representative_phone : property.lead_from_representative_phone}
