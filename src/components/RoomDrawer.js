@@ -559,15 +559,15 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
         if (!roomData?.name || !roomData?.room_number) {
             return { isCorrect: false, type: 'missing', message: '部屋名または部屋番号が未設定です' };
         }
-        
+
         const isCorrect = isRoomNameFormatCorrect(roomData.name, roomData.room_number);
         if (isCorrect) {
             return { isCorrect: true, type: 'correct', message: '正しいフォーマットです' };
         } else {
             const expectedName = generateRoomName(roomData.room_number);
-            return { 
-                isCorrect: false, 
-                type: 'incorrect', 
+            return {
+                isCorrect: false,
+                type: 'incorrect',
                 message: `フォーマットが古い形式です`,
                 expectedName: expectedName
             };
@@ -663,7 +663,7 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
                 ...prev,
                 [field]: value
             };
-            
+
             // 部屋番号が変更された場合、部屋名を自動更新するかの選択肢を提供
             if (field === 'room_number') {
                 const newRoomName = generateRoomName(value);
@@ -672,7 +672,7 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
                     // ここでは何もしない
                 }
             }
-            
+
             return newData;
         });
     };
@@ -682,7 +682,7 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
         if (!roomData?.room_number) {
             return;
         }
-        
+
         const correctName = generateRoomName(roomData.room_number);
         if (correctName) {
             setEditData(prev => ({
@@ -1186,34 +1186,30 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
 
                                     <DataItem>
                                         <HeaderText>部屋名</HeaderText>
-                                        {isEditing ? (
-                                            <div>
-                                                <EditableInput
-                                                    type="text"
-                                                    value={editData.name || ''}
-                                                    onChange={(e) => handleInputChange('name', e.target.value)}
-                                                    placeholder="部屋名を入力"
-                                                />
-                                                <div style={{ marginTop: '8px' }}>
-                                                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
-                                                        推奨フォーマット:
+                                        {(() => {
+                                            const formatStatus = getRoomNameFormatStatus(roomData);
+                                            const isCorrectFormat = formatStatus.isCorrect;
+
+                                            if (isEditing) {
+                                                // 編集モードでは常に編集不可（正しいフォーマット・間違ったフォーマット問わず）
+                                                return (
+                                                    <div>
+                                                        <DataValue>{roomData.name || ''}</DataValue>
+                                                        <div style={{ marginTop: '8px' }}>
+                                                            <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                                                                変更後の部屋名:
+                                                            </div>
+                                                            <DataValue style={{ backgroundColor: '#e3f2fd', border: '1px solid #2196f3' }}>
+                                                                {getUpdatedRoomName() || '(部屋番号を入力してください)'}
+                                                            </DataValue>
+                                                        </div>
                                                     </div>
-                                                    <DataValue style={{ backgroundColor: '#e3f2fd', border: '1px solid #2196f3', marginBottom: '5px' }}>
-                                                        {getUpdatedRoomName() || '(部屋番号を入力してください)'}
-                                                    </DataValue>
-                                                    {roomData?.room_number && getUpdatedRoomName() && editData.name !== getUpdatedRoomName() && (
-                                                        <FixFormatButton onClick={handleFixRoomNameFormat}>
-                                                            推奨フォーマットに修正
-                                                        </FixFormatButton>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <DataValue>{roomData.name || ''}</DataValue>
-                                                {(() => {
-                                                    const formatStatus = getRoomNameFormatStatus(roomData);
-                                                    return (
+                                                );
+                                            } else {
+                                                // 表示モード
+                                                return (
+                                                    <div>
+                                                        <DataValue>{roomData.name || ''}</DataValue>
                                                         <FormatStatusContainer className={formatStatus.type}>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 {formatStatus.isCorrect ? (
@@ -1234,10 +1230,10 @@ const RoomDrawer = ({ isOpen, onClose, roomId, propertyData }) => {
                                                                 </ExpectedRoomName>
                                                             )}
                                                         </FormatStatusContainer>
-                                                    );
-                                                })()}
-                                            </div>
-                                        )}
+                                                    </div>
+                                                );
+                                            }
+                                        })()}
                                     </DataItem>
 
                                     <DataItem>
