@@ -1113,6 +1113,27 @@ const PropertyPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, property?.has_related_rooms]);
 
+    // 部屋名フォーマット関連の関数を追加
+    const generateRoomName = (propertyName, roomNumber) => {
+        if (!propertyName || !roomNumber) return '';
+        return `${propertyName} ${roomNumber}`;
+    };
+
+    const isRoomNameFormatCorrect = (roomName, propertyName, roomNumber) => {
+        if (!roomName || !propertyName || !roomNumber) return false;
+        const expectedFormat = generateRoomName(propertyName, roomNumber);
+        return roomName === expectedFormat;
+    };
+
+    const getRoomNameFormatStatus = (roomName, propertyName, roomNumber) => {
+        if (!roomName || !propertyName || !roomNumber) return { isCorrect: false, expected: '' };
+        const expectedFormat = generateRoomName(propertyName, roomNumber);
+        return {
+            isCorrect: roomName === expectedFormat,
+            expected: expectedFormat
+        };
+    };
+
     if (loading) {
         return (
             <Container>
@@ -1886,11 +1907,32 @@ const PropertyPage = () => {
                                                                 {room[0]}
                                                             </StatusBadge>
                                                         </TableCell>
-                                                        <TableCell>{roomId}</TableCell>
-                                                        <TableCell>
-                                                            <RoomNameButton onClick={() => handleOpenRoomDrawer(roomId)}>
-                                                                {roomName}
-                                                            </RoomNameButton>
+                                                        <TableCell>{roomId}</TableCell>                                        <TableCell>
+                                                            {(() => {
+                                                                const formatStatus = getRoomNameFormatStatus(
+                                                                    roomName,
+                                                                    property?.name,
+                                                                    room[3] // 部屋番号
+                                                                );
+                                                                return (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <RoomNameButton onClick={() => handleOpenRoomDrawer(roomId)}>
+                                                                            {roomName}
+                                                                        </RoomNameButton>
+                                                                        {!formatStatus.isCorrect && (
+                                                                            <span style={{
+                                                                                color: '#ff6b6b',
+                                                                                fontSize: '12px',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '4px'
+                                                                            }}>
+                                                                                ⚠️ 推奨: {formatStatus.expected}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </TableCell>
                                                         <TableCell>{room[3]}</TableCell>
                                                         <TableCell>
