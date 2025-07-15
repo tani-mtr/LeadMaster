@@ -518,21 +518,23 @@ const ReadOnlyTable = styled.table`
   min-width: 1200px; /* 最小幅を設定してスクロール可能に */
 `;
 const ReadOnlyTableHeader = styled.th`
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
   padding: 10px 8px;
   text-align: left;
   font-weight: 600;
   color: #495057;
   font-size: 13px;
-  white-space: nowrap; /* 追加: 改行を防ぐ */
-  position: relative; /* フィルター入力欄の配置用 */
+  white-space: nowrap;
+  
+  /* ヘッダー固定用のスタイル */
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  z-index: 6; /* 通常のヘッダーの重なり順 */
 
   /* 左3列を固定 */
   &.fixed-column {
-    position: sticky;
-    background: #f8f9fa;
-    z-index: 10;
+    z-index: 10; /* 固定列は他のヘッダーより手前に */
   }
   
   &.fixed-column-1 {
@@ -697,11 +699,29 @@ const EditableTableHeader = styled.th`
   font-weight: 600;
   color: #0c5aa6;
   font-size: 13px;
+  white-space: nowrap; /* 追加: 改行を防ぐ */
+
+  /* 各列のmin-widthを追加 */
+  &[data-field="id"] { min-width: 100px; }
+  &[data-field="property_id"] { min-width: 100px; }
+  &[data-field="name"] { min-width: 180px; }
+  &[data-field="room_number"] { min-width: 100px; }
+  &[data-field="status"] { min-width: 120px; }
+  &[data-field="key_handover_scheduled_date"] { min-width: 150px; }
+  &[data-field="possible_key_handover_scheduled_date_1"],
+  &[data-field="possible_key_handover_scheduled_date_2"],
+  &[data-field="possible_key_handover_scheduled_date_3"] { min-width: 180px; }
+  &[data-field="vacate_setup"] { min-width: 120px; }
+  &[data-field="contract_collection_date"] { min-width: 150px; }
+  &[data-field="application_intended_date"] { min-width: 150px; }
+  &[data-field="create_date"] { min-width: 120px; }
+  &[data-field="lead_room_type_name"] { min-width: 180px; }
 `;
 const EditableTableCell = styled.td`
   border: 1px solid #b3d9f7;
   padding: 8px;
   vertical-align: middle;
+  white-space: nowrap; /* 追加: 改行を防ぐ */
   
   &.focused {
     background: #e3f2fd;
@@ -2903,7 +2923,7 @@ const PropertyPage = () => {
                                         <thead>
                                             <tr>
                                                 {Object.entries(ROOM_FIELD_CONFIG).map(([field, config]) => (
-                                                    <EditableTableHeader key={field}>
+                                                    <EditableTableHeader key={field} data-field={field}>
                                                         {config.label}
                                                         {config.required && <span style={{ color: 'red' }}> *</span>}
                                                     </EditableTableHeader>
@@ -2934,6 +2954,7 @@ const PropertyPage = () => {
                                                                             value={currentValue}
                                                                             onChange={(e) => handleEditCellChange(roomIndex, field, e.target.value)}
                                                                             onFocus={() => setSelectedEditCell({ row: roomIndex, field: field })}
+                                                                            ref={isFocused ? (el) => el && el.focus() : null}
                                                                             style={{
                                                                                 width: '100%',
                                                                                 border: 'none',
