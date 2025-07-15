@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import RoomDrawer from '../components/RoomDrawer';
 import RoomTypeDrawer from '../components/RoomTypeDrawer';
-import { validatePropertyName, validateOptionalText } from '../utils/validationUtils';
+import { validatePropertyName } from '../utils/validationUtils';
 
 // 選択肢の定数定義
 const SELECT_OPTIONS = {
@@ -14,7 +14,28 @@ const SELECT_OPTIONS = {
     minpaku_feasibility: ['', '可', '不可', '確認中', '可能', '旅館業'],
     sp_feasibility: ['', 'SP不要', 'SP必要', '確認中'],
     done_property_viewing: ['', '未内見', '竣工待ち', '内見済み', '内見可能', '内見済', '済', '竣工前'],
-    done_antisocial_check: ['', '有', '無', '済']
+    done_antisocial_check: ['', '有', '無', '済'],
+    // 部屋データ用の選択肢
+    status: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'],
+    vacate_setup: ['', '一般賃貸中', '退去SU']
+};
+
+// 部屋フィールドの設定
+const ROOM_FIELD_CONFIG = {
+    id: { label: '部屋ID', type: 'text', editable: false },
+    property_id: { label: '物件ID', type: 'text', editable: false },
+    name: { label: '部屋名', type: 'text', editable: false }, // 部屋名は編集不可
+    room_number: { label: '部屋番号', type: 'text', editable: true, required: true },
+    status: { label: '進捗', type: 'select', editable: true, options: SELECT_OPTIONS.status },
+    key_handover_scheduled_date: { label: '鍵引き渡し予定日', type: 'date', editable: true },
+    possible_key_handover_scheduled_date_1: { label: '鍵引き渡し予定日①', type: 'date', editable: true },
+    possible_key_handover_scheduled_date_2: { label: '鍵引き渡し予定日②', type: 'date', editable: true },
+    possible_key_handover_scheduled_date_3: { label: '鍵引き渡し予定日③', type: 'date', editable: true },
+    vacate_setup: { label: '退去SU', type: 'select', editable: true, options: SELECT_OPTIONS.vacate_setup },
+    contract_collection_date: { label: '契約書回収予定日', type: 'date', editable: true },
+    application_intended_date: { label: '申請予定日', type: 'date', editable: true },
+    create_date: { label: '部屋登録日', type: 'date', editable: false },
+    lead_room_type_name: { label: '部屋タイプ名', type: 'text', editable: false }
 };
 
 // スタイル定義
@@ -155,22 +176,6 @@ const ValidationError = styled.div`
       opacity: 1;
       transform: translateY(0) scale(1);
     }
-  }
-`;
-
-// 成功状態のスタイル改良
-const ValidationSuccess = styled(ValidationError)`
-  color: #10b981;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-  border-color: #bbf7d0;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
-  
-  &::before {
-    content: "✅";
-  }
-  
-  &::after {
-    border-bottom-color: #bbf7d0;
   }
 `;
 
@@ -527,25 +532,200 @@ const Arrow = styled.span`
   font-weight: bold;
 `;
 
-const HistoryTabContainer = styled.div`
+// データ編集タブ用のスタイル
+const EditTabContainer = styled.div`
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #ddd;
+  flex-direction: column;
+  gap: 30px;
 `;
 
-const HistoryTab = styled.button`
-  padding: 10px 15px;
-  border: none;
-  background: ${props => props.active ? '#007bff' : 'transparent'};
-  color: ${props => props.active ? 'white' : '#333'};
+const TableSection = styled.div`
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+`;
+
+const TableSectionHeader = styled.div`
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 15px 20px;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  font-size: 16px;
+`;
+
+const ReadOnlyTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 1200px; /* 最小幅を設定してスクロール可能に */
+`;
+
+const ReadOnlyTableHeader = styled.th`
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  font-size: 13px;
+  white-space: nowrap;
+  
+  /* 左3列を固定 */
+  &.fixed-column {
+    position: sticky;
+    background: #f8f9fa;
+    z-index: 10;
+  }
+  
+  &.fixed-column-1 {
+    left: 0;
+    min-width: 100px;
+    width: 100px;
+  }
+  
+  &.fixed-column-2 {
+    left: 100px; /* 1列目の幅 */
+    min-width: 100px;
+    width: 100px;
+  }
+  
+  &.fixed-column-3 {
+    left: 200px; /* 1列目 + 2列目の幅 */
+    min-width: 120px;
+    width: 120px;
+  }
+`;
+
+const ReadOnlyTableCell = styled.td`
+  border: 1px solid #dee2e6;
+  padding: 8px;
+  vertical-align: middle;
+  font-size: 13px;
   cursor: pointer;
-  border-radius: 5px 5px 0 0;
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  position: relative;
   
   &:hover {
-    background: ${props => props.active ? '#0056b3' : '#f8f9fa'};
+    background: #e3f2fd;
   }
+  
+  &.changed {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
+    border-left: 4px solid #ffc107;
+  }
+  
+  /* 左3列を固定 */
+  &.fixed-column {
+    position: sticky;
+    background: white;
+    z-index: 5;
+  }
+  
+  &.fixed-column-1 {
+    left: 0;
+    min-width: 100px;
+    width: 100px;
+  }
+  
+  &.fixed-column-2 {
+    left: 100px; /* 1列目の幅 */
+    min-width: 100px;
+    width: 100px;
+  }
+  
+  &.fixed-column-3 {
+    left: 200px; /* 1列目 + 2列目の幅 */
+    min-width: 120px;
+    width: 120px;
+  }
+  
+  /* 変更があった場合の背景色を固定列でも適用 */
+  &.fixed-column.changed {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
+  }
+  
+  &.fixed-column:hover {
+    background: #e3f2fd;
+  }
+`;
+
+const EditableTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+`;
+
+const EditableTableHeader = styled.th`
+  background: #e8f4fd;
+  border: 1px solid #b3d9f7;
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #0c5aa6;
+  font-size: 13px;
+`;
+
+const EditableTableCell = styled.td`
+  border: 1px solid #b3d9f7;
+  padding: 8px;
+  vertical-align: middle;
+  
+  &.focused {
+    background: #e3f2fd;
+    box-shadow: inset 0 0 0 2px #2196f3;
+  }
+`;
+
+const EditableInput = styled.input`
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  font-size: 13px;
+  
+  &:focus {
+    outline: none;
+    background: white;
+    border: 1px solid #2196f3;
+    border-radius: 3px;
+  }
+`;
+
+const ChangePreview = styled.div`
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #ff5722;
+  color: white;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  z-index: 1;
+`;
+
+const PreviewValue = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-top: 4px;
+`;
+
+const OriginalValue = styled.span`
+  color: #dc3545;
+  text-decoration: line-through;
+  background: #f8d7da;
+  padding: 2px 4px;
+  border-radius: 3px;
+`;
+
+const NewValueEdit = styled.span`
+  color: #28a745;
+  background: #d4edda;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 500;
 `;
 
 const PropertyPage = () => {
@@ -569,6 +749,12 @@ const PropertyPage = () => {
     const [editData, setEditData] = useState({});
     const [originalData, setOriginalData] = useState({}); // 元のデータを保存
     const [validationErrors, setValidationErrors] = useState({}); // バリデーションエラー
+
+    // データ編集タブ用の状態
+    const [selectedEditCell, setSelectedEditCell] = useState(null);
+    const [editChanges, setEditChanges] = useState(new Map());
+    const [detailedRoomData, setDetailedRoomData] = useState([]);
+    const [detailedRoomDataLoading, setDetailedRoomDataLoading] = useState(false);
 
     // 履歴関連の状態
     const [historyData, setHistoryData] = useState([]);
@@ -727,6 +913,7 @@ const PropertyPage = () => {
     }, [id]);
 
     // 部屋データの手動更新（更新ボタン用）
+    // eslint-disable-next-line no-unused-vars
     const fetchRoomsData = async () => {
         try {
             setRoomsLoading(true);
@@ -749,6 +936,7 @@ const PropertyPage = () => {
     };
 
     // 部屋タイプデータの手動更新（更新ボタン用）
+    // eslint-disable-next-line no-unused-vars
     const fetchRoomTypesData = async () => {
         try {
             setRoomTypesLoading(true);
@@ -773,6 +961,159 @@ const PropertyPage = () => {
     useEffect(() => {
         setRoomTypeCurrentPage(1);
     }, [roomTypeSearchTerm]);
+
+    // 値をフォーマットするヘルパー関数（部屋ドロワーと同じ）
+    const formatRoomValue = useCallback((field, value) => {
+        if (value === null || value === undefined || value === '') {
+            return '';
+        }
+
+        const fieldConfig = ROOM_FIELD_CONFIG[field];
+
+        // 日付フィールドの場合
+        if (fieldConfig?.type === 'date') {
+            try {
+                const actualDateValue = value && typeof value === 'object' && value.value
+                    ? value.value
+                    : value;
+
+                if (actualDateValue) {
+                    const date = new Date(actualDateValue);
+                    if (!isNaN(date.getTime())) {
+                        return date.toLocaleDateString('ja-JP', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`Error formatting date for field ${field}:`, error);
+            }
+        }
+
+        return String(value);
+    }, []);
+
+    // 編集可能かどうかを判定する関数
+    const isFieldEditable = useCallback((field) => {
+        const fieldConfig = ROOM_FIELD_CONFIG[field];
+        return fieldConfig?.editable === true;
+    }, []);
+
+    // データ編集タブのハンドラー関数
+    const handleReadOnlyCellClick = useCallback((roomIndex, field) => {
+        // 編集可能なフィールドのみフォーカス可能
+        if (isFieldEditable(field)) {
+            setSelectedEditCell({ row: roomIndex, field: field });
+        }
+    }, [isFieldEditable]);
+
+    const handleEditCellChange = useCallback((roomIndex, field, value) => {
+        const room = detailedRoomData[roomIndex];
+        if (!room) return;
+
+        const cellKey = `${room.id}-${field}`;
+        const originalValue = room[field];
+
+        setEditChanges(prev => {
+            const newChanges = new Map(prev);
+            if (value === originalValue || (value === '' && (originalValue === null || originalValue === undefined))) {
+                // 元の値と同じ場合は変更を削除
+                newChanges.delete(cellKey);
+            } else {
+                // 変更がある場合は追加
+                newChanges.set(cellKey, value);
+            }
+            return newChanges;
+        });
+    }, [detailedRoomData]);
+
+    const handleResetChanges = useCallback(() => {
+        setEditChanges(new Map());
+        setSelectedEditCell(null);
+    }, []);
+
+    // 詳細な部屋データを取得する関数（部屋ドロワーと同じ構造）
+    const fetchDetailedRoomData = useCallback(async () => {
+        if (!property || !property.has_related_rooms) return;
+
+        try {
+            setDetailedRoomDataLoading(true);
+
+            // 部屋一覧から部屋IDを取得
+            const roomIds = rooms.slice(1).map(room => room[1]); // 部屋IDのカラム
+
+            if (roomIds.length === 0) {
+                setDetailedRoomData([]);
+                return;
+            }
+
+            // 各部屋の詳細データを並行取得
+            const detailedDataPromises = roomIds.map(async (roomId) => {
+                try {
+                    const roomData = await apiService.getRoomData(roomId);
+                    return roomData && roomData.length > 0 ? roomData[0] : null;
+                } catch (error) {
+                    console.warn(`部屋ID ${roomId} のデータ取得に失敗:`, error);
+                    return null;
+                }
+            });
+
+            const detailedData = await Promise.all(detailedDataPromises);
+            const validData = detailedData.filter(data => data !== null);
+
+            setDetailedRoomData(validData);
+            console.log('詳細部屋データを取得:', validData);
+
+        } catch (error) {
+            console.error('詳細部屋データの取得に失敗:', error);
+        } finally {
+            setDetailedRoomDataLoading(false);
+        }
+    }, [property, rooms]);
+
+    const handleSaveChanges = useCallback(async () => {
+        if (editChanges.size === 0) return;
+
+        try {
+            // TODO: API に変更データを送信する実装を追加
+            console.log('保存する変更:', Array.from(editChanges.entries()));
+
+            // 変更データを部屋ごとにグループ化
+            const changesByRoom = new Map();
+            editChanges.forEach((value, key) => {
+                const [roomId, field] = key.split('-');
+                if (!changesByRoom.has(roomId)) {
+                    changesByRoom.set(roomId, {});
+                }
+                changesByRoom.get(roomId)[field] = value;
+            });
+
+            console.log('部屋ごとの変更:', Array.from(changesByRoom.entries()));
+
+            // 仮の保存処理
+            alert(`${changesByRoom.size}つの部屋で${editChanges.size}件の変更を保存しました。\n（現在はプレビュー機能のみです）`);
+
+            // 保存後に変更をクリア
+            setEditChanges(new Map());
+            setSelectedEditCell(null);
+
+            // データを再取得
+            await fetchDetailedRoomData();
+        } catch (error) {
+            console.error('保存エラー:', error);
+            alert('保存中にエラーが発生しました: ' + error.message);
+        }
+    }, [editChanges, fetchDetailedRoomData]);
+
+    // データ編集タブがアクティブになったときに詳細データを取得
+    useEffect(() => {
+        if (activeTab === 'edit' && property && property.has_related_rooms && rooms.length > 1) {
+            fetchDetailedRoomData();
+        }
+    }, [activeTab, fetchDetailedRoomData, property, rooms.length]);
+
     const filteredRooms = useMemo(() => {
         if (rooms.length <= 1) return [];
 
@@ -1295,6 +1636,7 @@ const PropertyPage = () => {
         return `${propertyName} ${roomNumber}`;
     };
 
+    // eslint-disable-next-line no-unused-vars
     const isRoomNameFormatCorrect = (roomName, propertyName, roomNumber) => {
         if (!roomName || !propertyName || !roomNumber) return false;
         const expectedFormat = generateRoomName(propertyName, roomNumber);
@@ -1361,6 +1703,12 @@ const PropertyPage = () => {
                             onClick={() => setActiveTab('types')}
                         >
                             部屋タイプ
+                        </Tab>
+                        <Tab
+                            active={activeTab === 'edit'}
+                            onClick={() => setActiveTab('edit')}
+                        >
+                            データ編集
                         </Tab>
                     </>
                 )}
@@ -2374,6 +2722,197 @@ const PropertyPage = () => {
                         </div>
                     )}
                 </Section>
+            )}
+
+            {/* データ編集タブ */}
+            {property.has_related_rooms && activeTab === 'edit' && (
+                <EditTabContainer>
+                    {detailedRoomDataLoading ? (
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                            <div className="spinner" style={{ display: 'inline-block', width: '20px', height: '20px', border: '3px solid #f3f3f3', borderTop: '3px solid #007bff', borderRadius: '50%', animation: 'spin 1s linear infinite', marginRight: '10px' }}></div>
+                            詳細な部屋データを読み込んでいます...
+                        </div>
+                    ) : detailedRoomData.length > 0 ? (
+                        <>
+                            {/* 上部の閲覧用テーブル */}
+                            <TableSection>
+                                <TableSectionHeader>
+                                    📊 全部屋データ閲覧テーブル（部屋ドロワー準拠）
+                                </TableSectionHeader>
+                                <div style={{
+                                    overflowX: 'auto',
+                                    maxHeight: '400px',
+                                    overflowY: 'auto',
+                                    position: 'relative'
+                                }}>
+                                    <ReadOnlyTable>
+                                        <thead>
+                                            <tr>
+                                                {Object.entries(ROOM_FIELD_CONFIG).map(([field, config], index) => {
+                                                    const isFixedColumn = index < 3; // 最初の3列を固定
+                                                    const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+
+                                                    return (
+                                                        <ReadOnlyTableHeader key={field} className={fixedClass}>
+                                                            {config.label}
+                                                            {config.required && <span style={{ color: 'red' }}> *</span>}
+                                                            {!config.editable && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
+                                                        </ReadOnlyTableHeader>
+                                                    );
+                                                })}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {detailedRoomData.map((room, roomIndex) => (
+                                                <tr key={room.id}>
+                                                    {Object.entries(ROOM_FIELD_CONFIG).map(([field, config], index) => {
+                                                        const cellKey = `${room.id}-${field}`;
+                                                        const hasChange = editChanges.has(cellKey);
+                                                        const originalValue = formatRoomValue(field, room[field]);
+                                                        const isEditable = config.editable;
+                                                        const isFixedColumn = index < 3; // 最初の3列を固定
+                                                        const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                        const cellClass = [
+                                                            fixedClass,
+                                                            hasChange ? 'changed' : ''
+                                                        ].filter(Boolean).join(' ');
+
+                                                        return (
+                                                            <ReadOnlyTableCell
+                                                                key={field}
+                                                                className={cellClass}
+                                                                onClick={() => isEditable && handleReadOnlyCellClick(roomIndex, field)}
+                                                                style={{
+                                                                    cursor: isEditable ? 'pointer' : 'default',
+                                                                    backgroundColor: !isEditable ? '#f8f9fa' : undefined
+                                                                }}
+                                                            >
+                                                                {originalValue}
+                                                                {hasChange && (
+                                                                    <>
+                                                                        <ChangePreview>変更</ChangePreview>
+                                                                        <PreviewValue>
+                                                                            <OriginalValue>{originalValue}</OriginalValue>
+                                                                            <Arrow>→</Arrow>
+                                                                            <NewValueEdit>{editChanges.get(cellKey)}</NewValueEdit>
+                                                                        </PreviewValue>
+                                                                    </>
+                                                                )}
+                                                            </ReadOnlyTableCell>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </ReadOnlyTable>
+                                </div>
+                            </TableSection>
+
+                            {/* 下部の編集用テーブル */}
+                            <TableSection>
+                                <TableSectionHeader>
+                                    ✏️ 編集用テーブル（部屋ドロワーと同じ編集可否）
+                                </TableSectionHeader>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <EditableTable>
+                                        <thead>
+                                            <tr>
+                                                {Object.entries(ROOM_FIELD_CONFIG).map(([field, config]) => (
+                                                    <EditableTableHeader key={field}>
+                                                        {config.label}
+                                                        {config.required && <span style={{ color: 'red' }}> *</span>}
+                                                    </EditableTableHeader>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {detailedRoomData.map((room, roomIndex) => (
+                                                <tr key={room.id}>
+                                                    {Object.entries(ROOM_FIELD_CONFIG).map(([field, config]) => {
+                                                        const cellKey = `${room.id}-${field}`;
+                                                        const isFocused = selectedEditCell &&
+                                                            selectedEditCell.row === roomIndex &&
+                                                            selectedEditCell.field === field;
+                                                        const currentValue = editChanges.get(cellKey) || formatRoomValue(field, room[field]);
+                                                        const isEditable = config.editable;
+
+                                                        return (
+                                                            <EditableTableCell
+                                                                key={field}
+                                                                className={isFocused ? 'focused' : ''}
+                                                                style={{
+                                                                    backgroundColor: !isEditable ? '#f8f9fa' : undefined
+                                                                }}
+                                                            >
+                                                                {isEditable ? (
+                                                                    config.type === 'select' ? (
+                                                                        <select
+                                                                            value={currentValue}
+                                                                            onChange={(e) => handleEditCellChange(roomIndex, field, e.target.value)}
+                                                                            onFocus={() => setSelectedEditCell({ row: roomIndex, field: field })}
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                border: 'none',
+                                                                                background: 'transparent',
+                                                                                padding: '4px',
+                                                                                fontSize: '13px'
+                                                                            }}
+                                                                        >
+                                                                            <option value="">選択してください</option>
+                                                                            {config.options.map(option => (
+                                                                                <option key={option} value={option}>
+                                                                                    {option}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                    ) : (
+                                                                        <EditableInput
+                                                                            type={config.type}
+                                                                            value={currentValue}
+                                                                            onChange={(e) => handleEditCellChange(roomIndex, field, e.target.value)}
+                                                                            onFocus={() => setSelectedEditCell({ row: roomIndex, field: field })}
+                                                                            ref={isFocused ? (el) => el && el.focus() : null}
+                                                                        />
+                                                                    )
+                                                                ) : (
+                                                                    <div style={{ padding: '4px', color: '#666' }}>
+                                                                        {currentValue}
+                                                                    </div>
+                                                                )}
+                                                            </EditableTableCell>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </EditableTable>
+                                </div>
+                            </TableSection>
+
+                            {/* 保存・リセットボタン */}
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                                <Button
+                                    onClick={handleSaveChanges}
+                                    disabled={editChanges.size === 0}
+                                    style={{ backgroundColor: '#28a745', fontSize: '16px', padding: '12px 24px' }}
+                                >
+                                    変更を保存 ({editChanges.size}件)
+                                </Button>
+                                <Button
+                                    onClick={handleResetChanges}
+                                    disabled={editChanges.size === 0}
+                                    style={{ backgroundColor: '#dc3545', fontSize: '16px', padding: '12px 24px' }}
+                                >
+                                    変更をリセット
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                            編集可能な部屋データがありません
+                        </div>
+                    )}
+                </EditTabContainer>
             )}
 
             {/* RoomDrawer を追加 */}
