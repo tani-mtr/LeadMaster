@@ -45,17 +45,14 @@ const Container = styled.div`
   padding: 20px;
   width: 95%;
 `;
-
 const Header = styled.h1`
   color: #333;
   margin-bottom: 20px;
 `;
-
 const TabContainer = styled.div`
   border-bottom: 1px solid #ddd;
   margin-bottom: 20px;
 `;
-
 const Tab = styled.button.withConfig({
     shouldForwardProp: (prop) => prop !== 'active'
 })`
@@ -71,7 +68,6 @@ const Tab = styled.button.withConfig({
     background: ${props => props.active ? '#0056b3' : '#e9ecef'};
   }
 `;
-
 const Section = styled.div`
   background: white;
   padding: 20px;
@@ -79,11 +75,9 @@ const Section = styled.div`
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   margin-bottom: 20px;
 `;
-
 const FormGroup = styled.div`
   margin-bottom: 15px;
 `;
-
 const Label = styled.label`
   display: block;
   margin-bottom: 5px;
@@ -96,7 +90,6 @@ const Label = styled.label`
     margin-left: 2px;
   }
 `;
-
 const Input = styled.input`
   width: 100%;
   padding: 12px 16px;
@@ -131,7 +124,6 @@ const Input = styled.input`
     75% { transform: translateX(2px); }
   }
 `;
-
 // 改良されたエラーメッセージスタイル
 const ValidationError = styled.div`
   display: flex;
@@ -178,7 +170,6 @@ const ValidationError = styled.div`
     }
   }
 `;
-
 // フィールドコンテナの改良
 const FieldContainer = styled.div`
   position: relative;
@@ -203,7 +194,6 @@ const FieldContainer = styled.div`
     50% { transform: scale(1.01); }
     100% { transform: scale(1); }
 `;
-
 const Select = styled.select`
   width: 100%;
   padding: 8px;
@@ -218,7 +208,6 @@ const Select = styled.select`
     cursor: not-allowed;
   }
 `;
-
 const Button = styled.button`
   padding: 8px 16px;
   background: #007bff;
@@ -237,7 +226,6 @@ const Button = styled.button`
     cursor: not-allowed;
   }
 `;
-
 const ErrorMessage = styled.div`
   color: red;
   padding: 10px;
@@ -246,7 +234,6 @@ const ErrorMessage = styled.div`
   border-radius: 4px;
   margin-bottom: 20px;
 `;
-
 const LoadingMessage = styled.div`
   text-align: center;
   padding: 20px;
@@ -268,7 +255,6 @@ const LoadingMessage = styled.div`
     100% { transform: rotate(360deg); }
   }
 `;
-
 const SearchInput = styled.input`
   width: 300px;
   padding: 10px;
@@ -283,14 +269,12 @@ const SearchInput = styled.input`
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 `;
-
 const BulkActions = styled.div`
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
   align-items: center;
 `;
-
 const Pagination = styled.div`
   display: flex;
   justify-content: center;
@@ -298,7 +282,6 @@ const Pagination = styled.div`
   gap: 10px;
   margin-top: 20px;
 `;
-
 const PageButton = styled.button.withConfig({
     shouldForwardProp: (prop) => prop !== 'active'
 })`
@@ -319,24 +302,20 @@ const PageButton = styled.button.withConfig({
     cursor: not-allowed;
   }
 `;
-
 const CheckboxWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
 `;
-
 const Checkbox = styled.input`
   width: 16px;
   height: 16px;
   cursor: pointer;
 `;
-
 const ActionButtons = styled.div`
   display: flex;
   gap: 5px;
 `;
-
 const IconButton = styled.button.withConfig({
     shouldForwardProp: (prop) => !['variant'].includes(prop)
 })`
@@ -357,7 +336,6 @@ const IconButton = styled.button.withConfig({
     cursor: not-allowed;
   }
 `;
-
 const RoomNameButton = styled.button`
   color: #007bff;
   text-decoration: none;
@@ -371,13 +349,11 @@ const RoomNameButton = styled.button`
     text-decoration: underline;
   }
 `;
-
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 `;
-
 const TableHeader = styled.th`
   background: #f8f9fa;
   border: 1px solid #ddd;
@@ -385,13 +361,11 @@ const TableHeader = styled.th`
   text-align: left;
   font-weight: bold;
 `;
-
 const TableCell = styled.td`
   border: 1px solid #ddd;
   padding: 12px;
   vertical-align: middle;
 `;
-
 const TableRow = styled.tr`
   &:nth-child(even) {
     background: #f9f9f9;
@@ -401,7 +375,6 @@ const TableRow = styled.tr`
     background: #f0f8ff;
   }
 `;
-
 const StatusBadge = styled.span.withConfig({
     shouldForwardProp: (prop) => prop !== 'status'
 })`
@@ -419,13 +392,11 @@ const StatusBadge = styled.span.withConfig({
         }
     }};
 `;
-
 const RoomTypeTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 `;
-
 const RoomTypeTableHeader = styled.th`
   background: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -434,19 +405,16 @@ const RoomTypeTableHeader = styled.th`
   font-weight: 600;
   color: #495057;
 `;
-
 const RoomTypeTableCell = styled.td`
   border: 1px solid #dee2e6;
   padding: 12px;
   vertical-align: middle;
 `;
-
 const RoomTypeContainer = styled.div`
   background: white;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
-
 // 履歴表示用のスタイル
 const HistoryContainer = styled.div`
   max-height: 500px;
@@ -455,7 +423,6 @@ const HistoryContainer = styled.div`
   border-radius: 5px;
   padding: 10px;
 `;
-
 const HistoryItem = styled.div`
   border-bottom: 1px solid #eee;
   padding: 15px 0;
@@ -464,32 +431,27 @@ const HistoryItem = styled.div`
     border-bottom: none;
   }
 `;
-
 const HistoryHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 `;
-
 const HistoryDate = styled.div`
   font-weight: bold;
   color: #333;
   font-size: 14px;
 `;
-
 const HistoryUser = styled.div`
   color: #666;
   font-size: 12px;
 `;
-
 const HistoryChanges = styled.div`
   background: #f8f9fa;
   padding: 10px;
   border-radius: 4px;
   border-left: 4px solid #007bff;
 `;
-
 const ChangeField = styled.div`
   margin-bottom: 8px;
   
@@ -497,21 +459,18 @@ const ChangeField = styled.div`
     margin-bottom: 0;
   }
 `;
-
 const FieldName = styled.div`
   font-weight: bold;
   font-size: 12px;
   color: #495057;
   margin-bottom: 2px;
 `;
-
 const ChangeValue = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
 `;
-
 const OldValue = styled.span`
   color: #dc3545;
   text-decoration: line-through;
@@ -519,33 +478,28 @@ const OldValue = styled.span`
   padding: 2px 4px;
   border-radius: 3px;
 `;
-
 const NewValue = styled.span`
   color: #28a745;
   background: #d4edda;
   padding: 2px 4px;
   border-radius: 3px;
 `;
-
 const Arrow = styled.span`
   color: #6c757d;
   font-weight: bold;
 `;
-
 // データ編集タブ用のスタイル
 const EditTabContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 30px;
 `;
-
 const TableSection = styled.div`
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   overflow: hidden;
 `;
-
 const TableSectionHeader = styled.div`
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   padding: 15px 20px;
@@ -553,15 +507,16 @@ const TableSectionHeader = styled.div`
   font-weight: 600;
   color: #495057;
   font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
-
 const ReadOnlyTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
   min-width: 1200px; /* 最小幅を設定してスクロール可能に */
 `;
-
 const ReadOnlyTableHeader = styled.th`
   background: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -570,8 +525,9 @@ const ReadOnlyTableHeader = styled.th`
   font-weight: 600;
   color: #495057;
   font-size: 13px;
-  white-space: nowrap;
-  
+  white-space: nowrap; /* 追加: 改行を防ぐ */
+  position: relative; /* フィルター入力欄の配置用 */
+
   /* 左3列を固定 */
   &.fixed-column {
     position: sticky;
@@ -596,8 +552,23 @@ const ReadOnlyTableHeader = styled.th`
     min-width: 120px;
     width: 120px;
   }
+  
+  /* 各列のmin-widthを追加 */
+  &[data-field="id"] { min-width: 100px; }
+  &[data-field="property_id"] { min-width: 100px; }
+  &[data-field="name"] { min-width: 180px; }
+  &[data-field="room_number"] { min-width: 100px; }
+  &[data-field="status"] { min-width: 120px; }
+  &[data-field="key_handover_scheduled_date"] { min-width: 150px; }
+  &[data-field="possible_key_handover_scheduled_date_1"],
+  &[data-field="possible_key_handover_scheduled_date_2"],
+  &[data-field="possible_key_handover_scheduled_date_3"] { min-width: 180px; }
+  &[data-field="vacate_setup"] { min-width: 120px; }
+  &[data-field="contract_collection_date"] { min-width: 150px; }
+  &[data-field="application_intended_date"] { min-width: 150px; }
+  &[data-field="create_date"] { min-width: 120px; }
+  &[data-field="lead_room_type_name"] { min-width: 180px; }
 `;
-
 const ReadOnlyTableCell = styled.td`
   border: 1px solid #dee2e6;
   padding: 8px;
@@ -605,6 +576,9 @@ const ReadOnlyTableCell = styled.td`
   font-size: 13px;
   cursor: pointer;
   position: relative;
+  white-space: nowrap; /* 追加: 改行を防ぐ */
+  overflow: hidden; /* 追加: はみ出したテキストを隠す */
+  text-overflow: ellipsis; /* 追加: はみ出したテキストを「...」で表示 */
   
   &:hover {
     background: #e3f2fd;
@@ -650,12 +624,71 @@ const ReadOnlyTableCell = styled.td`
   }
 `;
 
+// 列フィルターの入力スタイル
+const ColumnFilterInput = styled.input`
+    width: calc(100% - 16px);
+    padding: 4px 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    box-sizing: border-box;
+    &:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.25);
+    }
+`;
+
+const ColumnFilterSelect = styled.select`
+    width: calc(100% - 16px);
+    padding: 4px 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    box-sizing: border-box;
+    &:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.25);
+    }
+`;
+
+const ColumnFilterDateRange = styled.div`
+    display: flex;
+    flex-direction: column;
+    margin-top: 5px;
+
+    input {
+        width: 100%;
+        padding: 4px 8px;
+        margin-bottom: 2px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 12px;
+        box-sizing: border-box;
+
+        &:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.25);
+        }
+    }
+    span {
+        font-size: 10px;
+        color: #555;
+        text-align: center;
+        margin: 0;
+    }
+`;
+
+
 const EditableTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
 `;
-
 const EditableTableHeader = styled.th`
   background: #e8f4fd;
   border: 1px solid #b3d9f7;
@@ -665,7 +698,6 @@ const EditableTableHeader = styled.th`
   color: #0c5aa6;
   font-size: 13px;
 `;
-
 const EditableTableCell = styled.td`
   border: 1px solid #b3d9f7;
   padding: 8px;
@@ -676,7 +708,6 @@ const EditableTableCell = styled.td`
     box-shadow: inset 0 0 0 2px #2196f3;
   }
 `;
-
 const EditableInput = styled.input`
   width: 100%;
   border: none;
@@ -691,7 +722,6 @@ const EditableInput = styled.input`
     border-radius: 3px;
   }
 `;
-
 const ChangePreview = styled.div`
   position: absolute;
   top: -2px;
@@ -703,7 +733,6 @@ const ChangePreview = styled.div`
   border-radius: 3px;
   z-index: 1;
 `;
-
 const PreviewValue = styled.div`
   display: flex;
   align-items: center;
@@ -711,7 +740,6 @@ const PreviewValue = styled.div`
   font-size: 12px;
   margin-top: 4px;
 `;
-
 const OriginalValue = styled.span`
   color: #dc3545;
   text-decoration: line-through;
@@ -719,7 +747,6 @@ const OriginalValue = styled.span`
   padding: 2px 4px;
   border-radius: 3px;
 `;
-
 const NewValueEdit = styled.span`
   color: #28a745;
   background: #d4edda;
@@ -785,13 +812,15 @@ const PropertyPage = () => {
     const [roomTypeCurrentPage, setRoomTypeCurrentPage] = useState(1);
     const [roomTypeItemsPerPage] = useState(10);
 
+    // 列フィルター機能の状態
+    const [columnFilters, setColumnFilters] = useState({});
+
     const itemsPerPage = 10;
 
     // ドロワーを開く関数
     const handleOpenRoomDrawer = useCallback((roomId) => {
         setSelectedRoomId(roomId);
         setDrawerOpen(true);
-
         // URLにroomIdパラメータを追加
         const newParams = new URLSearchParams(location.search);
         newParams.set('roomId', roomId);
@@ -802,7 +831,6 @@ const PropertyPage = () => {
     const handleCloseRoomDrawer = useCallback(() => {
         setDrawerOpen(false);
         setSelectedRoomId(null);
-
         // URLからroomIdパラメータを削除
         const newParams = new URLSearchParams(location.search);
         newParams.delete('roomId');
@@ -814,7 +842,6 @@ const PropertyPage = () => {
     const handleOpenRoomTypeDrawer = useCallback((roomTypeId) => {
         setSelectedRoomTypeId(roomTypeId);
         setRoomTypeDrawerOpen(true);
-
         // URLにroomTypeIdパラメータを追加
         const newParams = new URLSearchParams(location.search);
         newParams.set('roomTypeId', roomTypeId);
@@ -825,7 +852,6 @@ const PropertyPage = () => {
     const handleCloseRoomTypeDrawer = useCallback(() => {
         setRoomTypeDrawerOpen(false);
         setSelectedRoomTypeId(null);
-
         // URLからroomTypeIdパラメータを削除
         const newParams = new URLSearchParams(location.search);
         newParams.delete('roomTypeId');
@@ -864,10 +890,8 @@ const PropertyPage = () => {
             try {
                 setLoading(true);
                 setError(null);
-
                 // 物件データ、部屋データ、部屋タイプデータを並行取得
                 const requests = [apiService.getPropertyData(id)];
-
                 // 最初から全データを並行取得（部屋データの有無は物件データ取得後に判断）
                 console.log(`物件ID ${id} のデータ取得を開始します`);
                 requests.push(
@@ -880,7 +904,6 @@ const PropertyPage = () => {
                         return [];
                     })
                 );
-
                 const [propertyData, roomData, roomTypeData] = await Promise.all(requests);
 
                 setProperty(propertyData);
@@ -898,6 +921,7 @@ const PropertyPage = () => {
                     roomsCount: (roomData || []).length,
                     roomTypesCount: (roomTypeData || []).length
                 });
+
             } catch (err) {
                 setError(err.message || 'データの取得中にエラーが発生しました');
             } finally {
@@ -918,11 +942,9 @@ const PropertyPage = () => {
         try {
             setRoomsLoading(true);
             setRoomsError(null);
-
             // BigQueryから部屋データを取得
             const roomData = await apiService.getRoomList(id);
             setRooms(roomData || []);
-
             // 検索結果をリセット
             setSearchTerm('');
             setCurrentPage(1);
@@ -941,7 +963,6 @@ const PropertyPage = () => {
         try {
             setRoomTypesLoading(true);
             setRoomTypesError(null);
-
             // 部屋タイプデータを取得
             const roomTypeData = await apiService.getRoomTypeList(id);
             setRoomTypes(roomTypeData || []);
@@ -962,12 +983,12 @@ const PropertyPage = () => {
         setRoomTypeCurrentPage(1);
     }, [roomTypeSearchTerm]);
 
+
     // 値をフォーマットするヘルパー関数（部屋ドロワーと同じ）
     const formatRoomValue = useCallback((field, value) => {
         if (value === null || value === undefined || value === '') {
             return '';
         }
-
         const fieldConfig = ROOM_FIELD_CONFIG[field];
 
         // 日付フィールドの場合
@@ -991,7 +1012,6 @@ const PropertyPage = () => {
                 console.error(`Error formatting date for field ${field}:`, error);
             }
         }
-
         return String(value);
     }, []);
 
@@ -1018,7 +1038,12 @@ const PropertyPage = () => {
 
         setEditChanges(prev => {
             const newChanges = new Map(prev);
-            if (value === originalValue || (value === '' && (originalValue === null || originalValue === undefined))) {
+            // 日付の場合はISO文字列に変換して比較
+            const normalizedValue = ROOM_FIELD_CONFIG[field]?.type === 'date' && value ? new Date(value).toISOString().split('T')[0] : value;
+            const normalizedOriginalValue = ROOM_FIELD_CONFIG[field]?.type === 'date' && originalValue ? new Date(originalValue).toISOString().split('T')[0] : originalValue;
+
+
+            if (normalizedValue === normalizedOriginalValue || (normalizedValue === '' && (normalizedOriginalValue === null || normalizedOriginalValue === undefined))) {
                 // 元の値と同じ場合は変更を削除
                 newChanges.delete(cellKey);
             } else {
@@ -1040,9 +1065,10 @@ const PropertyPage = () => {
 
         try {
             setDetailedRoomDataLoading(true);
-
             // 部屋一覧から部屋IDを取得
-            const roomIds = rooms.slice(1).map(room => room[1]); // 部屋IDのカラム
+            // rooms配列は [ヘッダー, [データ1], [データ2], ...] の形式なので、slice(1)でデータ部分を取得
+            // 各データの2番目の要素が部屋ID (room[1])
+            const roomIds = rooms.slice(1).map(room => room[1]);
 
             if (roomIds.length === 0) {
                 setDetailedRoomData([]);
@@ -1053,6 +1079,7 @@ const PropertyPage = () => {
             const detailedDataPromises = roomIds.map(async (roomId) => {
                 try {
                     const roomData = await apiService.getRoomData(roomId);
+                    // APIから返されるroomDataが配列形式で、その最初の要素がオブジェクトだと仮定
                     return roomData && roomData.length > 0 ? roomData[0] : null;
                 } catch (error) {
                     console.warn(`部屋ID ${roomId} のデータ取得に失敗:`, error);
@@ -1062,7 +1089,6 @@ const PropertyPage = () => {
 
             const detailedData = await Promise.all(detailedDataPromises);
             const validData = detailedData.filter(data => data !== null);
-
             setDetailedRoomData(validData);
             console.log('詳細部屋データを取得:', validData);
 
@@ -1072,6 +1098,7 @@ const PropertyPage = () => {
             setDetailedRoomDataLoading(false);
         }
     }, [property, rooms]);
+
 
     const handleSaveChanges = useCallback(async () => {
         if (editChanges.size === 0) return;
@@ -1089,7 +1116,6 @@ const PropertyPage = () => {
                 }
                 changesByRoom.get(roomId)[field] = value;
             });
-
             console.log('部屋ごとの変更:', Array.from(changesByRoom.entries()));
 
             // 仮の保存処理
@@ -1101,6 +1127,7 @@ const PropertyPage = () => {
 
             // データを再取得
             await fetchDetailedRoomData();
+
         } catch (error) {
             console.error('保存エラー:', error);
             alert('保存中にエラーが発生しました: ' + error.message);
@@ -1109,19 +1136,22 @@ const PropertyPage = () => {
 
     // データ編集タブがアクティブになったときに詳細データを取得
     useEffect(() => {
+        // property.has_related_rooms が true で、かつ rooms.length > 1 (ヘッダー以外のデータがある) の場合のみ実行
         if (activeTab === 'edit' && property && property.has_related_rooms && rooms.length > 1) {
             fetchDetailedRoomData();
         }
     }, [activeTab, fetchDetailedRoomData, property, rooms.length]);
 
+
     const filteredRooms = useMemo(() => {
-        if (rooms.length <= 1) return [];
+        if (rooms.length <= 1) return []; // ヘッダーのみの場合は空配列を返す
 
         const roomsData = rooms.slice(1); // ヘッダーを除く
 
         if (!searchTerm) return roomsData;
 
         const lowerSearchTerm = searchTerm.toLowerCase();
+
         return roomsData.filter(room => {
             const roomName = room[2]; // 部屋名のカラム
             return roomName && roomName.toLowerCase().includes(lowerSearchTerm);
@@ -1147,9 +1177,11 @@ const PropertyPage = () => {
         if (!roomTypeSearchTerm) return roomTypes;
 
         const lowerSearchTerm = roomTypeSearchTerm.toLowerCase();
+
         return roomTypes.filter(roomType => {
             const roomTypeName = roomType.room_type_name || roomType.name;
-            const roomTypeId = roomType.room_type_id || roomType.id;
+            const roomTypeId = roomType.room_type_id || roomType.id; // room_type_id がない場合のフォールバック
+
             return (roomTypeName && roomTypeName.toLowerCase().includes(lowerSearchTerm)) ||
                 (roomTypeId && roomTypeId.toString().toLowerCase().includes(lowerSearchTerm));
         });
@@ -1171,6 +1203,7 @@ const PropertyPage = () => {
         startIndex: roomTypeStartIndex,
         endIndex: roomTypeEndIndex
     } = roomTypePaginationData;
+
 
     // チェックボックス関連の処理 - useCallbackで最適化
     const handleSelectAll = useCallback((checked) => {
@@ -1202,7 +1235,6 @@ const PropertyPage = () => {
             alert('部屋が選択されていません。');
             return;
         }
-
         const selectedRoomIds = Array.from(selectedRooms);
         // TODO: 一括更新ページへの遷移を実装
         alert(`選択された部屋（${selectedRoomIds.length}件）の一括更新機能は今後実装予定です。\n部屋ID: ${selectedRoomIds.join(', ')}`);
@@ -1215,7 +1247,7 @@ const PropertyPage = () => {
         }
 
         const selectedRoomData = currentRooms.filter(room => selectedRooms.has(room[1]));
-        const roomNames = selectedRoomData.map(room => room[2]).join(', ');
+        const roomNames = selectedRoomData.map(room => room[2]).join(', '); // 部屋名を表示
 
         if (window.confirm(`以下の部屋を削除しますか？\n${roomNames}`)) {
             // TODO: 削除処理の実装
@@ -1260,7 +1292,6 @@ const PropertyPage = () => {
             alert('部屋タイプが選択されていません。');
             return;
         }
-
         const selectedRoomTypeIds = Array.from(selectedRoomTypes);
         alert(`選択された部屋タイプ（${selectedRoomTypeIds.length}件）の一括更新機能は今後実装予定です。\n部屋タイプID: ${selectedRoomTypeIds.join(', ')}`);
     };
@@ -1294,7 +1325,6 @@ const PropertyPage = () => {
 
         // バリデーション実行（必須項目のみ）
         let validation = { isValid: true, errorMessage: '' };
-
         if (field === 'name') {
             validation = validatePropertyName(value);
         }
@@ -1318,6 +1348,12 @@ const PropertyPage = () => {
             hasErrors = true;
         }
 
+        // lead_from のバリデーション（必須項目）
+        if (!editData.lead_from || editData.lead_from.trim() === '') {
+            errors.lead_from = 'lead元は必須項目です。';
+            hasErrors = true;
+        }
+
         setValidationErrors(errors);
         return !hasErrors;
     }, [editData]);
@@ -1325,14 +1361,11 @@ const PropertyPage = () => {
     // 履歴データ取得
     const fetchHistoryData = useCallback(async () => {
         if (!id) return;
-
         try {
             setHistoryLoading(true);
             setHistoryError(null);
-
             console.log(`物件変更履歴を取得中: ID=${id}`);
             const historyResponse = await apiService.getPropertyHistory(id);
-
             if (historyResponse && historyResponse.length > 0) {
                 setHistoryData(historyResponse);
                 console.log('物件変更履歴を取得しました:', historyResponse);
@@ -1340,7 +1373,6 @@ const PropertyPage = () => {
                 setHistoryData([]);
                 console.log('変更履歴はありません');
             }
-
         } catch (error) {
             console.error('Error fetching property history:', error);
             setHistoryError('変更履歴の取得に失敗しました');
@@ -1354,20 +1386,16 @@ const PropertyPage = () => {
         if (!dateValue) {
             return '日付不明';
         }
-
         try {
             let date;
-
             if (typeof dateValue === 'object' && dateValue.value) {
                 date = new Date(dateValue.value);
             } else if (typeof dateValue === 'string') {
                 date = new Date(dateValue);
-
                 if (isNaN(date.getTime())) {
                     const isoDate = dateValue.includes('T') ? dateValue : dateValue.replace(' ', 'T');
                     date = new Date(isoDate);
                 }
-
                 if (isNaN(date.getTime())) {
                     const dateMatch = dateValue.match(/(\d{4}-\d{2}-\d{2})/);
                     if (dateMatch) {
@@ -1416,7 +1444,7 @@ const PropertyPage = () => {
         // 日付形式の値を処理
         if (typeof value === 'string') {
             // 日付形式の場合
-            if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+            if (value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/) || value.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 try {
                     const date = new Date(value);
                     if (!isNaN(date.getTime())) {
@@ -1441,6 +1469,11 @@ const PropertyPage = () => {
 
     // フィールド名を表示名に変換するヘルパー関数
     const getFieldDisplayName = (fieldName) => {
+        // ROOM_FIELD_CONFIGから取得を試みる
+        if (ROOM_FIELD_CONFIG[fieldName] && ROOM_FIELD_CONFIG[fieldName].label) {
+            return ROOM_FIELD_CONFIG[fieldName].label;
+        }
+
         const fieldNames = {
             'name': '建物名',
             'tag': 'タグ',
@@ -1458,9 +1491,11 @@ const PropertyPage = () => {
             'done_property_viewing': '内見済み',
             'done_antisocial_check': '反社チェック済み',
             'memo': 'メモ'
+            // 他の物件プロパティもここに追加
         };
-        return fieldNames[fieldName] || fieldName;
+        return fieldNames[fieldName] || fieldName; // 見つからない場合はそのまま返す
     };
+
 
     // 保存処理
     const handleSave = async () => {
@@ -1481,7 +1516,6 @@ const PropertyPage = () => {
                 setLoading(false);
                 return;
             }
-
             if (!editData.lead_from || editData.lead_from.trim() === '') {
                 alert('lead元は必須項目です。');
                 setLoading(false);
@@ -1508,7 +1542,9 @@ const PropertyPage = () => {
                     const normalizedNewValue = normalizeValue(editData[key]);
                     const normalizedOriginalValue = normalizeValue(originalData[key]);
 
+
                     // 値が変更されている場合のみ送信対象に含める
+                    // Dateオブジェクトを直接比較するとfalseになるため、プリミティブ値で比較
                     if (normalizedNewValue !== normalizedOriginalValue) {
                         changedFields[key] = editData[key];
                         console.log(`フィールド ${key} が変更されました: "${normalizedOriginalValue}" -> "${normalizedNewValue}"`);
@@ -1539,21 +1575,17 @@ const PropertyPage = () => {
                         newName: changedFields.name,
                         hasRelatedRooms: property?.has_related_rooms
                     });
-
                     try {
                         const startTime = performance.now();
                         console.log('一括部屋名更新を開始...');
-
                         const bulkUpdateResult = await apiService.bulkUpdateRoomNames(
                             id,
                             originalData.name,
                             changedFields.name,
                             'user'
                         );
-
                         const endTime = performance.now();
                         const duration = Math.round(endTime - startTime);
-
                         console.log('一括部屋名更新結果:', {
                             ...bulkUpdateResult,
                             performanceMs: duration
@@ -1561,7 +1593,6 @@ const PropertyPage = () => {
 
                         if (bulkUpdateResult.success && bulkUpdateResult.updatedCount > 0) {
                             successMessage += `\n部屋名も自動更新されました（${bulkUpdateResult.updatedCount}件、${duration}ms）`;
-
                             // 部屋データを再取得
                             try {
                                 const roomRefreshStart = performance.now();
@@ -1581,7 +1612,8 @@ const PropertyPage = () => {
                                     successMessage += `\n物件には${bulkUpdateResult.debugInfo.allRoomsCount}件の部屋がありますが、命名パターンが一致しませんでした`;
                                 }
                             }
-                        } else if (bulkUpdateResult.errorCount > 0) {
+                        }
+                        else if (bulkUpdateResult.errorCount > 0) {
                             successMessage += `\n部屋名更新中にエラーが発生しました（失敗: ${bulkUpdateResult.errorCount}件）`;
                         }
                     } catch (bulkUpdateError) {
@@ -1597,16 +1629,17 @@ const PropertyPage = () => {
                 setOriginalData(latestData);
 
                 // 履歴データがあれば更新
-                if (historyData.length > 0) {
+                if (historyData.length > 0) { // 既に履歴が表示されている場合のみ更新
                     setTimeout(() => {
                         fetchHistoryData();
-                    }, 1000);
+                    }, 1000); // 1秒待ってから取得 (BigQueryへの反映待ち)
                 } else {
                     // 初回保存時は履歴を自動的に取得して表示
                     setTimeout(() => {
                         fetchHistoryData();
                     }, 1000);
                 }
+
             } else {
                 throw new Error(response.error || '更新に失敗しました');
             }
@@ -1652,6 +1685,76 @@ const PropertyPage = () => {
         };
     };
 
+    // 列フィルターの変更ハンドラ
+    const handleColumnFilterChange = useCallback((columnId, value) => {
+        setColumnFilters(prev => {
+            const newFilters = { ...prev };
+            if (value === '' || value === null) {
+                delete newFilters[columnId];
+            } else {
+                newFilters[columnId] = value;
+            }
+            return newFilters;
+        });
+    }, []);
+
+    // フィルターされた詳細部屋データ
+    const filteredDetailedRoomData = useMemo(() => {
+        if (!detailedRoomData) return [];
+
+        return detailedRoomData.filter(room => {
+            for (const field in columnFilters) {
+                if (columnFilters.hasOwnProperty(field)) {
+                    const filterValue = columnFilters[field];
+                    const roomValue = room[field];
+                    const config = ROOM_FIELD_CONFIG[field];
+
+                    if (filterValue === null || filterValue === undefined || filterValue === '') {
+                        continue; // フィルターが設定されていない場合はスキップ
+                    }
+
+                    if (config?.type === 'date') {
+                        // 日付フィルターの場合
+                        // filterValue は YYYY-MM-DD 形式
+                        // roomValue は DateオブジェクトまたはISO文字列、あるいはvalueプロパティを持つオブジェクト
+                        let dateToCompare = null;
+                        if (roomValue) {
+                            if (typeof roomValue === 'object' && roomValue.value) {
+                                dateToCompare = roomValue.value;
+                            } else if (typeof roomValue === 'string') {
+                                dateToCompare = roomValue;
+                            }
+                            // Dateオブジェクトの場合はISO文字列に変換して日付部分のみ比較
+                            if (dateToCompare instanceof Date) {
+                                dateToCompare = dateToCompare.toISOString().split('T')[0];
+                            } else if (typeof dateToCompare === 'string') {
+                                dateToCompare = dateToCompare.split('T')[0]; // YYYY-MM-DD部分のみ抽出
+                            }
+                        }
+                        if (dateToCompare !== filterValue) {
+                            return false;
+                        }
+                    } else if (config?.type === 'select') {
+                        // セレクトフィルターの場合 (厳密な一致)
+                        if (String(roomValue) !== String(filterValue)) {
+                            return false;
+                        }
+                    } else {
+                        // テキストフィルターの場合 (部分一致、大文字小文字を区別しない)
+                        if (roomValue === null || roomValue === undefined) {
+                            return false;
+                        }
+                        if (!String(roomValue).toLowerCase().includes(String(filterValue).toLowerCase())) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        });
+    }, [detailedRoomData, columnFilters]);
+
+
     if (loading) {
         return (
             <Container>
@@ -1682,7 +1785,6 @@ const PropertyPage = () => {
     return (
         <Container>
             <Header>{property.name} - 物件管理</Header>
-
             <TabContainer>
                 <Tab
                     active={activeTab === 'info'}
@@ -1725,13 +1827,13 @@ const PropertyPage = () => {
                             } else {
                                 // キャンセル時は編集内容を元に戻す
                                 setEditData({ ...originalData });
+                                setValidationErrors({}); // エラーもクリア
                             }
                             setEditMode(!editMode);
                         }}>
                             {editMode ? 'キャンセル' : '編集'}
                         </Button>
                     </div>
-
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
                             <FormGroup>
@@ -1742,7 +1844,6 @@ const PropertyPage = () => {
                                     disabled={true}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label required>建物名</Label>
                                 <FieldContainer className={validationErrors.name ? 'error' : ''}>
@@ -1759,7 +1860,6 @@ const PropertyPage = () => {
                                     )}
                                 </FieldContainer>
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>タグ</Label>
                                 <Input
@@ -1769,7 +1869,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('tag', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>売買</Label>
                                 {editMode ? (
@@ -1808,7 +1907,6 @@ const PropertyPage = () => {
                                     />
                                 )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>借上</Label>
                                 {editMode ? (
@@ -1847,7 +1945,6 @@ const PropertyPage = () => {
                                     />
                                 )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label required>lead元</Label>
                                 <Input
@@ -1857,8 +1954,10 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('lead_from', e.target.value)}
                                     required
                                 />
+                                {validationErrors.lead_from && (
+                                    <ValidationError>{validationErrors.lead_from}</ValidationError>
+                                )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>ファンド物件</Label>
                                 <Input
@@ -1868,7 +1967,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('is_fund', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>Leadチャネル</Label>
                                 {editMode ? (
@@ -1907,7 +2005,6 @@ const PropertyPage = () => {
                                     />
                                 )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>取引形態</Label>
                                 <Input
@@ -1917,7 +2014,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('trade_form', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>先方担当</Label>
                                 <Input
@@ -1927,7 +2023,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('lead_from_representative', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>担当者電話番号</Label>
                                 <Input
@@ -1937,7 +2032,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('lead_from_representative_phone', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>担当者メールアドレス</Label>
                                 <Input
@@ -1947,7 +2041,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('lead_from_representative_email', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>建物フォルダ</Label>
                                 {editMode ? (
@@ -1992,7 +2085,6 @@ const PropertyPage = () => {
                                 )}
                             </FormGroup>
                         </div>
-
                         <div>
                             <FormGroup>
                                 <Label>シリアルナンバー</Label>
@@ -2002,7 +2094,6 @@ const PropertyPage = () => {
                                     disabled={true}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>MT担当</Label>
                                 <Input
@@ -2012,7 +2103,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('mt_representative', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>建物登録日</Label>
                                 <Input
@@ -2021,7 +2111,6 @@ const PropertyPage = () => {
                                     disabled={true}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>情報取得日</Label>
                                 <Input
@@ -2031,7 +2120,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('information_acquisition_date', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>最終在庫確認日</Label>
                                 <Input
@@ -2041,7 +2129,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('latest_inventory_confirmation_date', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>入居中室数</Label>
                                 <Input
@@ -2051,7 +2138,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('num_of_occupied_rooms', parseInt(e.target.value))}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>空室数</Label>
                                 <Input
@@ -2061,7 +2147,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('num_of_vacant_rooms', parseInt(e.target.value))}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>家具なし部屋数</Label>
                                 <Input
@@ -2071,7 +2156,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('num_of_rooms_without_furniture', parseInt(e.target.value))}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>民泊可否</Label>
                                 {editMode ? (
@@ -2110,7 +2194,6 @@ const PropertyPage = () => {
                                     />
                                 )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>SP可否</Label>
                                 {editMode ? (
@@ -2149,7 +2232,6 @@ const PropertyPage = () => {
                                     />
                                 )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>内見</Label>
                                 {editMode ? (
@@ -2188,7 +2270,6 @@ const PropertyPage = () => {
                                     />
                                 )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>鳥籠</Label>
                                 <Input
@@ -2198,7 +2279,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('torikago', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>鍵引き渡し日</Label>
                                 <Input
@@ -2208,7 +2288,6 @@ const PropertyPage = () => {
                                     onChange={(e) => handleInputChange('key_handling_date', e.target.value)}
                                 />
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>反社チェック有無</Label>
                                 {editMode ? (
@@ -2247,7 +2326,6 @@ const PropertyPage = () => {
                                     />
                                 )}
                             </FormGroup>
-
                             <FormGroup>
                                 <Label>備考</Label>
                                 <Input
@@ -2259,7 +2337,6 @@ const PropertyPage = () => {
                             </FormGroup>
                         </div>
                     </div>
-
                     {editMode && (
                         <Button onClick={handleSave} disabled={loading}>
                             {loading ? '保存中...' : '保存'}
@@ -2281,18 +2358,15 @@ const PropertyPage = () => {
                                 {historyLoading ? '読み込み中...' : '履歴を表示'}
                             </Button>
                         </div>
-
                         {historyLoading && (
                             <LoadingMessage>
                                 <div className="spinner"></div>
                                 変更履歴を読み込んでいます...
                             </LoadingMessage>
                         )}
-
                         {historyError && (
                             <ErrorMessage>{historyError}</ErrorMessage>
                         )}
-
                         {!historyLoading && !historyError && historyData.length > 0 && (
                             <HistoryContainer>
                                 {historyData.map((historyItem, index) => (
@@ -2327,7 +2401,6 @@ const PropertyPage = () => {
                                 ))}
                             </HistoryContainer>
                         )}
-
                         {!historyLoading && !historyError && historyData.length === 0 && (
                             <div style={{ textAlign: 'center', color: '#666', padding: '20px', border: '1px solid #eee', borderRadius: '5px' }}>
                                 変更履歴はまだありません。「履歴を表示」ボタンをクリックして履歴を確認してください。
@@ -2342,11 +2415,9 @@ const PropertyPage = () => {
                     <div style={{ marginBottom: '20px' }}>
                         <h3>部屋一覧</h3>
                     </div>
-
                     {roomsError && (
                         <ErrorMessage>{roomsError}</ErrorMessage>
                     )}
-
                     {roomsLoading && rooms.length === 0 ? (
                         <LoadingMessage>部屋データを読み込み中...</LoadingMessage>
                     ) : (
@@ -2375,7 +2446,6 @@ const PropertyPage = () => {
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
-
                                     {/* 一括操作ボタン */}
                                     <BulkActions>
                                         <span>選択された部屋: {selectedRooms.size}件</span>
@@ -2396,7 +2466,6 @@ const PropertyPage = () => {
                                             新規追加
                                         </Button>
                                     </BulkActions>
-
                                     {/* 部屋一覧テーブル */}
                                     <Table>
                                         <thead>
@@ -2420,7 +2489,6 @@ const PropertyPage = () => {
                                                 const roomId = room[1];
                                                 const roomName = room[2];
                                                 const isOperationEnabled = room[4] !== 'false';
-
                                                 return (
                                                     <TableRow key={rowIndex}>
                                                         <TableCell>
@@ -2490,7 +2558,6 @@ const PropertyPage = () => {
                                             })}
                                         </tbody>
                                     </Table>
-
                                     {/* ページネーション */}
                                     {totalPages > 1 && (
                                         <Pagination>
@@ -2500,7 +2567,6 @@ const PropertyPage = () => {
                                             >
                                                 前へ
                                             </PageButton>
-
                                             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                                                 <PageButton
                                                     key={page}
@@ -2510,7 +2576,6 @@ const PropertyPage = () => {
                                                     {page}
                                                 </PageButton>
                                             ))}
-
                                             <PageButton
                                                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                                 disabled={currentPage === totalPages}
@@ -2519,7 +2584,6 @@ const PropertyPage = () => {
                                             </PageButton>
                                         </Pagination>
                                     )}
-
                                     {/* 表示情報 */}
                                     <div style={{ textAlign: 'center', marginTop: '10px', color: '#666', fontSize: '14px' }}>
                                         {filteredRooms.length}件中 {startIndex + 1}-{Math.min(endIndex, filteredRooms.length)}件を表示
@@ -2541,13 +2605,11 @@ const PropertyPage = () => {
                     <div style={{ marginBottom: '20px' }}>
                         <h3>部屋タイプ管理</h3>
                     </div>
-
                     {roomTypesError && (
                         <ErrorMessage>
                             {roomTypesError}
                         </ErrorMessage>
                     )}
-
                     {roomTypesLoading && roomTypes.length === 0 ? (
                         <LoadingMessage>部屋タイプデータを読み込み中...</LoadingMessage>
                     ) : (
@@ -2576,7 +2638,6 @@ const PropertyPage = () => {
                                         value={roomTypeSearchTerm}
                                         onChange={(e) => setRoomTypeSearchTerm(e.target.value)}
                                     />
-
                                     {/* 一括操作ボタン */}
                                     <BulkActions>
                                         <span>選択された部屋タイプ: {selectedRoomTypes.size}件</span>
@@ -2597,7 +2658,6 @@ const PropertyPage = () => {
                                             新規追加
                                         </Button>
                                     </BulkActions>
-
                                     {/* 部屋タイプ一覧テーブル */}
                                     <RoomTypeContainer>
                                         <RoomTypeTable>
@@ -2624,7 +2684,6 @@ const PropertyPage = () => {
                                                 {currentRoomTypes.map((roomType, index) => {
                                                     const roomTypeId = roomType.room_type_id || roomType.id;
                                                     const roomTypeName = roomType.room_type_name || roomType.name;
-
                                                     return (
                                                         <tr key={roomTypeId || index}>
                                                             <RoomTypeTableCell>
@@ -2665,7 +2724,6 @@ const PropertyPage = () => {
                                             </tbody>
                                         </RoomTypeTable>
                                     </RoomTypeContainer>
-
                                     {/* ページネーション */}
                                     {roomTypeTotalPages > 1 && (
                                         <Pagination>
@@ -2675,7 +2733,6 @@ const PropertyPage = () => {
                                             >
                                                 前へ
                                             </PageButton>
-
                                             {Array.from({ length: roomTypeTotalPages }, (_, i) => i + 1)
                                                 .filter(page =>
                                                     page === 1 ||
@@ -2694,7 +2751,6 @@ const PropertyPage = () => {
                                                     </React.Fragment>
                                                 ))
                                             }
-
                                             <PageButton
                                                 onClick={() => setRoomTypeCurrentPage(roomTypeCurrentPage + 1)}
                                                 disabled={roomTypeCurrentPage === roomTypeTotalPages}
@@ -2703,7 +2759,6 @@ const PropertyPage = () => {
                                             </PageButton>
                                         </Pagination>
                                     )}
-
                                     {/* 表示件数情報 */}
                                     <div style={{ textAlign: 'center', marginTop: '10px', color: '#666', fontSize: '14px' }}>
                                         {roomTypeStartIndex + 1} - {Math.min(roomTypeEndIndex, filteredRoomTypes.length)} 件 / 全 {filteredRoomTypes.length} 件
@@ -2748,59 +2803,89 @@ const PropertyPage = () => {
                                     <ReadOnlyTable>
                                         <thead>
                                             <tr>
-                                                {Object.entries(ROOM_FIELD_CONFIG).map(([field, config], index) => {
-                                                    const isFixedColumn = index < 3; // 最初の3列を固定
-                                                    const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-
-                                                    return (
-                                                        <ReadOnlyTableHeader key={field} className={fixedClass}>
-                                                            {config.label}
-                                                            {config.required && <span style={{ color: 'red' }}> *</span>}
-                                                            {!config.editable && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
-                                                        </ReadOnlyTableHeader>
-                                                    );
-                                                })}
+                                                {Object.entries(ROOM_FIELD_CONFIG)
+                                                    .map(([field, config], index) => {
+                                                        const isFixedColumn = index < 3; // 最初の3列を固定
+                                                        const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                        return (
+                                                            <ReadOnlyTableHeader key={field} className={fixedClass} data-field={field}>
+                                                                <div>
+                                                                    {config.label}
+                                                                    {config.required && <span style={{ color: 'red' }}> *</span>}
+                                                                    {!config.editable && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
+                                                                </div>
+                                                                {/* フィルター入力欄 */}
+                                                                <div>
+                                                                    {config.type === 'select' ? (
+                                                                        <ColumnFilterSelect
+                                                                            value={columnFilters[field] || ''}
+                                                                            onChange={(e) => handleColumnFilterChange(field, e.target.value)}
+                                                                        >
+                                                                            <option value="">全て</option>
+                                                                            {config.options.map(option => (
+                                                                                <option key={option} value={option}>{option}</option>
+                                                                            ))}
+                                                                        </ColumnFilterSelect>
+                                                                    ) : config.type === 'date' ? (
+                                                                        <ColumnFilterInput
+                                                                            type="date"
+                                                                            value={columnFilters[field] || ''}
+                                                                            onChange={(e) => handleColumnFilterChange(field, e.target.value)}
+                                                                            title="日付でフィルター"
+                                                                        />
+                                                                    ) : (
+                                                                        <ColumnFilterInput
+                                                                            type="text"
+                                                                            value={columnFilters[field] || ''}
+                                                                            onChange={(e) => handleColumnFilterChange(field, e.target.value)}
+                                                                            placeholder="検索..."
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            </ReadOnlyTableHeader>
+                                                        );
+                                                    })}
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {detailedRoomData.map((room, roomIndex) => (
+                                            {filteredDetailedRoomData.map((room, roomIndex) => (
                                                 <tr key={room.id}>
-                                                    {Object.entries(ROOM_FIELD_CONFIG).map(([field, config], index) => {
-                                                        const cellKey = `${room.id}-${field}`;
-                                                        const hasChange = editChanges.has(cellKey);
-                                                        const originalValue = formatRoomValue(field, room[field]);
-                                                        const isEditable = config.editable;
-                                                        const isFixedColumn = index < 3; // 最初の3列を固定
-                                                        const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-                                                        const cellClass = [
-                                                            fixedClass,
-                                                            hasChange ? 'changed' : ''
-                                                        ].filter(Boolean).join(' ');
-
-                                                        return (
-                                                            <ReadOnlyTableCell
-                                                                key={field}
-                                                                className={cellClass}
-                                                                onClick={() => isEditable && handleReadOnlyCellClick(roomIndex, field)}
-                                                                style={{
-                                                                    cursor: isEditable ? 'pointer' : 'default',
-                                                                    backgroundColor: !isEditable ? '#f8f9fa' : undefined
-                                                                }}
-                                                            >
-                                                                {originalValue}
-                                                                {hasChange && (
-                                                                    <>
-                                                                        <ChangePreview>変更</ChangePreview>
-                                                                        <PreviewValue>
-                                                                            <OriginalValue>{originalValue}</OriginalValue>
-                                                                            <Arrow>→</Arrow>
-                                                                            <NewValueEdit>{editChanges.get(cellKey)}</NewValueEdit>
-                                                                        </PreviewValue>
-                                                                    </>
-                                                                )}
-                                                            </ReadOnlyTableCell>
-                                                        );
-                                                    })}
+                                                    {Object.entries(ROOM_FIELD_CONFIG)
+                                                        .map(([field, config], index) => {
+                                                            const cellKey = `${room.id}-${field}`;
+                                                            const hasChange = editChanges.has(cellKey);
+                                                            const originalValue = formatRoomValue(field, room[field]);
+                                                            const isEditable = config.editable;
+                                                            const isFixedColumn = index < 3; // 最初の3列を固定
+                                                            const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                            const cellClass = [
+                                                                fixedClass,
+                                                                hasChange ? 'changed' : ''
+                                                            ].filter(Boolean).join(' ');
+                                                            return (
+                                                                <ReadOnlyTableCell
+                                                                    key={field}
+                                                                    className={cellClass}
+                                                                    onClick={() => isEditable && handleReadOnlyCellClick(roomIndex, field)}
+                                                                    style={{
+                                                                        cursor: isEditable ? 'pointer' : 'default',
+                                                                        backgroundColor: !isEditable ? '#f8f9fa' : undefined
+                                                                    }}
+                                                                >
+                                                                    {originalValue}
+                                                                    {hasChange && (
+                                                                        <>
+                                                                            <ChangePreview>変更</ChangePreview>
+                                                                            <PreviewValue>
+                                                                                <OriginalValue>{originalValue}</OriginalValue>
+                                                                                <Arrow>→</Arrow>
+                                                                                <NewValueEdit>{editChanges.get(cellKey)}</NewValueEdit>
+                                                                            </PreviewValue>
+                                                                        </>
+                                                                    )}
+                                                                </ReadOnlyTableCell>
+                                                            );
+                                                        })}
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -2835,7 +2920,6 @@ const PropertyPage = () => {
                                                             selectedEditCell.field === field;
                                                         const currentValue = editChanges.get(cellKey) || formatRoomValue(field, room[field]);
                                                         const isEditable = config.editable;
-
                                                         return (
                                                             <EditableTableCell
                                                                 key={field}
@@ -2868,7 +2952,8 @@ const PropertyPage = () => {
                                                                     ) : (
                                                                         <EditableInput
                                                                             type={config.type}
-                                                                            value={currentValue}
+                                                                            // 日付タイプの場合、値を ISO 形式 (YYYY-MM-DD) に変換して input[type="date"] に渡す
+                                                                            value={config.type === 'date' && currentValue ? new Date(currentValue).toISOString().split('T')[0] : currentValue}
                                                                             onChange={(e) => handleEditCellChange(roomIndex, field, e.target.value)}
                                                                             onFocus={() => setSelectedEditCell({ row: roomIndex, field: field })}
                                                                             ref={isFocused ? (el) => el && el.focus() : null}
@@ -2922,7 +3007,6 @@ const PropertyPage = () => {
                 roomId={selectedRoomId}
                 propertyData={property}
             />
-
             {/* RoomTypeDrawer を追加 */}
             <RoomTypeDrawer
                 isOpen={roomTypeDrawerOpen}
