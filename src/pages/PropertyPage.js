@@ -832,8 +832,7 @@ const PropertyPage = () => {
     const [roomTypeCurrentPage, setRoomTypeCurrentPage] = useState(1);
     const [roomTypeItemsPerPage] = useState(10);
 
-    // 列フィルター機能の状態
-    const [columnFilters, setColumnFilters] = useState({});
+    // ...existing code...
 
     const itemsPerPage = 10;
 
@@ -1705,74 +1704,12 @@ const PropertyPage = () => {
         };
     };
 
-    // 列フィルターの変更ハンドラ
-    const handleColumnFilterChange = useCallback((columnId, value) => {
-        setColumnFilters(prev => {
-            const newFilters = { ...prev };
-            if (value === '' || value === null) {
-                delete newFilters[columnId];
-            } else {
-                newFilters[columnId] = value;
-            }
-            return newFilters;
-        });
-    }, []);
+    // ...existing code...
 
-    // フィルターされた詳細部屋データ
+    // 詳細部屋データはフィルタリングせず全件表示
     const filteredDetailedRoomData = useMemo(() => {
-        if (!detailedRoomData) return [];
-
-        return detailedRoomData.filter(room => {
-            for (const field in columnFilters) {
-                if (columnFilters.hasOwnProperty(field)) {
-                    const filterValue = columnFilters[field];
-                    const roomValue = room[field];
-                    const config = ROOM_FIELD_CONFIG[field];
-
-                    if (filterValue === null || filterValue === undefined || filterValue === '') {
-                        continue; // フィルターが設定されていない場合はスキップ
-                    }
-
-                    if (config?.type === 'date') {
-                        // 日付フィルターの場合
-                        // filterValue は YYYY-MM-DD 形式
-                        // roomValue は DateオブジェクトまたはISO文字列、あるいはvalueプロパティを持つオブジェクト
-                        let dateToCompare = null;
-                        if (roomValue) {
-                            if (typeof roomValue === 'object' && roomValue.value) {
-                                dateToCompare = roomValue.value;
-                            } else if (typeof roomValue === 'string') {
-                                dateToCompare = roomValue;
-                            }
-                            // Dateオブジェクトの場合はISO文字列に変換して日付部分のみ比較
-                            if (dateToCompare instanceof Date) {
-                                dateToCompare = dateToCompare.toISOString().split('T')[0];
-                            } else if (typeof dateToCompare === 'string') {
-                                dateToCompare = dateToCompare.split('T')[0]; // YYYY-MM-DD部分のみ抽出
-                            }
-                        }
-                        if (dateToCompare !== filterValue) {
-                            return false;
-                        }
-                    } else if (config?.type === 'select') {
-                        // セレクトフィルターの場合 (厳密な一致)
-                        if (String(roomValue) !== String(filterValue)) {
-                            return false;
-                        }
-                    } else {
-                        // テキストフィルターの場合 (部分一致、大文字小文字を区別しない)
-                        if (roomValue === null || roomValue === undefined) {
-                            return false;
-                        }
-                        if (!String(roomValue).toLowerCase().includes(String(filterValue).toLowerCase())) {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return true;
-        });
-    }, [detailedRoomData, columnFilters]);
+        return detailedRoomData || [];
+    }, [detailedRoomData]);
 
 
     if (loading) {
@@ -2833,34 +2770,6 @@ const PropertyPage = () => {
                                                                     {config.label}
                                                                     {config.required && <span style={{ color: 'red' }}> *</span>}
                                                                     {!config.editable && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
-                                                                </div>
-                                                                {/* フィルター入力欄 */}
-                                                                <div>
-                                                                    {config.type === 'select' ? (
-                                                                        <ColumnFilterSelect
-                                                                            value={columnFilters[field] || ''}
-                                                                            onChange={(e) => handleColumnFilterChange(field, e.target.value)}
-                                                                        >
-                                                                            <option value="">全て</option>
-                                                                            {config.options.map(option => (
-                                                                                <option key={option} value={option}>{option}</option>
-                                                                            ))}
-                                                                        </ColumnFilterSelect>
-                                                                    ) : config.type === 'date' ? (
-                                                                        <ColumnFilterInput
-                                                                            type="date"
-                                                                            value={columnFilters[field] || ''}
-                                                                            onChange={(e) => handleColumnFilterChange(field, e.target.value)}
-                                                                            title="日付でフィルター"
-                                                                        />
-                                                                    ) : (
-                                                                        <ColumnFilterInput
-                                                                            type="text"
-                                                                            value={columnFilters[field] || ''}
-                                                                            onChange={(e) => handleColumnFilterChange(field, e.target.value)}
-                                                                            placeholder="検索..."
-                                                                        />
-                                                                    )}
                                                                 </div>
                                                             </ReadOnlyTableHeader>
                                                         );
