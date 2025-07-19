@@ -22,6 +22,7 @@ const SELECT_OPTIONS = {
 
 // 部屋フィールドの設定
 const ROOM_FIELD_CONFIG = {
+    lead_room_type_id: { label: '部屋タイプID', type: 'text', editable: false },
     id: { label: '部屋ID', type: 'text', editable: false },
     property_id: { label: '物件ID', type: 'text', editable: false },
     name: { label: '部屋名', type: 'text', editable: false }, // 部屋名は編集不可
@@ -35,7 +36,68 @@ const ROOM_FIELD_CONFIG = {
     contract_collection_date: { label: '契約書回収予定日', type: 'date', editable: true },
     application_intended_date: { label: '申請予定日', type: 'date', editable: true },
     create_date: { label: '部屋登録日', type: 'date', editable: false },
-    lead_room_type_name: { label: '部屋タイプ名', type: 'text', editable: false }
+    // lead_room_type_nameは削除
+    // --- 部屋タイプ詳細項目 ---
+    roomType_name: { label: '部屋タイプ名', type: 'text', editable: false, fromRoomType: 'name' },
+    roomType_minpaku_price: { label: '民泊単価', type: 'number', editable: true, fromRoomType: 'minpaku_price' },
+    roomType_monthly_price: { label: 'マンスリー単価', type: 'number', editable: true, fromRoomType: 'monthly_price' },
+    roomType_pax: { label: '収容人数', type: 'number', editable: true, fromRoomType: 'pax' },
+    roomType_owner_type: { label: '所有者属性', type: 'text', editable: true, fromRoomType: 'owner_type' },
+    roomType_register_type: { label: '運営形態', type: 'text', editable: true, fromRoomType: 'register_type' },
+    roomType_payment_rent: { label: '賃料', type: 'number', editable: true, fromRoomType: 'payment_rent' },
+    roomType_management_expenses: { label: '管理費', type: 'number', editable: true, fromRoomType: 'management_expenses' },
+    roomType_brokerage_commission: { label: '仲介手数料', type: 'number', editable: true, fromRoomType: 'brokerage_commission' },
+    roomType_deposit: { label: '敷金', type: 'number', editable: true, fromRoomType: 'deposit' },
+    roomType_key_money: { label: '礼金', type: 'number', editable: true, fromRoomType: 'key_money' },
+    roomType_key_exchange_money: { label: '鍵交換費用', type: 'number', editable: true, fromRoomType: 'key_exchange_money' },
+    roomType_renovation_cost: { label: 'リフォーム費用', type: 'number', editable: true, fromRoomType: 'renovation_cost' },
+    roomType_property_introduction_fee: { label: '物件紹介手数料', type: 'number', editable: true, fromRoomType: 'property_introduction_fee' },
+    roomType_other_initial_cost_name: { label: '初期その他項目', type: 'text', editable: true, fromRoomType: 'other_initial_cost_name' },
+    roomType_other_initial_cost: { label: '初期その他金額', type: 'number', editable: true, fromRoomType: 'other_initial_cost' },
+    roomType_contract_type: { label: '契約種類', type: 'text', editable: true, fromRoomType: 'contract_type' },
+    roomType_contract_period: { label: '契約期間 年間', type: 'text', editable: true, fromRoomType: 'contract_period' },
+    roomType_renewal_fee: { label: '更新料', type: 'number', editable: true, fromRoomType: 'renewal_fee' },
+    roomType_date_moving_in: { label: '入居日', type: 'date', editable: true, fromRoomType: 'date_moving_in' },
+    roomType_rent_accrual_date: { label: '賃発日', type: 'date', editable: true, fromRoomType: 'rent_accrual_date' },
+    roomType_operation_start_date: { label: '運営開始日', type: 'date', editable: true, fromRoomType: 'operation_start_date' },
+    roomType_use_guarantee_company: { label: '保証会社利用', type: 'text', editable: true, fromRoomType: 'use_guarantee_company' },
+    roomType_Initial_guarantee_rate: { label: '初回保証料割合 %', type: 'number', editable: true, fromRoomType: 'Initial_guarantee_rate' },
+    roomType_monthly_guarantee_fee_rate: { label: '月額保証料割合 %', type: 'number', editable: true, fromRoomType: 'monthly_guarantee_fee_rate' },
+    roomType_maa_insurance: { label: '共済会 保険', type: 'text', editable: true, fromRoomType: 'maa_insurance' },
+    roomType_prefectures: { label: '都道府県', type: 'text', editable: true, fromRoomType: 'prefectures' },
+    roomType_city: { label: '市区', type: 'text', editable: true, fromRoomType: 'city' },
+    roomType_town: { label: '以後住所', type: 'text', editable: true, fromRoomType: 'town' },
+    roomType_area_zoned_for_use: { label: '用途地域', type: 'text', editable: true, fromRoomType: 'area_zoned_for_use' },
+    roomType_request_checking_area_zoned_for_use: { label: '用途地域確認依頼', type: 'text', editable: true, fromRoomType: 'request_checking_area_zoned_for_use' },
+    roomType_done_checking_area_zoned_for_use: { label: '用途地域確認済', type: 'text', editable: true, fromRoomType: 'done_checking_area_zoned_for_use' },
+    roomType_special_use_areas: { label: '特別用途地区', type: 'text', editable: true, fromRoomType: 'special_use_areas' },
+    roomType_route_1: { label: '路線1', type: 'text', editable: true, fromRoomType: 'route_1' },
+    roomType_station_1: { label: '駅1', type: 'text', editable: true, fromRoomType: 'station_1' },
+    roomType_walk_min_1: { label: '徒歩分数1', type: 'number', editable: true, fromRoomType: 'walk_min_1' },
+    roomType_route_2: { label: '路線2', type: 'text', editable: true, fromRoomType: 'route_2' },
+    roomType_station_2: { label: '駅2', type: 'text', editable: true, fromRoomType: 'station_2' },
+    roomType_walk_min_2: { label: '徒歩分数2', type: 'number', editable: true, fromRoomType: 'walk_min_2' },
+    roomType_floor_plan: { label: '間取り', type: 'text', editable: true, fromRoomType: 'floor_plan' },
+    roomType_ev: { label: 'EVの有無', type: 'text', editable: true, fromRoomType: 'ev' },
+    roomType_sqm: { label: '広さ', type: 'number', editable: true, fromRoomType: 'sqm' },
+    roomType_room_type: { label: '部屋種別', type: 'text', editable: true, fromRoomType: 'room_type' },
+    roomType_building_structure: { label: '建物構造', type: 'text', editable: true, fromRoomType: 'building_structure' },
+    roomType_completion_year: { label: '竣工年', type: 'number', editable: true, fromRoomType: 'completion_year' },
+    roomType_minpaku_plan: { label: '民泊利用 自社運営予定 予定数', type: 'number', editable: true, fromRoomType: 'minpaku_plan' },
+    roomType_room_floor: { label: '部屋所在階', type: 'text', editable: true, fromRoomType: 'room_floor' },
+    roomType_building_floor: { label: '建物階数', type: 'text', editable: true, fromRoomType: 'building_floor' },
+    roomType_num_of_room_per_building: { label: '建物全体部屋数', type: 'number', editable: true, fromRoomType: 'num_of_room_per_building' },
+    roomType_staircase_location: { label: '階段位置', type: 'text', editable: true, fromRoomType: 'staircase_location' },
+    roomType_total_sqm: { label: '建物延床面積', type: 'number', editable: true, fromRoomType: 'total_sqm' },
+    roomType_availability_of_floor_plan: { label: '平面図の有無', type: 'text', editable: true, fromRoomType: 'availability_of_floor_plan' },
+    roomType_applications_for_other_floors: { label: '他フロアの用途', type: 'text', editable: true, fromRoomType: 'applications_for_other_floors' },
+    roomType_firefighting_equipment: { label: '現況消防設備', type: 'text', editable: true, fromRoomType: 'firefighting_equipment' },
+    roomType_firefighting_equipment_cost: { label: '消防設備費用 自動', type: 'number', editable: true, fromRoomType: 'firefighting_equipment_cost' },
+    roomType_firefighting_equipment_cost_manual: { label: '消防設備費用 手動', type: 'number', editable: true, fromRoomType: 'firefighting_equipment_cost_manual' },
+    roomType_furniture_transfer_availability: { label: '家具譲渡の有無', type: 'text', editable: true, fromRoomType: 'furniture_transfer_availability' },
+    roomType_checkin_cost: { label: 'check-in原価', type: 'number', editable: true, fromRoomType: 'checkin_cost' },
+    roomType_other_cost_name: { label: '月額その他項目', type: 'text', editable: true, fromRoomType: 'other_cost_name' },
+    roomType_other_cost: { label: '月額その他費用', type: 'number', editable: true, fromRoomType: 'other_cost' },
 };
 
 // スタイル定義
@@ -569,7 +631,7 @@ const ReadOnlyTableHeader = styled.th`
   &[data-field="contract_collection_date"] { min-width: 150px; }
   &[data-field="application_intended_date"] { min-width: 150px; }
   &[data-field="create_date"] { min-width: 120px; }
-  &[data-field="lead_room_type_name"] { min-width: 180px; }
+  /* lead_room_type_nameは削除 */
 `;
 const ReadOnlyTableCell = styled.td`
   border: 1px solid #dee2e6;
@@ -715,7 +777,7 @@ const EditableTableHeader = styled.th`
   &[data-field="contract_collection_date"] { min-width: 150px; }
   &[data-field="application_intended_date"] { min-width: 150px; }
   &[data-field="create_date"] { min-width: 120px; }
-  &[data-field="lead_room_type_name"] { min-width: 180px; }
+  /* lead_room_type_nameは削除 */
 `;
 const EditableTableCell = styled.td`
   border: 1px solid #b3d9f7;
@@ -1094,12 +1156,24 @@ const PropertyPage = () => {
                 return;
             }
 
-            // 各部屋の詳細データを並行取得
+            // 各部屋の詳細データと部屋タイプ詳細データを並行取得
             const detailedDataPromises = roomIds.map(async (roomId) => {
                 try {
-                    const roomData = await apiService.getRoomData(roomId);
-                    // APIから返されるroomDataが配列形式で、その最初の要素がオブジェクトだと仮定
-                    return roomData && roomData.length > 0 ? roomData[0] : null;
+                    const roomDataArr = await apiService.getRoomData(roomId);
+                    const roomData = roomDataArr && roomDataArr.length > 0 ? roomDataArr[0] : null;
+                    if (!roomData) return null;
+
+                    // 部屋タイプ詳細も取得
+                    let roomTypeDetail = null;
+                    if (roomData.lead_room_type_id) {
+                        try {
+                            const roomTypeDetailArr = await apiService.getRoomTypeData(roomData.lead_room_type_id);
+                            roomTypeDetail = roomTypeDetailArr && roomTypeDetailArr.length > 0 ? roomTypeDetailArr[0] : null;
+                        } catch (err) {
+                            console.warn(`部屋タイプID ${roomData.lead_room_type_id} の詳細取得失敗:`, err);
+                        }
+                    }
+                    return { ...roomData, roomTypeDetail };
                 } catch (error) {
                     console.warn(`部屋ID ${roomId} のデータ取得に失敗:`, error);
                     return null;
@@ -1109,7 +1183,7 @@ const PropertyPage = () => {
             const detailedData = await Promise.all(detailedDataPromises);
             const validData = detailedData.filter(data => data !== null);
             setDetailedRoomData(validData);
-            console.log('詳細部屋データを取得:', validData);
+            console.log('詳細部屋データ（部屋タイプ詳細付き）を取得:', validData);
 
         } catch (error) {
             console.error('詳細部屋データの取得に失敗:', error);
@@ -2783,7 +2857,19 @@ const PropertyPage = () => {
                                                         .map(([field, config], index) => {
                                                             const cellKey = `${room.id}-${field}`;
                                                             const hasChange = editChanges.has(cellKey);
-                                                            const originalValue = formatRoomValue(field, room[field]);
+                                                            let originalValue;
+                                                            // 部屋タイプ詳細項目の場合はroom.roomTypeDetailから取得
+                                                            if (config.fromRoomType) {
+                                                                let v = room.roomTypeDetail ? room.roomTypeDetail[config.fromRoomType] : '';
+                                                                // オブジェクト型の場合はvalueプロパティを表示
+                                                                if (v && typeof v === 'object' && 'value' in v) {
+                                                                    originalValue = v.value;
+                                                                } else {
+                                                                    originalValue = v;
+                                                                }
+                                                            } else {
+                                                                originalValue = formatRoomValue(field, room[field]);
+                                                            }
                                                             const isEditable = config.editable;
                                                             const isFixedColumn = index < 3; // 最初の3列を固定
                                                             const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
