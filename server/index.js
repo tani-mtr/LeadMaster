@@ -147,6 +147,42 @@ app.get('/debug/cors', (req, res) => {
 
 // API ルート
 const apiRouter = express.Router();
+// 物件IDで全データを一括取得
+apiRouter.get('/property/:id/full-detail', async (req, res) => {
+    const id = req.params.id;
+    try {
+        // 物件詳細
+        const property = await bigQueryService.getPropertyData(id);
+        // 部屋一覧
+        const rooms = await bigQueryService.getRoomList(id);
+        // 部屋タイプリスト
+        const roomTypes = await bigQueryService.getRoomTypeList(id);
+
+        // 部屋詳細（IDリストから一括取得）
+        const roomIds = rooms.slice(1).map(row => row[1]); // 2次元配列の2番目がID
+        const roomDetailsArr = await bigQueryService.getRoomsDetail(roomIds);
+        // 部屋タイプ詳細（IDリストから一括取得）
+        const roomTypeIds = roomTypes.map(rt => rt.room_type_id);
+        const roomTypeDetailsArr = await bigQueryService.getRoomTypesDetail(roomTypeIds);
+
+        // 配列をIDでマッピング
+        const roomDetails = {};
+        roomDetailsArr.forEach(rd => { if (rd) roomDetails[rd.id] = rd; });
+        const roomTypeDetails = {};
+        roomTypeDetailsArr.forEach(rtd => { if (rtd) roomTypeDetails[rtd.id || rtd.room_type_id] = rtd; });
+
+        res.json({
+            property: property && property.length > 0 ? property[0] : null,
+            rooms,
+            roomTypes,
+            roomDetails,
+            roomTypeDetails
+        });
+    } catch (error) {
+        console.error('一括取得APIエラー:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
 
 // 建物一覧を取得
 apiRouter.get('/buildings', async (req, res) => {
@@ -487,6 +523,48 @@ apiRouter.get('/room-type/:id', async (req, res) => {
             error: 'Internal server error',
             message: '部屋タイプデータの取得中にエラーが発生しました'
         });
+    }
+});
+
+// 物件に関連する全部屋の詳細情報を一括取得
+apiRouter.get('/property/:id/all-room-details', async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        // BigQueryからデータを取得
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryから物件ID ${id} の全部屋詳細データを一括取得中...`);
+            const allRoomDetails = await bigQueryService.getAllRoomDetails(id);
+
+            return res.json(allRoomDetails); // BigQueryからデータが取得できた場合
+        } else {
+            console.log('BigQuery設定がないため、エラーを返します');
+            return res.status(500).json({ error: 'BigQuery設定が不完全です' });
+        }
+    } catch (error) {
+        console.error('全部屋詳細データ取得エラー:', error);
+        return res.status(500).json({ error: 'データの取得中にエラーが発生しました' });
+    }
+});
+
+// 物件に関連する全部屋タイプの詳細情報を一括取得
+apiRouter.get('/property/:id/all-room-type-details', async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        // BigQueryからデータを取得
+        if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+            console.log(`BigQueryから物件ID ${id} の全部屋タイプ詳細データを一括取得中...`);
+            const allRoomTypeDetails = await bigQueryService.getAllRoomTypeDetails(id);
+
+            return res.json(allRoomTypeDetails); // BigQueryからデータが取得できた場合
+        } else {
+            console.log('BigQuery設定がないため、エラーを返します');
+            return res.status(500).json({ error: 'BigQuery設定が不完全です' });
+        }
+    } catch (error) {
+        console.error('全部屋タイプ詳細データ取得エラー:', error);
+        return res.status(500).json({ error: 'データの取得中にエラーが発生しました' });
     }
 });
 

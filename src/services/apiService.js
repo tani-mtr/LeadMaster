@@ -146,7 +146,7 @@ export const apiService = {
         }
     },
 
-    // 物件データの取得（GASのgetPropertyData関数と同様）
+    // 物件データの取得 - Promise.allで呼び出す
     getPropertyData: async (id, forceRefresh = false) => {
         const cacheKey = getCacheKey(`/property/${id}`);
 
@@ -161,10 +161,22 @@ export const apiService = {
         }
 
         try {
+            // 物件基本データのみ取得
             const url = forceRefresh ? `/property/${id}?forceRefresh=true` : `/property/${id}`;
-            const response = await apiClient.get(url);
-            setCache(cacheKey, response.data);
-            return response.data;
+            const propertyResponse = await apiClient.get(url);
+
+            // 基本データのみを返す構造に変更
+            const propertyData = {
+                ...propertyResponse.data,
+                // 以下のプロパティは互換性のために空配列を設定
+                // 実際のデータは別のAPI呼び出しで取得する
+                allRoomDetails: [],
+                allRoomTypeDetails: []
+            };
+
+            // メインのキャッシュを設定
+            setCache(cacheKey, propertyData);
+            return propertyData;
         } catch (error) {
             console.error(`Error fetching property with id ${id}:`, error);
             throw error;
@@ -241,48 +253,96 @@ export const apiService = {
         }
     },
 
-    // 部屋一覧の取得（物件IDごと）
-    getRoomList: async (propertyId) => {
-        const cacheKey = getCacheKey(`/property/${propertyId}/rooms`);
-        const cachedData = getCache(cacheKey);
+    // getAllRoomDetailsから部屋一覧データを抽出（2次元配列形式に変換）
+    // 新たにデータ取得せず、既存のデータから抽出して保持
+    getRoomListFormatted: async (roomDetails) => {
+        // roomDetailsが必須
+        if (!roomDetails || !Array.isArray(roomDetails) || roomDetails.length === 0) {
+            const result = [['進捗', '部屋ID', '部屋名', '部屋番号', '部屋タイプ', '操作']];
+            console.log('getRoomListFormatted: 結果', result);
+            return result;
+        }
+        const header = ['進捗', '部屋ID', '部屋名', '部屋番号', '部屋タイプ', '操作'];
+        // 部屋名で昇順ソート
+        const sortedRoomDetails = [...roomDetails].sort((a, b) => {
+            const nameA = (a.name || '').toString();
+            const nameB = (b.name || '').toString();
+            return nameA.localeCompare(nameB, 'ja');
+        });
+        const rows = sortedRoomDetails.map(room => [
+            room.status || '',
+            room.id || '',
+            room.name || '',
+            room.room_number || '',
+            room.lead_room_type_id || '',
+            'false'
+        ]);
+        const result = [header, ...rows];
+        console.log('getRoomListFormatted: 結果', result);
+        return result;
+    },
 
+    // getAllRoomTypeDetailsから部屋タイプリストデータを抽出（2次元配列形式に変換）
+    // 新たにデータ取得せず、既存のデータから抽出して保持
+    // roomTypeDetailsのみを引数で受け取る形に変更
+    getRoomTypeListFormatted: async (roomTypeDetails = null) => {
+        if (!roomTypeDetails) {
+            roomTypeDetails = [];
+        }
+        if (roomTypeDetails && Array.isArray(roomTypeDetails) && roomTypeDetails.length > 0) {
+            const header = ['ID', '部屋タイプ名', '民泊単価', 'マンスリー単価', '収容人数'];
+            const rows = roomTypeDetails.map(roomType => [
+                roomType.id || '',
+                roomType.name || '',
+                roomType.minpaku_price || '',
+                roomType.monthly_price || '',
+                roomType.pax || ''
+            ]);
+            return [header, ...rows];
+        }
+        return [['ID', '部屋タイプ名', '民泊単価', 'マンスリー単価', '収容人数']];
+    },
+
+    // 物件に関連する全部屋の詳細情報を一括取得
+    getAllRoomDetails: async (propertyId) => {
+        const roomDetailsCacheKey = getCacheKey(`/property/${propertyId}/all-room-details`);
+        // キャッシュをまず確認
+        const cachedData = getCache(roomDetailsCacheKey);
         if (cachedData) {
-            console.log(`キャッシュから部屋データを取得: ${propertyId}`);
+            console.log(`キャッシュから物件の全部屋詳細データを取得: ${propertyId}`);
             return cachedData;
         }
-
         try {
-            console.log(`API Request: GET /property/${propertyId}/rooms`);
-            const response = await apiClient.get(`/property/${propertyId}/rooms`);
-            console.log('API Response: room data received', response.data);
-
-            setCache(cacheKey, response.data);
+            console.log(`API Request: GET /property/${propertyId}/all-room-details`);
+            const response = await apiClient.get(`/property/${propertyId}/all-room-details`);
+            console.log(`API Response: ${response.data.length} 件の部屋詳細データを受信`);
+            setCache(roomDetailsCacheKey, response.data);
             return response.data;
         } catch (error) {
-            console.error(`Error fetching rooms for property ${propertyId}:`, error);
+            console.error(`Error fetching all room details for property ${propertyId}:`, error);
             throw error;
         }
     },
 
-    // 部屋タイプリストの取得（物件IDごと）
-    getRoomTypeList: async (propertyId) => {
-        const cacheKey = getCacheKey(`/property/${propertyId}/room-types`);
-        const cachedData = getCache(cacheKey);
+    // 物件に関連する全部屋タイプの詳細情報を一括取得
+    getAllRoomTypeDetails: async (propertyId) => {
+        const roomTypeDetailsCacheKey = getCacheKey(`/property/${propertyId}/all-room-type-details`);
 
+        // キャッシュをまず確認
+        const cachedData = getCache(roomTypeDetailsCacheKey);
         if (cachedData) {
-            console.log(`キャッシュから部屋タイプデータを取得: ${propertyId}`);
+            console.log(`キャッシュから物件の全部屋タイプ詳細データを取得: ${propertyId}`);
             return cachedData;
-        }
+        } try {
+            // getPropertyDataが呼び出されていない場合のみAPIリクエスト実行
+            console.log(`API Request: GET /property/${propertyId}/all-room-type-details`);
+            const response = await apiClient.get(`/property/${propertyId}/all-room-type-details`);
+            console.log(`API Response: ${response.data.length} 件の部屋タイプ詳細データを受信`);
 
-        try {
-            console.log(`API Request: GET /property/${propertyId}/room-types`);
-            const response = await apiClient.get(`/property/${propertyId}/room-types`);
-            console.log('API Response: room type data received', response.data);
-
-            setCache(cacheKey, response.data);
+            setCache(roomTypeDetailsCacheKey, response.data);
             return response.data;
         } catch (error) {
-            console.error(`Error fetching room types for property ${propertyId}:`, error);
+            console.error(`Error fetching all room type details for property ${propertyId}:`, error);
             throw error;
         }
     },
@@ -309,6 +369,8 @@ export const apiService = {
             throw error;
         }
     },
+
+
 
     // 部屋タイプデータの更新
     updateRoomTypeData: async (id, data) => {
@@ -364,6 +426,8 @@ export const apiService = {
             throw error;
         }
     },
+
+
 
     // 部屋スキーマの取得
     getRoomSchema: async () => {

@@ -861,7 +861,7 @@ const PropertyPage = () => {
     const roomIdFromUrl = urlParams.get('roomId');
     const roomTypeIdFromUrl = urlParams.get('roomTypeId');
 
-    const [activeTab, setActiveTab] = useState('info');
+    const [activeTab, setActiveTab] = useState('edit');
     const [property, setProperty] = useState(null);
     const [rooms, setRooms] = useState([]);
     const [roomsLoading, setRoomsLoading] = useState(false);
@@ -980,50 +980,112 @@ const PropertyPage = () => {
         }
     }, [location.search, selectedRoomId, drawerOpen, selectedRoomTypeId, roomTypeDrawerOpen]);
 
-    // データ取得 - パフォーマンス最適化版
+    // データ取得 - クライアント側で最適化した一括取得版
     useEffect(() => {
         const fetchPropertyData = async () => {
             try {
                 setLoading(true);
+                setDetailedRoomDataLoading(true);
                 setError(null);
-                // 物件データ、部屋データ、部屋タイプデータを並行取得
-                const requests = [apiService.getPropertyData(id)];
-                // 最初から全データを並行取得（部屋データの有無は物件データ取得後に判断）
+
+                // 物件データの取得
                 console.log(`物件ID ${id} のデータ取得を開始します`);
-                requests.push(
-                    apiService.getRoomList(id).catch(err => {
-                        console.warn('部屋データ取得失敗（スキップ）:', err.message);
-                        return [];
-                    }),
-                    apiService.getRoomTypeList(id).catch(err => {
-                        console.warn('部屋タイプデータ取得失敗（スキップ）:', err.message);
-                        return [];
-                    })
-                );
-                const [propertyData, roomData, roomTypeData] = await Promise.all(requests);
 
-                setProperty(propertyData);
-                setEditData(propertyData);
-                setOriginalData(propertyData); // 元のデータを保存
+                // 物件基本データを取得（新API使用）
+                const propertyData = await apiService.getPropertyData(id);
 
-                // 部屋データとタイプデータを常に設定（空配列でも設定）
-                setRooms(roomData || []);
-                setRoomTypes(roomTypeData || []);
+                // 詳細データを別途取得
+                console.log('詳細データを別途取得します');
+                const [allRoomDetails, allRoomTypeDetails] = await Promise.all([
+                    apiService.getAllRoomDetails(id),
+                    apiService.getAllRoomTypeDetails(id)
+                ]);
 
-                console.log('データ取得完了:', {
+                // 詳細データを基本データにマージ
+                const enrichedPropertyData = {
+                    ...propertyData,
+                    allRoomDetails: allRoomDetails || [],
+                    allRoomTypeDetails: allRoomTypeDetails || []
+                };
+
+                // 基本データをステートに設定
+                setProperty(enrichedPropertyData);
+                setEditData(enrichedPropertyData);
+                setOriginalData(enrichedPropertyData); // 元のデータを保存
+
+                // 部屋リストと部屋タイプリストを取得
+                const roomListData = await apiService.getRoomListFormatted(allRoomDetails);
+                setRooms(roomListData || []);
+                // 名前で昇順ソート
+                const sortedRoomTypes = (allRoomTypeDetails || []).slice().sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+                    if (nameA < nameB) return -1;
+                    if (nameA > nameB) return 1;
+                    return 0;
+                });
+                setRoomTypes(sortedRoomTypes);
+                // roomTypesステートの内容をログ出力
+                setTimeout(() => {
+                    console.log('roomTypesステートの内容:', allRoomTypeDetails);
+                }, 0);
+
+                console.log('基本データと詳細データの取得完了:', {
                     propertyId: id,
-                    propertyName: propertyData?.name,
-                    hasRelatedRooms: propertyData?.has_related_rooms,
-                    roomsCount: (roomData || []).length,
-                    roomTypesCount: (roomTypeData || []).length
+                    propertyName: enrichedPropertyData?.name,
+                    hasRelatedRooms: enrichedPropertyData?.has_related_rooms,
+                    roomsCount: (roomListData || []).length > 1 ? roomListData.length - 1 : 0,
+                    roomTypesCount: (allRoomTypeDetails || []).length,
+                    allRoomDetailsCount: allRoomDetails?.length || 0,
+                    allRoomTypeDetailsCount: allRoomTypeDetails?.length || 0
                 });
 
+                // 編集タブが初期タブのため、関連部屋がある場合は詳細データを処理
+                if (enrichedPropertyData?.has_related_rooms && allRoomDetails?.length > 0) {
+                    console.log('物件に関連部屋があるため、詳細データを処理します');
+
+                    // 部屋タイプ一覧データとして整形
+                    const roomTypeListHeader = ['ID', '部屋タイプ名', '民泊単価', 'マンスリー単価', '収容人数'];
+                    const roomTypeListData = [roomTypeListHeader];
+
+                    // 部屋タイプIDをキーにしたマップを作成
+                    const roomTypeMap = new Map();
+                    allRoomTypeDetails.forEach(roomType => {
+                        if (roomType && roomType.id) {
+                            roomTypeMap.set(roomType.id, roomType);
+                        }
+                    });
+
+                    // 詳細データに部屋タイプ情報を関連付け
+                    const mergedDetailedData = allRoomDetails.map(roomData => {
+                        if (!roomData) return null;
+
+                        // 部屋タイプ詳細を関連付け
+                        let roomTypeDetail = null;
+                        if (roomData.lead_room_type_id) {
+                            roomTypeDetail = roomTypeMap.get(roomData.lead_room_type_id) || null;
+                        }
+
+                        return { ...roomData, roomTypeDetail };
+                    }).filter(data => data !== null);
+
+                    // 詳細データをステートに設定
+                    setDetailedRoomData(mergedDetailedData); console.log('詳細データの一括取得・整形完了:', {
+                        detailedRoomsCount: mergedDetailedData.length,
+                        roomTypesCount: roomTypeMap.size
+                    });
+                } else {
+                    // 関連部屋がない場合は空配列を設定
+                    setDetailedRoomData([]);
+                }
             } catch (err) {
                 setError(err.message || 'データの取得中にエラーが発生しました');
+                console.error('データ取得エラー:', err);
             } finally {
                 setLoading(false);
                 setRoomsLoading(false);
                 setRoomTypesLoading(false);
+                setDetailedRoomDataLoading(false);
             }
         };
 
@@ -1038,8 +1100,8 @@ const PropertyPage = () => {
         try {
             setRoomsLoading(true);
             setRoomsError(null);
-            // BigQueryから部屋データを取得
-            const roomData = await apiService.getRoomList(id);
+            // BigQueryから部屋データを取得（新APIを使用）
+            const roomData = await apiService.getRoomListFormatted([]);
             setRooms(roomData || []);
             // 検索結果をリセット
             setSearchTerm('');
@@ -1059,8 +1121,8 @@ const PropertyPage = () => {
         try {
             setRoomTypesLoading(true);
             setRoomTypesError(null);
-            // 部屋タイプデータを取得
-            const roomTypeData = await apiService.getRoomTypeList(id);
+            // 部屋タイプデータを取得（新APIを使用）
+            const roomTypeData = await apiService.getRoomTypeListFormatted(id);
             setRoomTypes(roomTypeData || []);
         } catch (err) {
             setRoomTypesError(err.message || '部屋タイプデータの取得中にエラーが発生しました');
@@ -1160,57 +1222,53 @@ const PropertyPage = () => {
         setSelectedEditCell(null);
     }, []);
 
-    // 詳細な部屋データを取得する関数（部屋ドロワーと同じ構造）
+    // 詳細な部屋データを取得する関数（一括取得版）
     const fetchDetailedRoomData = useCallback(async () => {
         if (!property || !property.has_related_rooms) return;
 
         try {
             setDetailedRoomDataLoading(true);
-            // 部屋一覧から部屋IDを取得
-            // rooms配列は [ヘッダー, [データ1], [データ2], ...] の形式なので、slice(1)でデータ部分を取得
-            // 各データの2番目の要素が部屋ID (room[1])
-            const roomIds = rooms.slice(1).map(room => room[1]);
 
-            if (roomIds.length === 0) {
-                setDetailedRoomData([]);
-                return;
-            }
+            // 物件に関連する全ての部屋詳細と部屋タイプ詳細を一括取得
+            console.log(`物件ID ${id} の全詳細データを一括取得します`);
 
-            // 各部屋の詳細データと部屋タイプ詳細データを並行取得
-            const detailedDataPromises = roomIds.map(async (roomId) => {
-                try {
-                    const roomDataArr = await apiService.getRoomData(roomId);
-                    const roomData = roomDataArr && roomDataArr.length > 0 ? roomDataArr[0] : null;
-                    if (!roomData) return null;
+            // 新しいAPIメソッドを使用して一括取得
+            const propertyWithDetails = await apiService.getPropertyData(id);
+            const allRoomDetails = propertyWithDetails.allRoomDetails || [];
+            const allRoomTypeDetails = propertyWithDetails.allRoomTypeDetails || [];
 
-                    // 部屋タイプ詳細も取得
-                    let roomTypeDetail = null;
-                    if (roomData.lead_room_type_id) {
-                        try {
-                            const roomTypeDetailArr = await apiService.getRoomTypeData(roomData.lead_room_type_id);
-                            roomTypeDetail = roomTypeDetailArr && roomTypeDetailArr.length > 0 ? roomTypeDetailArr[0] : null;
-                        } catch (err) {
-                            console.warn(`部屋タイプID ${roomData.lead_room_type_id} の詳細取得失敗:`, err);
-                        }
-                    }
-                    return { ...roomData, roomTypeDetail };
-                } catch (error) {
-                    console.warn(`部屋ID ${roomId} のデータ取得に失敗:`, error);
-                    return null;
+            // 部屋タイプIDをキーにしたマップを作成
+            const roomTypeMap = new Map();
+            allRoomTypeDetails.forEach(roomType => {
+                if (roomType && roomType.id) {
+                    roomTypeMap.set(roomType.id, roomType);
                 }
             });
 
-            const detailedData = await Promise.all(detailedDataPromises);
-            const validData = detailedData.filter(data => data !== null);
-            setDetailedRoomData(validData);
-            console.log('詳細部屋データ（部屋タイプ詳細付き）を取得:', validData);
+            // 部屋データに部屋タイプ詳細を関連付け
+            const mergedData = allRoomDetails.map(roomData => {
+                if (!roomData) return null;
+
+                let roomTypeDetail = null;
+                if (roomData.lead_room_type_id) {
+                    roomTypeDetail = roomTypeMap.get(roomData.lead_room_type_id) || null;
+                }
+
+                return { ...roomData, roomTypeDetail };
+            }).filter(data => data !== null);
+
+            setDetailedRoomData(mergedData);
+            console.log('全詳細データの一括取得完了:', {
+                roomsCount: mergedData.length,
+                roomTypesCount: roomTypeMap.size
+            });
 
         } catch (error) {
-            console.error('詳細部屋データの取得に失敗:', error);
+            console.error('詳細部屋データの一括取得に失敗:', error);
         } finally {
             setDetailedRoomDataLoading(false);
         }
-    }, [property, rooms]);
+    }, [property, id]);
 
 
     const handleSaveChanges = useCallback(async () => {
@@ -1248,12 +1306,20 @@ const PropertyPage = () => {
     }, [editChanges, fetchDetailedRoomData]);
 
     // データ編集タブがアクティブになったときに詳細データを取得
+    // 注：一括取得方式に変更したため、初期ロード時に全データを取得するようになりました
+    // このuseEffectは後方互換性のために残しています
     useEffect(() => {
+        // 既に詳細データが取得済みであれば何もしない
+        if (detailedRoomData.length > 0) {
+            return;
+        }
+
         // property.has_related_rooms が true で、かつ rooms.length > 1 (ヘッダー以外のデータがある) の場合のみ実行
         if (activeTab === 'edit' && property && property.has_related_rooms && rooms.length > 1) {
+            console.log('タブ切り替えによる詳細データ取得（通常は初期ロードで既に取得済み）');
             fetchDetailedRoomData();
         }
-    }, [activeTab, fetchDetailedRoomData, property, rooms.length]);
+    }, [activeTab, fetchDetailedRoomData, property, rooms.length, detailedRoomData.length]);
 
 
     const filteredRooms = useMemo(() => {
@@ -1709,7 +1775,7 @@ const PropertyPage = () => {
                             // 部屋データを再取得
                             try {
                                 const roomRefreshStart = performance.now();
-                                const updatedRoomsData = await apiService.getRoomList(id);
+                                const updatedRoomsData = await apiService.getRoomListFormatted([]);
                                 setRooms(updatedRoomsData || []);
                                 const roomRefreshEnd = performance.now();
                                 console.log(`部屋データ再取得完了 (${Math.round(roomRefreshEnd - roomRefreshStart)}ms)`);
@@ -1800,9 +1866,17 @@ const PropertyPage = () => {
 
     // ...existing code...
 
-    // 詳細部屋データはフィルタリングせず全件表示
+    // 詳細部屋データは部屋名昇順で全件表示
     const filteredDetailedRoomData = useMemo(() => {
-        return detailedRoomData || [];
+        if (!detailedRoomData) return [];
+        // 部屋名（name）で昇順ソート
+        return [...detailedRoomData].sort((a, b) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
+        });
     }, [detailedRoomData]);
 
 
@@ -2540,6 +2614,8 @@ const PropertyPage = () => {
                                                 const roomId = room[1];
                                                 const roomName = room[2];
                                                 const isOperationEnabled = room[4] !== 'false';
+                                                // room配列の内容をログ出力
+                                                console.log(`rowIndex=${rowIndex}`, room);
                                                 return (
                                                     <TableRow key={rowIndex}>
                                                         <TableCell>
@@ -2979,7 +3055,13 @@ const PropertyPage = () => {
                                         </thead>
                                         <tbody>
                                             {(editSubTab === 'room'
-                                                ? detailedRoomData.map((room) => (
+                                                ? [...detailedRoomData].sort((a, b) => {
+                                                    const nameA = (a.name || '').toLowerCase();
+                                                    const nameB = (b.name || '').toLowerCase();
+                                                    if (nameA < nameB) return -1;
+                                                    if (nameA > nameB) return 1;
+                                                    return 0;
+                                                }).map((room) => (
                                                     <tr key={room.id}>
                                                         {Object.entries(ROOM_INFO_FIELD_CONFIG).map(([field, config]) => {
                                                             const cellKey = `${room.id}-${field}`;
@@ -3028,7 +3110,7 @@ const PropertyPage = () => {
                                                     </tr>
                                                 ))
                                                 : (() => {
-                                                    // 部屋タイプ情報タブ：roomTypeDetailの重複を除外
+                                                    // 部屋タイプ情報タブ：roomTypeDetailの重複を除外し、nameで昇順ソート
                                                     const uniqueRoomTypes = [];
                                                     const seenIds = new Set();
                                                     detailedRoomData.forEach((room) => {
@@ -3038,6 +3120,14 @@ const PropertyPage = () => {
                                                         if (!typeId || seenIds.has(typeId)) return;
                                                         seenIds.add(typeId);
                                                         uniqueRoomTypes.push({ roomTypeDetail: rt, id: typeId });
+                                                    });
+                                                    // nameで昇順ソート
+                                                    uniqueRoomTypes.sort((a, b) => {
+                                                        const nameA = (a.roomTypeDetail.name || '').toLowerCase();
+                                                        const nameB = (b.roomTypeDetail.name || '').toLowerCase();
+                                                        if (nameA < nameB) return -1;
+                                                        if (nameA > nameB) return 1;
+                                                        return 0;
                                                     });
                                                     return uniqueRoomTypes.map((item) => (
                                                         <tr key={item.id}>

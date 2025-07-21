@@ -30,7 +30,93 @@ const getCache = (key) => {
 };
 
 class BigQueryService {
+    /**
+     * 物件に関連する全部屋の詳細情報を一括取得
+     * @param {string} propertyId 物件ID
+     * @returns {Promise<Array>} 部屋詳細配列
+     */
+    async getAllRoomDetails(propertyId) {
+        if (!propertyId) return [];
+        const query = `
+            SELECT *
+            FROM \`${process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core'}.zzz_taniguchi.lead_room\`
+            WHERE lead_property_id = @propertyId
+        `;
+
+        const params = { propertyId };
+        const rows = await this.executeQuery(query, params, true);
+
+        return rows || [];
+    }
+
+    /**
+     * 物件に関連する全部屋タイプの詳細情報を一括取得
+     * @param {string} propertyId 物件ID
+     * @returns {Promise<Array>} 部屋タイプ詳細配列
+     */
+    async getAllRoomTypeDetails(propertyId) {
+        if (!propertyId) return [];
+        const query = `
+            SELECT *
+            FROM \`${process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core'}.zzz_taniguchi.lead_room_type\`
+            WHERE lead_property_id = @propertyId
+        `;
+
+        const params = { propertyId };
+        const rows = await this.executeQuery(query, params, true);
+
+        return rows || [];
+    }
+
+    /**
+     * 部屋詳細をID配列で一括取得
+     * @param {string[]} roomIds 部屋ID配列
+     * @returns {Promise<Array>} 部屋詳細配列
+     */
+    async getRoomsDetail(roomIds) {
+        if (!roomIds || roomIds.length === 0) return [];
+        const query = `
+            SELECT 
+                id,
+                status,
+                name,
+                room_number,
+                lead_property_id,
+                lead_room_type_id,
+                create_date,
+                key_handover_scheduled_date,
+                possible_key_handover_scheduled_date_1,
+                possible_key_handover_scheduled_date_2,
+                possible_key_handover_scheduled_date_3,
+                vacate_setup,
+                contract_collection_date,
+                application_intended_date
+            FROM \`${this.projectId}.zzz_taniguchi.lead_room\`
+            WHERE id IN UNNEST(@roomIds)
+        `;
+        const params = { roomIds };
+        const rows = await this.executeQuery(query, params, true);
+        return rows || [];
+    }
+
+    /**
+     * 部屋タイプ詳細をID配列で一括取得
+     * @param {string[]} roomTypeIds 部屋タイプID配列
+     * @returns {Promise<Array>} 部屋タイプ詳細配列
+     */
+    async getRoomTypesDetail(roomTypeIds) {
+        if (!roomTypeIds || roomTypeIds.length === 0) return [];
+        const query = `
+            SELECT *
+            FROM \`${this.projectId}.zzz_taniguchi.lead_room_type\`
+            WHERE id IN UNNEST(@roomTypeIds)
+        `;
+        const params = { roomTypeIds };
+        const rows = await this.executeQuery(query, params, true);
+        return rows || [];
+    }
     constructor() {
+        this.projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'm2m-core';
         console.log('BigQueryService初期化開始');
         console.log('環境変数チェック:', {
             GOOGLE_CLOUD_PROJECT_ID: process.env.GOOGLE_CLOUD_PROJECT_ID ? 'set' : 'not set',
