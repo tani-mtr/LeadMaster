@@ -593,38 +593,33 @@ const ReadOnlyTableHeader = styled.th`
   color: #495057;
   font-size: 13px;
   white-space: nowrap;
-  
-  /* ヘッダー固定用のスタイル */
   position: sticky;
   top: 0;
-  background: #f8f9fa;
+  background: ${({ $roomtype }) =>
+        $roomtype === 'room' ? '#fffbe6' :
+            $roomtype === 'roomType' ? '#eaffea' :
+                '#f8f9fa'};
   border: 1px solid #dee2e6;
-  z-index: 6; /* 通常のヘッダーの重なり順 */
+  z-index: 6;
 
-  /* 左3列を固定 */
   &.fixed-column {
-    z-index: 10; /* 固定列は他のヘッダーより手前に */
+    z-index: 10;
   }
-  
   &.fixed-column-1 {
     left: 0;
     min-width: 100px;
     width: 100px;
   }
-  
   &.fixed-column-2 {
-    left: 100px; /* 1列目の幅 */
+    left: 100px;
     min-width: 100px;
     width: 100px;
   }
-  
   &.fixed-column-3 {
-    left: 200px; /* 1列目 + 2列目の幅 */
+    left: 200px;
     min-width: 120px;
     width: 120px;
   }
-  
-  /* 各列のmin-widthを追加 */
   &[data-field="id"] { min-width: 100px; }
   &[data-field="property_id"] { min-width: 100px; }
   &[data-field="name"] { min-width: 180px; }
@@ -759,16 +754,29 @@ const EditableTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  background: ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#fffde7'
+            : $greentheme ? '#e8f5e9'
+                : 'white'};
 `;
 const EditableTableHeader = styled.th`
-  background: #e8f4fd;
-  border: 1px solid #b3d9f7;
+  background: ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#fff9c4'
+            : $greentheme ? '#b9f6ca'
+                : '#e8f4fd'};
+  border: 1px solid ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#ffe082'
+            : $greentheme ? '#69f0ae'
+                : '#b3d9f7'};
   padding: 10px 8px;
   text-align: left;
   font-weight: 600;
-  color: #0c5aa6;
+  color: ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#7c6f00'
+            : $greentheme ? '#00695c'
+                : '#0c5aa6'};
   font-size: 13px;
-  white-space: nowrap; /* 追加: 改行を防ぐ */
+  white-space: nowrap;
 
   /* 各列のmin-widthを追加 */
   &[data-field="id"] { min-width: 100px; }
@@ -784,17 +792,29 @@ const EditableTableHeader = styled.th`
   &[data-field="contract_collection_date"] { min-width: 150px; }
   &[data-field="application_intended_date"] { min-width: 150px; }
   &[data-field="create_date"] { min-width: 120px; }
-  /* lead_room_type_nameは削除 */
 `;
 const EditableTableCell = styled.td`
-  border: 1px solid #b3d9f7;
+  border: 1px solid ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#ffe082'
+            : $greentheme ? '#69f0ae'
+                : '#b3d9f7'};
   padding: 8px;
   vertical-align: middle;
-  white-space: nowrap; /* 追加: 改行を防ぐ */
+  white-space: nowrap;
+  background: ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#fffde7'
+            : $greentheme ? '#e8f5e9'
+                : 'transparent'};
   
   &.focused {
-    background: #e3f2fd;
-    box-shadow: inset 0 0 0 2px #2196f3;
+    background: ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#fff59d'
+            : $greentheme ? '#b9f6ca'
+                : '#e3f2fd'};
+    box-shadow: inset 0 0 0 2px ${({ $yellowtheme, $greentheme }) =>
+        $yellowtheme ? '#ffe082'
+            : $greentheme ? '#00c853'
+                : '#2196f3'};
   }
 `;
 const EditableInput = styled.input`
@@ -1911,14 +1931,20 @@ const PropertyPage = () => {
         <Container>
             <Header>{property.name} - 物件管理</Header>
             <TabContainer>
-                <Tab
-                    active={activeTab === 'info'}
-                    onClick={() => setActiveTab('info')}
-                >
-                    物件情報
-                </Tab>
-                {property.has_related_rooms && (
+                {property.has_related_rooms ? (
                     <>
+                        <Tab
+                            active={activeTab === 'edit'}
+                            onClick={() => setActiveTab('edit')}
+                        >
+                            一覧
+                        </Tab>
+                        <Tab
+                            active={activeTab === 'info'}
+                            onClick={() => setActiveTab('info')}
+                        >
+                            物件情報
+                        </Tab>
                         <Tab
                             active={activeTab === 'rooms'}
                             onClick={() => setActiveTab('rooms')}
@@ -1931,13 +1957,14 @@ const PropertyPage = () => {
                         >
                             部屋タイプ
                         </Tab>
-                        <Tab
-                            active={activeTab === 'edit'}
-                            onClick={() => setActiveTab('edit')}
-                        >
-                            データ編集
-                        </Tab>
                     </>
+                ) : (
+                    <Tab
+                        active={activeTab === 'info'}
+                        onClick={() => setActiveTab('info')}
+                    >
+                        物件情報
+                    </Tab>
                 )}
             </TabContainer>
 
@@ -2934,8 +2961,15 @@ const PropertyPage = () => {
                                                     .map(([field, config], index) => {
                                                         const isFixedColumn = index < 3; // 最初の3列を固定
                                                         const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                        // 部屋タイプカラムかどうか
+                                                        const isRoomType = !!config.fromRoomType;
                                                         return (
-                                                            <ReadOnlyTableHeader key={field} className={fixedClass} data-field={field}>
+                                                            <ReadOnlyTableHeader
+                                                                key={field}
+                                                                className={fixedClass}
+                                                                data-field={field}
+                                                                $roomtype={isRoomType ? 'roomType' : 'room'}
+                                                            >
                                                                 <div>
                                                                     {config.label}
                                                                     {config.required && <span style={{ color: 'red' }}> *</span>}
@@ -3042,11 +3076,11 @@ const PropertyPage = () => {
                                     </div>
                                 </TableSectionHeader>
                                 <div style={{ overflowX: 'auto' }}>
-                                    <EditableTable>
+                                    <EditableTable $yellowtheme={editSubTab === 'room'} $greentheme={editSubTab === 'roomType'}>
                                         <thead>
                                             <tr>
                                                 {(editSubTab === 'room' ? Object.entries(ROOM_INFO_FIELD_CONFIG) : Object.entries(ROOM_TYPE_FIELD_CONFIG)).map(([field, config]) => (
-                                                    <EditableTableHeader key={field} data-field={field}>
+                                                    <EditableTableHeader key={field} data-field={field} $yellowtheme={editSubTab === 'room'} $greentheme={editSubTab === 'roomType'}>
                                                         {config.label}
                                                         {config.required && <span style={{ color: 'red' }}> *</span>}
                                                     </EditableTableHeader>
@@ -3075,6 +3109,8 @@ const PropertyPage = () => {
                                                                 <EditableTableCell
                                                                     key={field}
                                                                     className={isFocused ? 'focused' : ''}
+                                                                    $yellowtheme={editSubTab === 'room'}
+                                                                    $greentheme={editSubTab === 'roomType'}
                                                                     style={{ backgroundColor: !isEditable ? '#f8f9fa' : undefined }}
                                                                 >
                                                                     {isEditable ? (
@@ -3152,6 +3188,8 @@ const PropertyPage = () => {
                                                                     <EditableTableCell
                                                                         key={field}
                                                                         className={isFocused ? 'focused' : ''}
+                                                                        $yellowtheme={editSubTab === 'roomType' ? false : editSubTab === 'room'}
+                                                                        $greentheme={editSubTab === 'roomType'}
                                                                         style={{ backgroundColor: !isEditable ? '#f8f9fa' : undefined }}
                                                                     >
                                                                         {isEditable ? (
