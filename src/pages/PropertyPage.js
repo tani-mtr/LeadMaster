@@ -39,6 +39,38 @@ const ROOM_INFO_FIELD_CONFIG = {
     create_date: { label: '部屋登録日', type: 'date', editable: false },
 };
 
+// 物件情報用フィールド
+const PROPERTY_FIELD_CONFIG = {
+    property_name: { label: '物件名', type: 'text', editable: false, fromProperty: 'name' },
+    property_id: { label: '物件ID', type: 'text', editable: false, fromProperty: 'id' },
+    property_tag: { label: 'タグ', type: 'text', editable: false, fromProperty: 'tag' },
+    property_is_trade: { label: '売買', type: 'text', editable: false, fromProperty: 'is_trade' },
+    property_is_lease: { label: '借上', type: 'text', editable: false, fromProperty: 'is_lease' },
+    property_lead_from: { label: 'lead元', type: 'text', editable: false, fromProperty: 'lead_from' },
+    property_is_fund: { label: 'ファンド物件', type: 'text', editable: false, fromProperty: 'is_fund' },
+    property_lead_channel: { label: 'Leadチャネル', type: 'text', editable: false, fromProperty: 'lead_channel' },
+    property_trade_form: { label: '取引形態', type: 'text', editable: false, fromProperty: 'trade_form' },
+    property_lead_from_representative: { label: '先方担当', type: 'text', editable: false, fromProperty: 'lead_from_representative' },
+    property_lead_from_representative_phone: { label: '担当者tel', type: 'text', editable: false, fromProperty: 'lead_from_representative_phone' },
+    property_lead_from_representative_email: { label: '担当者mail', type: 'text', editable: false, fromProperty: 'lead_from_representative_email' },
+    property_folder: { label: '建物フォルダ', type: 'text', editable: false, fromProperty: 'folder' },
+    property_serial_number: { label: 'シリアルナンバー', type: 'text', editable: false, fromProperty: 'serial_number' },
+    property_mt_representative: { label: 'MT担当', type: 'text', editable: false, fromProperty: 'mt_representative' },
+    property_create_date: { label: '建物登録日', type: 'text', editable: false, fromProperty: 'create_date' },
+    property_information_acquisition_date: { label: '情報取得日', type: 'date', editable: false, fromProperty: 'information_acquisition_date' },
+    property_latest_inventory_confirmation_date: { label: '最終在庫確認日', type: 'date', editable: false, fromProperty: 'latest_inventory_confirmation_date' },
+    property_num_of_occupied_rooms: { label: '入居中室数', type: 'number', editable: false, fromProperty: 'num_of_occupied_rooms' },
+    property_num_of_vacant_rooms: { label: '空室数', type: 'number', editable: false, fromProperty: 'num_of_vacant_rooms' },
+    property_num_of_rooms_without_furniture: { label: '家具なし部屋数', type: 'number', editable: false, fromProperty: 'num_of_rooms_without_furniture' },
+    property_minpaku_feasibility: { label: '民泊可否', type: 'text', editable: false, fromProperty: 'minpaku_feasibility' },
+    property_sp_feasibility: { label: 'SP可否', type: 'text', editable: false, fromProperty: 'sp_feasibility' },
+    property_done_property_viewing: { label: '内見', type: 'text', editable: false, fromProperty: 'done_property_viewing' },
+    property_torikago: { label: '鳥籠', type: 'text', editable: false, fromProperty: 'torikago' },
+    property_key_handling_date: { label: '鍵引き渡し日', type: 'date', editable: false, fromProperty: 'key_handling_date' },
+    property_done_antisocial_check: { label: '反社チェック有無', type: 'text', editable: false, fromProperty: 'done_antisocial_check' },
+    property_note: { label: '備考', type: 'text', editable: false, fromProperty: 'note' },
+};
+
 // 部屋タイプ情報用フィールド
 const ROOM_TYPE_FIELD_CONFIG = {
     roomType_name: { label: '部屋タイプ名', type: 'text', editable: false, fromRoomType: 'name' },
@@ -103,8 +135,8 @@ const ROOM_TYPE_FIELD_CONFIG = {
     roomType_other_cost: { label: '月額その他費用', type: 'number', editable: true, fromRoomType: 'other_cost' },
 };
 
-// 閲覧用は両方結合
-const ROOM_FIELD_CONFIG = { ...ROOM_INFO_FIELD_CONFIG, ...ROOM_TYPE_FIELD_CONFIG };
+// 閲覧用は部屋情報、物件情報、部屋タイプ情報を結合
+const ROOM_FIELD_CONFIG = { ...ROOM_INFO_FIELD_CONFIG, ...PROPERTY_FIELD_CONFIG, ...ROOM_TYPE_FIELD_CONFIG };
 // ...existing code...
 
 // スタイル定義
@@ -598,7 +630,8 @@ const ReadOnlyTableHeader = styled.th`
   background: ${({ $roomtype }) =>
         $roomtype === 'room' ? '#fffbe6' :
             $roomtype === 'roomType' ? '#eaffea' :
-                '#f8f9fa'};
+                $roomtype === 'property' ? '#e3f2fd' :
+                    '#f8f9fa'};
   border: 1px solid #dee2e6;
   z-index: 6;
 
@@ -633,6 +666,12 @@ const ReadOnlyTableHeader = styled.th`
   &[data-field="contract_collection_date"] { min-width: 150px; }
   &[data-field="application_intended_date"] { min-width: 150px; }
   &[data-field="create_date"] { min-width: 120px; }
+  /* 物件情報のフィールド */
+  &[data-field="property_name"] { min-width: 180px; }
+  &[data-field="property_address"] { min-width: 200px; }
+  &[data-field="property_type"] { min-width: 120px; }
+  &[data-field="property_manager"] { min-width: 150px; }
+  &[data-field="property_note"] { min-width: 200px; }
   /* lead_room_type_nameは削除 */
 `;
 const ReadOnlyTableCell = styled.td`
@@ -645,6 +684,11 @@ const ReadOnlyTableCell = styled.td`
   white-space: nowrap; /* 追加: 改行を防ぐ */
   overflow: hidden; /* 追加: はみ出したテキストを隠す */
   text-overflow: ellipsis; /* 追加: はみ出したテキストを「...」で表示 */
+  
+  /* 物件情報セルの背景色 */
+  &.property-cell {
+    background-color: #fff0f0;
+  }
   
   &:hover {
     background: #e3f2fd;
@@ -2962,13 +3006,16 @@ const PropertyPage = () => {
                                                         const isFixedColumn = index < 3; // 最初の3列を固定
                                                         const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
                                                         // 部屋タイプカラムかどうか
+                                                        // 部屋タイプカラムかどうか
                                                         const isRoomType = !!config.fromRoomType;
+                                                        // 物件情報カラムかどうか
+                                                        const isProperty = !!config.fromProperty;
                                                         return (
                                                             <ReadOnlyTableHeader
                                                                 key={field}
                                                                 className={fixedClass}
                                                                 data-field={field}
-                                                                $roomtype={isRoomType ? 'roomType' : 'room'}
+                                                                $roomtype={isRoomType ? 'roomType' : isProperty ? 'property' : 'room'}
                                                             >
                                                                 <div>
                                                                     {config.label}
@@ -2997,6 +3044,16 @@ const PropertyPage = () => {
                                                                 } else {
                                                                     originalValue = v;
                                                                 }
+                                                            }
+                                                            // 物件情報の場合はpropertyステートから取得
+                                                            else if (config.fromProperty) {
+                                                                let v = property ? property[config.fromProperty] : '';
+                                                                // オブジェクト型の場合はvalueプロパティを表示
+                                                                if (v && typeof v === 'object' && 'value' in v) {
+                                                                    originalValue = v.value;
+                                                                } else {
+                                                                    originalValue = v;
+                                                                }
                                                             } else {
                                                                 originalValue = formatRoomValue(field, room[field]);
                                                             }
@@ -3005,7 +3062,8 @@ const PropertyPage = () => {
                                                             const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
                                                             const cellClass = [
                                                                 fixedClass,
-                                                                hasChange ? 'changed' : ''
+                                                                hasChange ? 'changed' : '',
+                                                                config.fromProperty ? 'property-cell' : ''
                                                             ].filter(Boolean).join(' ');
                                                             // 部屋タイプカラムの場合はtab: 'roomType', id: room.roomTypeDetail?.id
                                                             const tabType = config.fromRoomType ? "roomType" : "room";
