@@ -2076,15 +2076,17 @@ const PropertyPage = () => {
 
             {activeTab === 'building' && (
                 <Section>
-                    {/* 物件基本情報セクション（元のinfoタブ内容を流用） */}
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3>物件基本情報</h3>
                         <Button onClick={() => {
                             if (!editMode) {
+                                // 編集モードに入る際に元のデータを保存
                                 setOriginalData({ ...property });
                             } else {
+                                // キャンセル時は編集内容を元に戻す
                                 setEditData({ ...originalData });
-                                setValidationErrors({});
+                                setValidationErrors({}); // エラーもクリア
                             }
                             setEditMode(!editMode);
                         }}>
@@ -2092,17 +2094,577 @@ const PropertyPage = () => {
                         </Button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        {/* ...元の物件情報フォーム内容をそのまま流用... */}
-                        {/* ここは省略。元のinfoタブの内容をそのまま移動しています */}
+                        <div>
+                            <FormGroup>
+                                <Label>物件ID</Label>
+                                <Input
+                                    type="text"
+                                    value={property.id}
+                                    disabled={true}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label required>建物名</Label>
+                                <FieldContainer className={validationErrors.name ? 'error' : ''}>
+                                    <Input
+                                        type="text"
+                                        value={editMode ? editData.name : property.name}
+                                        disabled={!editMode}
+                                        onChange={(e) => handleInputChange('name', e.target.value)}
+                                        required
+                                        className={validationErrors.name ? 'error' : ''}
+                                    />
+                                    {validationErrors.name && (
+                                        <ValidationError>{validationErrors.name}</ValidationError>
+                                    )}
+                                </FieldContainer>
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>タグ</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.tag : property.tag}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('tag', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>売買</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.is_trade || ''}
+                                        onChange={(e) => handleInputChange('is_trade', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) ? '#fff3cd' : 'white',
+                                            borderColor: editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) ? '#ffc107' : '#ddd'
+                                        }}
+                                    >
+                                        {editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) && (
+                                            <option value={editData.is_trade} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.is_trade} (不正な値)
+                                            </option>
+                                        )}
+                                        {SELECT_OPTIONS.is_trade.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade)
+                                            ? `⚠️ ${property.is_trade} (不正な値)`
+                                            : property.is_trade || ''
+                                        }
+                                        disabled={true}
+                                        style={{
+                                            backgroundColor: property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade) ? '#ffc107' : '#ddd',
+                                            color: property.is_trade && !SELECT_OPTIONS.is_trade.includes(property.is_trade) ? '#856404' : 'inherit'
+                                        }}
+                                    />
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>借上</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.is_lease || ''}
+                                        onChange={(e) => handleInputChange('is_lease', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.is_lease && !SELECT_OPTIONS.is_lease.includes(editData.is_lease) ? '#fff3cd' : 'white',
+                                            borderColor: editData.is_lease && !SELECT_OPTIONS.is_lease.includes(editData.is_lease) ? '#ffc107' : '#ddd'
+                                        }}
+                                    >
+                                        {editData.is_lease && !SELECT_OPTIONS.is_lease.includes(editData.is_lease) && (
+                                            <option value={editData.is_lease} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.is_lease} (不正な値)
+                                            </option>
+                                        )}
+                                        {SELECT_OPTIONS.is_lease.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease)
+                                            ? `⚠️ ${property.is_lease} (不正な値)`
+                                            : property.is_lease || ''
+                                        }
+                                        disabled={true}
+                                        style={{
+                                            backgroundColor: property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease) ? '#ffc107' : '#ddd',
+                                            color: property.is_lease && !SELECT_OPTIONS.is_lease.includes(property.is_lease) ? '#856404' : 'inherit'
+                                        }}
+                                    />
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label required>lead元</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.lead_from : property.lead_from}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('lead_from', e.target.value)}
+                                    required
+                                />
+                                {validationErrors.lead_from && (
+                                    <ValidationError>{validationErrors.lead_from}</ValidationError>
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>ファンド物件</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.is_fund : property.is_fund}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('is_fund', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>Leadチャネル</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.lead_channel || ''}
+                                        onChange={(e) => handleInputChange('lead_channel', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.lead_channel && !SELECT_OPTIONS.lead_channel.includes(editData.lead_channel) ? '#fff3cd' : 'white',
+                                            borderColor: editData.lead_channel && !SELECT_OPTIONS.lead_channel.includes(editData.lead_channel) ? '#ffc107' : '#ddd'
+                                        }}
+                                    >
+                                        {editData.lead_channel && !SELECT_OPTIONS.lead_channel.includes(editData.lead_channel) && (
+                                            <option value={editData.lead_channel} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.lead_channel} (不正な値)
+                                            </option>
+                                        )}
+                                        {SELECT_OPTIONS.lead_channel.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel)
+                                            ? `⚠️ ${property.lead_channel} (不正な値)`
+                                            : property.lead_channel || ''
+                                        }
+                                        disabled={true}
+                                        style={{
+                                            backgroundColor: property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel) ? '#ffc107' : '#ddd',
+                                            color: property.lead_channel && !SELECT_OPTIONS.lead_channel.includes(property.lead_channel) ? '#856404' : 'inherit'
+                                        }}
+                                    />
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>取引形態</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.trade_form : property.trade_form}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('trade_form', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>先方担当</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.lead_from_representative : property.lead_from_representative}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('lead_from_representative', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>担当者電話番号</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.lead_from_representative_phone : property.lead_from_representative_phone}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('lead_from_representative_phone', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>担当者メールアドレス</Label>
+                                <Input
+                                    type="email"
+                                    value={editMode ? editData.lead_from_representative_email : property.lead_from_representative_email}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('lead_from_representative_email', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>建物フォルダ</Label>
+                                {editMode ? (
+                                    <Input
+                                        type="url"
+                                        value={editData.folder}
+                                        onChange={(e) => handleInputChange('folder', e.target.value)}
+                                        placeholder="https://example.com/folder"
+                                    />
+                                ) : (
+                                    <div>
+                                        {property.folder ? (
+                                            <a
+                                                href={property.folder}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    color: '#007bff',
+                                                    textDecoration: 'none',
+                                                    padding: '8px',
+                                                    display: 'inline-block',
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '4px',
+                                                    backgroundColor: '#f8f9fa',
+                                                    width: '100%',
+                                                    boxSizing: 'border-box'
+                                                }}
+                                                onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                                                onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                                            >
+                                                🔗 {property.folder}
+                                            </a>
+                                        ) : (
+                                            <Input
+                                                type="text"
+                                                value="未設定"
+                                                disabled={true}
+                                                style={{ color: '#6c757d' }}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+                            </FormGroup>
+                        </div>
+                        <div>
+                            <FormGroup>
+                                <Label>シリアルナンバー</Label>
+                                <Input
+                                    type="text"
+                                    value={property.serial_number}
+                                    disabled={true}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>MT担当</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.mt_representative : property.mt_representative}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('mt_representative', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>建物登録日</Label>
+                                <Input
+                                    type="text"
+                                    value={property.create_date}
+                                    disabled={true}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>情報取得日</Label>
+                                <Input
+                                    type="date"
+                                    value={editMode ? editData.information_acquisition_date : property.information_acquisition_date}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('information_acquisition_date', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>最終在庫確認日</Label>
+                                <Input
+                                    type="date"
+                                    value={editMode ? editData.latest_inventory_confirmation_date : property.latest_inventory_confirmation_date}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('latest_inventory_confirmation_date', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>入居中室数</Label>
+                                <Input
+                                    type="number"
+                                    value={editMode ? editData.num_of_occupied_rooms : property.num_of_occupied_rooms}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('num_of_occupied_rooms', parseInt(e.target.value))}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>空室数</Label>
+                                <Input
+                                    type="number"
+                                    value={editMode ? editData.num_of_vacant_rooms : property.num_of_vacant_rooms}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('num_of_vacant_rooms', parseInt(e.target.value))}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>家具なし部屋数</Label>
+                                <Input
+                                    type="number"
+                                    value={editMode ? editData.num_of_rooms_without_furniture : property.num_of_rooms_without_furniture}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('num_of_rooms_without_furniture', parseInt(e.target.value))}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>民泊可否</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.minpaku_feasibility || ''}
+                                        onChange={(e) => handleInputChange('minpaku_feasibility', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(editData.minpaku_feasibility) ? '#fff3cd' : 'white',
+                                            borderColor: editData.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(editData.minpaku_feasibility) ? '#ffc107' : '#ddd'
+                                        }}
+                                    >
+                                        {editData.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(editData.minpaku_feasibility) && (
+                                            <option value={editData.minpaku_feasibility} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.minpaku_feasibility} (不正な値)
+                                            </option>
+                                        )}
+                                        {SELECT_OPTIONS.minpaku_feasibility.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility)
+                                            ? `⚠️ ${property.minpaku_feasibility} (不正な値)`
+                                            : property.minpaku_feasibility || ''
+                                        }
+                                        disabled={true}
+                                        style={{
+                                            backgroundColor: property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility) ? '#ffc107' : '#ddd',
+                                            color: property.minpaku_feasibility && !SELECT_OPTIONS.minpaku_feasibility.includes(property.minpaku_feasibility) ? '#856404' : 'inherit'
+                                        }}
+                                    />
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>SP可否</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.sp_feasibility || ''}
+                                        onChange={(e) => handleInputChange('sp_feasibility', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(editData.sp_feasibility) ? '#fff3cd' : 'white',
+                                            borderColor: editData.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(editData.sp_feasibility) ? '#ffc107' : '#ddd'
+                                        }}
+                                    >
+                                        {editData.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(editData.sp_feasibility) && (
+                                            <option value={editData.sp_feasibility} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.sp_feasibility} (不正な値)
+                                            </option>
+                                        )}
+                                        {SELECT_OPTIONS.sp_feasibility.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility)
+                                            ? `⚠️ ${property.sp_feasibility} (不正な値)`
+                                            : property.sp_feasibility || ''
+                                        }
+                                        disabled={true}
+                                        style={{
+                                            backgroundColor: property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility) ? '#ffc107' : '#ddd',
+                                            color: property.sp_feasibility && !SELECT_OPTIONS.sp_feasibility.includes(property.sp_feasibility) ? '#856404' : 'inherit'
+                                        }}
+                                    />
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>内見</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.done_property_viewing || ''}
+                                        onChange={(e) => handleInputChange('done_property_viewing', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(editData.done_property_viewing) ? '#fff3cd' : 'white',
+                                            borderColor: editData.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(editData.done_property_viewing) ? '#ffc107' : '#ddd'
+                                        }}
+                                    >
+                                        {editData.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(editData.done_property_viewing) && (
+                                            <option value={editData.done_property_viewing} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.done_property_viewing} (不正な値)
+                                            </option>
+                                        )}
+                                        {SELECT_OPTIONS.done_property_viewing.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing)
+                                            ? `⚠️ ${property.done_property_viewing} (不正な値)`
+                                            : property.done_property_viewing || ''
+                                        }
+                                        disabled={true}
+                                        style={{
+                                            backgroundColor: property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing) ? '#ffc107' : '#ddd',
+                                            color: property.done_property_viewing && !SELECT_OPTIONS.done_property_viewing.includes(property.done_property_viewing) ? '#856404' : 'inherit'
+                                        }}
+                                    />
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>鳥籠</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.torikago : property.torikago}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('torikago', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>鍵引き渡し日</Label>
+                                <Input
+                                    type="date"
+                                    value={editMode ? editData.key_handling_date : property.key_handling_date}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('key_handling_date', e.target.value)}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>反社チェック有無</Label>
+                                {editMode ? (
+                                    <Select
+                                        value={editData.done_antisocial_check || ''}
+                                        onChange={(e) => handleInputChange('done_antisocial_check', e.target.value)}
+                                        style={{
+                                            backgroundColor: editData.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(editData.done_antisocial_check) ? '#fff3cd' : 'white',
+                                            borderColor: editData.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(editData.done_antisocial_check) ? '#ffc107' : '#ddd'
+                                        }}
+                                    >
+                                        {editData.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(editData.done_antisocial_check) && (
+                                            <option value={editData.done_antisocial_check} style={{ color: '#856404', backgroundColor: '#fff3cd' }}>
+                                                ⚠️ {editData.done_antisocial_check} (不正な値)
+                                            </option>
+                                        )}
+                                        {SELECT_OPTIONS.done_antisocial_check.map((option, index) => (
+                                            <option key={index} value={option}>
+                                                {option || '選択してください'}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check)
+                                            ? `⚠️ ${property.done_antisocial_check} (不正な値)`
+                                            : property.done_antisocial_check || ''
+                                        }
+                                        disabled={true}
+                                        style={{
+                                            backgroundColor: property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check) ? '#fff3cd' : '#f8f9fa',
+                                            borderColor: property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check) ? '#ffc107' : '#ddd',
+                                            color: property.done_antisocial_check && !SELECT_OPTIONS.done_antisocial_check.includes(property.done_antisocial_check) ? '#856404' : 'inherit'
+                                        }}
+                                    />
+                                )}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>備考</Label>
+                                <Input
+                                    type="text"
+                                    value={editMode ? editData.note : property.note}
+                                    disabled={!editMode}
+                                    onChange={(e) => handleInputChange('note', e.target.value)}
+                                />
+                            </FormGroup>
+                        </div>
                     </div>
                     {editMode && (
                         <Button onClick={handleSave} disabled={loading}>
                             {loading ? '保存中...' : '保存'}
                         </Button>
                     )}
-                    {/* 変更履歴セクションもそのまま流用 */}
+
+                    {/* 変更履歴セクション */}
                     <div style={{ marginTop: '40px', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
-                        {/* ...元の変更履歴セクション内容をそのまま流用... */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h3>変更履歴</h3>
+                            <Button
+                                onClick={() => {
+                                    if (historyData.length === 0 && !historyLoading) {
+                                        fetchHistoryData();
+                                    }
+                                }}
+                                disabled={historyLoading}
+                            >
+                                {historyLoading ? '読み込み中...' : '履歴を表示'}
+                            </Button>
+                        </div>
+                        {historyLoading && (
+                            <LoadingMessage>
+                                <div className="spinner"></div>
+                                変更履歴を読み込んでいます...
+                            </LoadingMessage>
+                        )}
+                        {historyError && (
+                            <ErrorMessage>{historyError}</ErrorMessage>
+                        )}
+                        {!historyLoading && !historyError && historyData.length > 0 && (
+                            <HistoryContainer>
+                                {historyData.map((historyItem, index) => (
+                                    <HistoryItem key={index}>
+                                        <HistoryHeader>
+                                            <HistoryDate>
+                                                {formatHistoryDate(historyItem.changed_at)}
+                                            </HistoryDate>
+                                            <HistoryUser>
+                                                {historyItem.changed_by || '不明'}
+                                            </HistoryUser>
+                                        </HistoryHeader>
+                                        <HistoryChanges>
+                                            {historyItem.changes && typeof historyItem.changes === 'object' ?
+                                                Object.entries(historyItem.changes).map(([field, change]) => (
+                                                    <ChangeField key={field}>
+                                                        <FieldName>{getFieldDisplayName(field)}</FieldName>
+                                                        <ChangeValue>
+                                                            <OldValue>{formatHistoryValue(change.old_value || change.old)}</OldValue>
+                                                            <Arrow>→</Arrow>
+                                                            <NewValue>{formatHistoryValue(change.new_value || change.new)}</NewValue>
+                                                        </ChangeValue>
+                                                    </ChangeField>
+                                                )) : (
+                                                    <div style={{ color: '#666', fontStyle: 'italic' }}>
+                                                        変更内容の詳細が利用できません
+                                                    </div>
+                                                )
+                                            }
+                                        </HistoryChanges>
+                                    </HistoryItem>
+                                ))}
+                            </HistoryContainer>
+                        )}
+                        {!historyLoading && !historyError && historyData.length === 0 && (
+                            <div style={{ textAlign: 'center', color: '#666', padding: '20px', border: '1px solid #eee', borderRadius: '5px' }}>
+                                変更履歴はまだありません。「履歴を表示」ボタンをクリックして履歴を確認してください。
+                            </div>
+                        )}
                     </div>
                 </Section>
             )}
