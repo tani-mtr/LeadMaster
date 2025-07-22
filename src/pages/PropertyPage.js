@@ -23,107 +23,24 @@ const SELECT_OPTIONS = {
 // 部屋フィールドの設定
 // 部屋情報用フィールド
 const ROOM_INFO_FIELD_CONFIG = {
-    status: { label: '進捗', type: 'select', editable: true, options: SELECT_OPTIONS.status },
-    property_id: { label: '物件ID', type: 'text', editable: false },
-    property_name: { label: '物件名', type: 'text', editable: false, fromProperty: 'name' },
-    lead_room_type_id: { label: '部屋タイプID', type: 'text', editable: false },
-    roomType_name: { label: '部屋タイプ名', type: 'text', editable: false, fromRoomType: 'name' },
     id: { label: '部屋ID', type: 'text', editable: false },
-    core_room_id: { label: 'core部屋ID', type: 'text', editable: false },
+    core_id: { label: 'core部屋ID', type: 'text', editable: false },
     name: { label: '部屋名', type: 'text', editable: false },
-    property_tag: { label: 'タグ', type: 'text', editable: false, fromProperty: 'tag' },
-    property_is_trade: { label: '売買', type: 'text', editable: false, fromProperty: 'is_trade' },
-    property_is_lease: { label: '借上', type: 'text', editable: false, fromProperty: 'is_lease' },
-    property_lead_from: { label: 'lead元', type: 'text', editable: false, fromProperty: 'lead_from' },
-    property_is_fund: { label: 'ファンド物件', type: 'text', editable: false, fromProperty: 'is_fund' },
-    property_lead_channel: { label: 'Leadチャネル', type: 'text', editable: false, fromProperty: 'lead_channel' },
-    property_trade_form: { label: '取引形態', type: 'text', editable: false, fromProperty: 'trade_form' },
-    property_lead_from_representative: { label: '先方担当', type: 'text', editable: false, fromProperty: 'lead_from_representative' },
-    property_lead_from_representative_phone: { label: '担当者tel', type: 'text', editable: false, fromProperty: 'lead_from_representative_phone' },
-    property_lead_from_representative_email: { label: '担当者mail', type: 'text', editable: false, fromProperty: 'lead_from_representative_email' },
-    property_folder: { label: '建物フォルダ', type: 'text', editable: false, fromProperty: 'folder' },
-    property_note: { label: '備考', type: 'text', editable: false, fromProperty: 'note' },
-    property_mt_representative: { label: 'MT担当', type: 'text', editable: false, fromProperty: 'mt_representative' },
-    property_create_date: { label: '建物登録日', type: 'text', editable: false, fromProperty: 'create_date' },
-    property_information_acquisition_date: { label: '情報取得日', type: 'date', editable: false, fromProperty: 'information_acquisition_date' },
-    property_latest_inventory_confirmation_date: { label: '最終在庫確認日', type: 'date', editable: false, fromProperty: 'latest_inventory_confirmation_date' },
-    property_num_of_occupied_rooms: { label: '入居中室数', type: 'number', editable: false, fromProperty: 'num_of_occupied_rooms' },
-    property_num_of_vacant_rooms: { label: '空室数', type: 'number', editable: false, fromProperty: 'num_of_vacant_rooms' },
-    property_num_of_rooms_without_furniture: { label: '家具なし部屋数', type: 'number', editable: false, fromProperty: 'num_of_rooms_without_furniture' },
-    property_minpaku_feasibility: { label: '民泊可否', type: 'text', editable: false, fromProperty: 'minpaku_feasibility' },
-    property_sp_feasibility: { label: 'SP可否', type: 'text', editable: false, fromProperty: 'sp_feasibility' },
-    property_done_property_viewing: { label: '内見', type: 'text', editable: false, fromProperty: 'done_property_viewing' },
-    property_torikago: { label: '鳥籠', type: 'text', editable: false, fromProperty: 'torikago' },
-    property_key_handling_date: { label: '鍵引き渡し日', type: 'date', editable: false, fromProperty: 'key_handling_date' },
-    property_done_antisocial_check: { label: '反社チェック有無', type: 'text', editable: false, fromProperty: 'done_antisocial_check' },
+    status: { label: '進捗', type: 'select', editable: true, options: SELECT_OPTIONS.status },
+    lead_property_id: { label: '物件ID', type: 'text', editable: false },
+    lead_room_type_id: { label: '部屋タイプID', type: 'text', editable: false },
     create_date: { label: '部屋登録日', type: 'date', editable: false },
     key_handover_scheduled_date: { label: '鍵引き渡し予定日', type: 'date', editable: true },
     possible_key_handover_scheduled_date_1: { label: '鍵引き渡し予定日①', type: 'date', editable: true },
     possible_key_handover_scheduled_date_2: { label: '鍵引き渡し予定日②', type: 'date', editable: true },
     possible_key_handover_scheduled_date_3: { label: '鍵引き渡し予定日③', type: 'date', editable: true },
-    vacate_setup: { label: '退去SU', type: 'select', editable: true, options: SELECT_OPTIONS.vacate_setup },
+    leaflet_distribution_date: { label: 'チラシ配布日', type: 'date', editable: true },
+    notification_complete_date: { label: '通知完了日', type: 'date', editable: true },
     contract_collection_date: { label: '契約書回収予定日', type: 'date', editable: true },
     application_intended_date: { label: '申請予定日', type: 'date', editable: true },
-    roomType_create_date: { label: '部屋タイプ作成日', type: 'date', editable: false, fromRoomType: 'create_date' },
-    roomType_minpaku_price: { label: '民泊単価', type: 'number', editable: true, fromRoomType: 'minpaku_price' },
-    roomType_monthly_price: { label: 'マンスリー単価', type: 'number', editable: true, fromRoomType: 'monthly_price' },
-    roomType_pax: { label: '収容人数', type: 'number', editable: true, fromRoomType: 'pax' },
-    roomType_owner_type: { label: '所有者属性', type: 'text', editable: true, fromRoomType: 'owner_type' },
-    roomType_register_type: { label: '運営形態', type: 'text', editable: true, fromRoomType: 'register_type' },
-    roomType_payment_rent: { label: '賃料', type: 'number', editable: true, fromRoomType: 'payment_rent' },
-    roomType_management_expenses: { label: '管理費', type: 'number', editable: true, fromRoomType: 'management_expenses' },
-    roomType_brokerage_commission: { label: '仲介手数料', type: 'number', editable: true, fromRoomType: 'brokerage_commission' },
-    roomType_deposit: { label: '敷金', type: 'number', editable: true, fromRoomType: 'deposit' },
-    roomType_key_money: { label: '礼金', type: 'number', editable: true, fromRoomType: 'key_money' },
-    roomType_key_exchange_money: { label: '鍵交換費用', type: 'number', editable: true, fromRoomType: 'key_exchange_money' },
-    roomType_renovation_cost: { label: 'リフォーム費用', type: 'number', editable: true, fromRoomType: 'renovation_cost' },
-    roomType_property_introduction_fee: { label: '物件紹介手数料', type: 'number', editable: true, fromRoomType: 'property_introduction_fee' },
-    roomType_other_initial_cost_name: { label: '初期その他項目', type: 'text', editable: true, fromRoomType: 'other_initial_cost_name' },
-    roomType_other_initial_cost: { label: '初期その他金額', type: 'number', editable: true, fromRoomType: 'other_initial_cost' },
-    roomType_contract_type: { label: '契約種類', type: 'text', editable: true, fromRoomType: 'contract_type' },
-    roomType_contract_period: { label: '契約期間 年間', type: 'text', editable: true, fromRoomType: 'contract_period' },
-    roomType_renewal_fee: { label: '更新料', type: 'number', editable: true, fromRoomType: 'renewal_fee' },
-    roomType_date_moving_in: { label: '入居日', type: 'date', editable: true, fromRoomType: 'date_moving_in' },
-    roomType_rent_accrual_date: { label: '賃発日', type: 'date', editable: true, fromRoomType: 'rent_accrual_date' },
-    roomType_operation_start_date: { label: '運営開始日', type: 'date', editable: true, fromRoomType: 'operation_start_date' },
-    roomType_use_guarantee_company: { label: '保証会社利用', type: 'text', editable: true, fromRoomType: 'use_guarantee_company' },
-    roomType_Initial_guarantee_rate: { label: '初回保証料割合 %', type: 'number', editable: true, fromRoomType: 'Initial_guarantee_rate' },
-    roomType_monthly_guarantee_fee_rate: { label: '月額保証料割合 %', type: 'number', editable: true, fromRoomType: 'monthly_guarantee_fee_rate' },
-    roomType_maa_insurance: { label: '共済会 保険', type: 'text', editable: true, fromRoomType: 'maa_insurance' },
-    roomType_prefectures: { label: '都道府県', type: 'text', editable: true, fromRoomType: 'prefectures' },
-    roomType_city: { label: '市区', type: 'text', editable: true, fromRoomType: 'city' },
-    roomType_town: { label: '以後住所', type: 'text', editable: true, fromRoomType: 'town' },
-    roomType_area_zoned_for_use: { label: '用途地域', type: 'text', editable: true, fromRoomType: 'area_zoned_for_use' },
-    roomType_request_checking_area_zoned_for_use: { label: '用途地域確認依頼', type: 'text', editable: true, fromRoomType: 'request_checking_area_zoned_for_use' },
-    roomType_done_checking_area_zoned_for_use: { label: '用途地域確認済', type: 'text', editable: true, fromRoomType: 'done_checking_area_zoned_for_use' },
-    roomType_special_use_areas: { label: '特別用途地区', type: 'text', editable: true, fromRoomType: 'special_use_areas' },
-    roomType_route_1: { label: '路線1', type: 'text', editable: true, fromRoomType: 'route_1' },
-    roomType_station_1: { label: '駅1', type: 'text', editable: true, fromRoomType: 'station_1' },
-    roomType_walk_min_1: { label: '徒歩分数1', type: 'number', editable: true, fromRoomType: 'walk_min_1' },
-    roomType_route_2: { label: '路線2', type: 'text', editable: true, fromRoomType: 'route_2' },
-    roomType_station_2: { label: '駅2', type: 'text', editable: true, fromRoomType: 'station_2' },
-    roomType_walk_min_2: { label: '徒歩分数2', type: 'number', editable: true, fromRoomType: 'walk_min_2' },
-    roomType_floor_plan: { label: '間取り', type: 'text', editable: true, fromRoomType: 'floor_plan' },
-    roomType_ev: { label: 'EVの有無', type: 'text', editable: true, fromRoomType: 'ev' },
-    roomType_sqm: { label: '広さ', type: 'number', editable: true, fromRoomType: 'sqm' },
-    roomType_room_type: { label: '部屋種別', type: 'text', editable: true, fromRoomType: 'room_type' },
-    roomType_building_structure: { label: '建物構造', type: 'text', editable: true, fromRoomType: 'building_structure' },
-    roomType_completion_year: { label: '竣工年', type: 'number', editable: true, fromRoomType: 'completion_year' },
-    roomType_minpaku_plan: { label: '民泊利用 自社運営予定 予定数', type: 'number', editable: true, fromRoomType: 'minpaku_plan' },
-    roomType_room_floor: { label: '部屋所在階', type: 'text', editable: true, fromRoomType: 'room_floor' },
-    roomType_building_floor: { label: '建物階数', type: 'text', editable: true, fromRoomType: 'building_floor' },
-    roomType_num_of_room_per_building: { label: '建物全体部屋数', type: 'number', editable: true, fromRoomType: 'num_of_room_per_building' },
-    roomType_staircase_location: { label: '階段位置', type: 'text', editable: true, fromRoomType: 'staircase_location' },
-    roomType_total_sqm: { label: '建物延床面積', type: 'number', editable: true, fromRoomType: 'total_sqm' },
-    roomType_availability_of_floor_plan: { label: '平面図の有無', type: 'text', editable: true, fromRoomType: 'availability_of_floor_plan' },
-    roomType_applications_for_other_floors: { label: '他フロアの用途', type: 'text', editable: true, fromRoomType: 'applications_for_other_floors' },
-    roomType_firefighting_equipment: { label: '現況消防設備', type: 'text', editable: true, fromRoomType: 'firefighting_equipment' },
-    roomType_firefighting_equipment_cost: { label: '消防設備費用 自動', type: 'number', editable: true, fromRoomType: 'firefighting_equipment_cost' },
-    roomType_firefighting_equipment_cost_manual: { label: '消防設備費用 手動', type: 'number', editable: true, fromRoomType: 'firefighting_equipment_cost_manual' },
-    roomType_furniture_transfer_availability: { label: '家具譲渡の有無', type: 'text', editable: true, fromRoomType: 'furniture_transfer_availability' },
-    roomType_checkin_cost: { label: 'check-in原価', type: 'number', editable: true, fromRoomType: 'checkin_cost' },
-    roomType_other_cost_name: { label: '月額その他項目', type: 'text', editable: true, fromRoomType: 'other_cost_name' },
-    roomType_other_cost: { label: '月額その他費用', type: 'number', editable: true, fromRoomType: 'other_cost' },
+    user_email: { label: 'ユーザーEmail', type: 'text', editable: false },
+    vacate_setup: { label: '退去SU', type: 'select', editable: true, options: SELECT_OPTIONS.vacate_setup },
+    room_number: { label: '部屋番号', type: 'text', editable: false },
 };
 
 // 物件情報用フィールド
@@ -164,8 +81,8 @@ const ROOM_TYPE_FIELD_CONFIG = {
     roomType_minpaku_price: { label: '民泊単価', type: 'number', editable: true, fromRoomType: 'minpaku_price' },
     roomType_monthly_price: { label: 'マンスリー単価', type: 'number', editable: true, fromRoomType: 'monthly_price' },
     roomType_pax: { label: '収容人数', type: 'number', editable: true, fromRoomType: 'pax' },
-    roomType_owner_type: { label: '所有者属性', type: 'text', editable: true, fromRoomType: 'owner_type' },
-    roomType_register_type: { label: '運営形態', type: 'text', editable: true, fromRoomType: 'register_type' },
+    roomType_owner_type: { label: '所有者属性', type: 'select', editable: true, fromRoomType: 'owner_type', options: ['', '自社', 'ファンド'] },
+    roomType_register_type: { label: '運営形態', type: 'select', editable: true, fromRoomType: 'register_type', options: ['', '住宅宿泊事業', '旅館業', '特区民泊'] },
     roomType_payment_rent: { label: '賃料', type: 'number', editable: true, fromRoomType: 'payment_rent' },
     roomType_management_expenses: { label: '管理費', type: 'number', editable: true, fromRoomType: 'management_expenses' },
     roomType_brokerage_commission: { label: '仲介手数料', type: 'number', editable: true, fromRoomType: 'brokerage_commission' },
@@ -176,22 +93,22 @@ const ROOM_TYPE_FIELD_CONFIG = {
     roomType_property_introduction_fee: { label: '物件紹介手数料', type: 'number', editable: true, fromRoomType: 'property_introduction_fee' },
     roomType_other_initial_cost_name: { label: '初期その他項目', type: 'text', editable: true, fromRoomType: 'other_initial_cost_name' },
     roomType_other_initial_cost: { label: '初期その他金額', type: 'number', editable: true, fromRoomType: 'other_initial_cost' },
-    roomType_contract_type: { label: '契約種類', type: 'text', editable: true, fromRoomType: 'contract_type' },
+    roomType_contract_type: { label: '契約種類', type: 'select', editable: true, fromRoomType: 'contract_type', options: ['', '普通借家', '定期借家'] },
     roomType_contract_period: { label: '契約期間 年間', type: 'text', editable: true, fromRoomType: 'contract_period' },
     roomType_renewal_fee: { label: '更新料', type: 'number', editable: true, fromRoomType: 'renewal_fee' },
     roomType_date_moving_in: { label: '入居日', type: 'date', editable: true, fromRoomType: 'date_moving_in' },
     roomType_rent_accrual_date: { label: '賃発日', type: 'date', editable: true, fromRoomType: 'rent_accrual_date' },
     roomType_operation_start_date: { label: '運営開始日', type: 'date', editable: true, fromRoomType: 'operation_start_date' },
-    roomType_use_guarantee_company: { label: '保証会社利用', type: 'text', editable: true, fromRoomType: 'use_guarantee_company' },
+    roomType_use_guarantee_company: { label: '保証会社利用', type: 'select', editable: true, fromRoomType: 'use_guarantee_company', options: ['', '有', '無', '済'] },
     roomType_Initial_guarantee_rate: { label: '初回保証料割合 %', type: 'number', editable: true, fromRoomType: 'Initial_guarantee_rate' },
     roomType_monthly_guarantee_fee_rate: { label: '月額保証料割合 %', type: 'number', editable: true, fromRoomType: 'monthly_guarantee_fee_rate' },
-    roomType_maa_insurance: { label: '共済会 保険', type: 'text', editable: true, fromRoomType: 'maa_insurance' },
+    roomType_maa_insurance: { label: '共済会 保険', type: 'select', editable: true, fromRoomType: 'maa_insurance', options: ['', '保険', '共済会'] },
     roomType_prefectures: { label: '都道府県', type: 'text', editable: true, fromRoomType: 'prefectures' },
     roomType_city: { label: '市区', type: 'text', editable: true, fromRoomType: 'city' },
     roomType_town: { label: '以後住所', type: 'text', editable: true, fromRoomType: 'town' },
-    roomType_area_zoned_for_use: { label: '用途地域', type: 'text', editable: true, fromRoomType: 'area_zoned_for_use' },
-    roomType_request_checking_area_zoned_for_use: { label: '用途地域確認依頼', type: 'text', editable: true, fromRoomType: 'request_checking_area_zoned_for_use' },
-    roomType_done_checking_area_zoned_for_use: { label: '用途地域確認済', type: 'text', editable: true, fromRoomType: 'done_checking_area_zoned_for_use' },
+    roomType_area_zoned_for_use: { label: '用途地域', type: 'select', editable: true, fromRoomType: 'area_zoned_for_use', options: ['', '商業', '近隣商業', '工業', '準工業', '工業専用', '第一種低層住居専用', '第二種低層住居専用', '第一種中高層住居専用', '第二種中高層住居専用', '第一種住居地域', '第二種住居', '準住居', '田園住居'] },
+    roomType_request_checking_area_zoned_for_use: { label: '用途地域確認依頼', type: 'select', editable: true, fromRoomType: 'request_checking_area_zoned_for_use', options: ['', '◯'] },
+    roomType_done_checking_area_zoned_for_use: { label: '用途地域確認済', type: 'select', editable: true, fromRoomType: 'done_checking_area_zoned_for_use', options: ['', '◯'] },
     roomType_special_use_areas: { label: '特別用途地区', type: 'text', editable: true, fromRoomType: 'special_use_areas' },
     roomType_route_1: { label: '路線1', type: 'text', editable: true, fromRoomType: 'route_1' },
     roomType_station_1: { label: '駅1', type: 'text', editable: true, fromRoomType: 'station_1' },
@@ -199,11 +116,11 @@ const ROOM_TYPE_FIELD_CONFIG = {
     roomType_route_2: { label: '路線2', type: 'text', editable: true, fromRoomType: 'route_2' },
     roomType_station_2: { label: '駅2', type: 'text', editable: true, fromRoomType: 'station_2' },
     roomType_walk_min_2: { label: '徒歩分数2', type: 'number', editable: true, fromRoomType: 'walk_min_2' },
-    roomType_floor_plan: { label: '間取り', type: 'text', editable: true, fromRoomType: 'floor_plan' },
-    roomType_ev: { label: 'EVの有無', type: 'text', editable: true, fromRoomType: 'ev' },
+    roomType_floor_plan: { label: '間取り', type: 'select', editable: true, fromRoomType: 'floor_plan', options: ['', '1R', '1K', '1DK', '1LDK', '2K', '2DK', '2LDK', '3DK', '3LDK', '5LDK'] },
+    roomType_ev: { label: 'EVの有無', type: 'select', editable: true, fromRoomType: 'ev', options: ['', '有', '無', '済'] },
     roomType_sqm: { label: '広さ', type: 'number', editable: true, fromRoomType: 'sqm' },
-    roomType_room_type: { label: '部屋種別', type: 'text', editable: true, fromRoomType: 'room_type' },
-    roomType_building_structure: { label: '建物構造', type: 'text', editable: true, fromRoomType: 'building_structure' },
+    roomType_room_type: { label: '部屋種別', type: 'select', editable: true, fromRoomType: 'room_type', options: ['', 'マンション・アパート', '戸建', 'メゾネット', 'ロフト付き', '長屋'] },
+    roomType_building_structure: { label: '建物構造', type: 'select', editable: true, fromRoomType: 'building_structure', options: ['', 'RC', 'S', 'SRC', '木造', '鉄骨鉄造', 'WRC', 'W'] },
     roomType_completion_year: { label: '竣工年', type: 'number', editable: true, fromRoomType: 'completion_year' },
     roomType_minpaku_plan: { label: '民泊利用 自社運営予定 予定数', type: 'number', editable: true, fromRoomType: 'minpaku_plan' },
     roomType_room_floor: { label: '部屋所在階', type: 'text', editable: true, fromRoomType: 'room_floor' },
@@ -211,12 +128,12 @@ const ROOM_TYPE_FIELD_CONFIG = {
     roomType_num_of_room_per_building: { label: '建物全体部屋数', type: 'number', editable: true, fromRoomType: 'num_of_room_per_building' },
     roomType_staircase_location: { label: '階段位置', type: 'text', editable: true, fromRoomType: 'staircase_location' },
     roomType_total_sqm: { label: '建物延床面積', type: 'number', editable: true, fromRoomType: 'total_sqm' },
-    roomType_availability_of_floor_plan: { label: '平面図の有無', type: 'text', editable: true, fromRoomType: 'availability_of_floor_plan' },
+    roomType_availability_of_floor_plan: { label: '平面図の有無', type: 'select', editable: true, fromRoomType: 'availability_of_floor_plan', options: ['', '有', '無', '済'] },
     roomType_applications_for_other_floors: { label: '他フロアの用途', type: 'text', editable: true, fromRoomType: 'applications_for_other_floors' },
     roomType_firefighting_equipment: { label: '現況消防設備', type: 'text', editable: true, fromRoomType: 'firefighting_equipment' },
     roomType_firefighting_equipment_cost: { label: '消防設備費用 自動', type: 'number', editable: true, fromRoomType: 'firefighting_equipment_cost' },
     roomType_firefighting_equipment_cost_manual: { label: '消防設備費用 手動', type: 'number', editable: true, fromRoomType: 'firefighting_equipment_cost_manual' },
-    roomType_furniture_transfer_availability: { label: '家具譲渡の有無', type: 'text', editable: true, fromRoomType: 'furniture_transfer_availability' },
+    roomType_furniture_transfer_availability: { label: '家具譲渡の有無', type: 'select', editable: true, fromRoomType: 'furniture_transfer_availability', options: ['', '有', '無', '済'] },
     roomType_checkin_cost: { label: 'check-in原価', type: 'number', editable: true, fromRoomType: 'checkin_cost' },
     roomType_other_cost_name: { label: '月額その他項目', type: 'text', editable: true, fromRoomType: 'other_cost_name' },
     roomType_other_cost: { label: '月額その他費用', type: 'number', editable: true, fromRoomType: 'other_cost' },
@@ -224,6 +141,112 @@ const ROOM_TYPE_FIELD_CONFIG = {
 
 // 閲覧用は部屋情報、物件情報、部屋タイプ情報を結合
 const ROOM_FIELD_CONFIG = { ...ROOM_INFO_FIELD_CONFIG, ...PROPERTY_FIELD_CONFIG, ...ROOM_TYPE_FIELD_CONFIG };
+
+// ユーザー指定のカラム順に対応するフィールド名リスト
+const ROOM_TABLE_FIELD_ORDER = [
+    'status', // 進捗
+    'property_id', // 建物ID
+    'property_name', // 建物名
+    'lead_room_type_id', // "部屋タイプID"
+    'roomType_name', // 部屋タイプ名
+    'id', // 部屋ID
+    'core_id', // core部屋ID
+    'name', // 部屋名
+    'property_tag', // タグ
+    'property_is_trade', // 売買
+    'property_is_lease', // 借上
+    'property_lead_from', // lead元
+    'property_is_fund', // ファンド物件
+    'property_lead_channel', // Leadチャネル
+    'property_trade_form', // 取引形態
+    'property_lead_from_representative', // 先方担当
+    'property_lead_from_representative_phone', // 担当者tel
+    'property_lead_from_representative_email', // 担当者メールアドレス
+    'property_folder', // 建物フォルダ
+    'property_note', // 備考
+    'property_mt_representative', // "MT担当"
+    'property_create_date', // 建物登録日
+    'property_information_acquisition_date', // 情報取得日
+    'property_latest_inventory_confirmation_date', // 最終在庫確認日
+    'property_num_of_occupied_rooms', // 入居中室数
+    'property_num_of_vacant_rooms', // 空室数
+    'property_num_of_rooms_without_furniture', // 家具なし部屋数
+    'property_minpaku_feasibility', // 民泊可否
+    'property_sp_feasibility', // SP可否
+    'property_done_property_viewing', // 内見
+    'property_torikago', // 鳥籠
+    'property_key_handling_date', // 鍵引き渡し日
+    'property_done_antisocial_check', // 反社チェック有無
+    'create_date', // 部屋登録日
+    'key_handover_scheduled_date', // 鍵引き渡し予定日
+    'possible_key_handover_scheduled_date_1', // 鍵引き渡し予定日①
+    'possible_key_handover_scheduled_date_2', // 鍵引き渡し予定日②
+    'possible_key_handover_scheduled_date_3', // 鍵引き渡し予定日③
+    'vacate_setup', // 退去SU
+    // ※未使用
+    'contract_collection_date', // 契約書回収予定日
+    'application_intended_date', // 申請予定日
+    'roomType_create_date', // 部屋タイプ作成日（仮: 実際のフィールド名は要確認）
+    'roomType_minpaku_price', // 民泊単価
+    'roomType_monthly_price', // マンスリー単価
+    'roomType_pax', // 収容人数
+    'roomType_owner_type', // 所有者属性
+    'roomType_register_type', // 運営形態
+    'roomType_payment_rent', // 賃料
+    'roomType_management_expenses', // 管理費
+    'roomType_brokerage_commission', // 仲介手数料
+    'roomType_deposit', // 敷金
+    'roomType_key_money', // 礼金
+    'roomType_key_exchange_money', // 鍵交換費用
+    'roomType_renovation_cost', // リフォーム費用
+    'roomType_property_introduction_fee', // 物件紹介手数料
+    'roomType_other_initial_cost_name', // 初期その他項目
+    'roomType_other_initial_cost', // 初期その他金額
+    'roomType_contract_type', // 契約種類
+    'roomType_contract_period', // 契約期間(年間)
+    'roomType_renewal_fee', // 更新料
+    'roomType_date_moving_in', // 入居日
+    'roomType_rent_accrual_date', // 賃発日
+    'roomType_operation_start_date', // 運営開始日
+    'roomType_use_guarantee_company', // 保証会社利用
+    'roomType_Initial_guarantee_rate', // 初回保証料割合(%)
+    'roomType_monthly_guarantee_fee_rate', // 月額保証料割合(%)
+    'roomType_maa_insurance', // 共済会・保険
+    'roomType_prefectures', // 都道府県
+    'roomType_city', // 市区
+    'roomType_town', // 以後住所
+    'roomType_area_zoned_for_use', // 用途地域
+    'roomType_request_checking_area_zoned_for_use', // 用途地域確認依頼
+    'roomType_done_checking_area_zoned_for_use', // 用途地域確認済
+    'roomType_special_use_areas', // 特別用途地区
+    'roomType_route_1', // 路線1
+    'roomType_station_1', // 駅1
+    'roomType_walk_min_1', // 徒歩分数1
+    'roomType_route_2', // 路線2
+    'roomType_station_2', // 駅2
+    'roomType_walk_min_2', // 徒歩2
+    'roomType_floor_plan', // 間取り
+    'roomType_ev', // EVの有無
+    'roomType_sqm', // 広さ(㎡)
+    'roomType_room_type', // 部屋種別
+    'roomType_building_structure', // 建物構造
+    'roomType_completion_year', // 竣工年
+    'roomType_minpaku_plan', // 民泊利用（自社運営予定）予定数
+    'roomType_room_floor', // 部屋所在階
+    'roomType_building_floor', // 建物階数
+    'roomType_num_of_room_per_building', // 建物全体部屋数
+    'roomType_staircase_location', // 階段位置
+    'roomType_total_sqm', // 建物延床面積
+    'roomType_availability_of_floor_plan', // 平面図の有無
+    'roomType_applications_for_other_floors', // 他フロアの用途
+    'roomType_firefighting_equipment', // 現況消防設備
+    'roomType_firefighting_equipment_cost', // 消防設備費用(自動)
+    'roomType_firefighting_equipment_cost_manual', // 消防設備費用(手動)
+    'roomType_furniture_transfer_availability', // 家具譲渡の有無
+    'roomType_checkin_cost', // check-in原価
+    'roomType_other_cost_name', // 月額その他項目
+    'roomType_other_cost', // 月額その他費用
+];
 // ...existing code...
 
 // スタイル定義
@@ -1134,6 +1157,8 @@ const PropertyPage = () => {
                 ]);
 
                 // 詳細データを基本データにマージ
+                console.log('allRoomDetails lead_room_type_id:', (allRoomDetails || []).map(r => r.lead_room_type_id));
+                console.log('allRoomTypeDetails id:', (allRoomTypeDetails || []).map(rt => rt.id));
                 const enrichedPropertyData = {
                     ...propertyData,
                     allRoomDetails: allRoomDetails || [],
@@ -1202,9 +1227,11 @@ const PropertyPage = () => {
                     }).filter(data => data !== null);
 
                     // 詳細データをステートに設定
-                    setDetailedRoomData(mergedDetailedData); console.log('詳細データの一括取得・整形完了:', {
+                    setDetailedRoomData(mergedDetailedData);
+                    console.log('詳細データの一括取得・整形完了:', {
                         detailedRoomsCount: mergedDetailedData.length,
-                        roomTypesCount: roomTypeMap.size
+                        roomTypesCount: roomTypeMap.size,
+                        mergedDetailedData: mergedDetailedData
                     });
                 } else {
                     // 関連部屋がない場合は空配列を設定
@@ -1325,19 +1352,73 @@ const PropertyPage = () => {
     }, [selectedEditCell]); // editSubTab依存を外すことで、タブ操作時はhandleEditSubTabChangeで上書き
 
     const handleEditCellChange = useCallback((roomIndex, field, value) => {
+        // 部屋タイプ情報タブの場合（roomIndex === -1）
+        if (roomIndex === -1) {
+            // selectedEditCellからroomTypeIdを取得
+            const roomTypeId = selectedEditCell?.id;
+            if (!roomTypeId) return;
+            // fieldはROOM_TYPE_FIELD_CONFIGのfromRoomType名に変換
+            const config = ROOM_TYPE_FIELD_CONFIG[field];
+            const fromRoomType = config?.fromRoomType || field;
+            const cellKey = `${roomTypeId}-${fromRoomType}`;
+            // originalValue取得
+            let originalValue = '';
+            // roomTypeDetailを検索
+            const allRoomTypes = [];
+            const seenIds = new Set();
+            detailedRoomData.forEach((room) => {
+                const rt = room.roomTypeDetail;
+                if (!rt) return;
+                const typeId = rt.room_type_id || rt.id;
+                if (!typeId || seenIds.has(typeId)) return;
+                seenIds.add(typeId);
+                allRoomTypes.push({ roomTypeDetail: rt, id: typeId });
+            });
+            const target = allRoomTypes.find(item => item.id === roomTypeId);
+            if (target && target.roomTypeDetail) {
+                const v = target.roomTypeDetail[fromRoomType];
+                originalValue = (v && typeof v === 'object' && 'value' in v) ? v.value : v;
+            }
+            // 日付の場合はISO文字列に変換して比較
+            const normalizedValue = config?.type === 'date' && value ? new Date(value).toISOString().split('T')[0] : value;
+            const normalizedOriginalValue = config?.type === 'date' && originalValue ? new Date(originalValue).toISOString().split('T')[0] : originalValue;
+            // ログ出力
+            console.log('[部屋タイプ編集] handleEditCellChange', {
+                roomTypeId,
+                field,
+                fromRoomType,
+                value,
+                cellKey,
+                originalValue,
+                normalizedValue,
+                normalizedOriginalValue,
+                editChanges: Array.from(editChanges.entries())
+            });
+            setEditChanges(prev => {
+                const newChanges = new Map(prev);
+                if (normalizedValue === normalizedOriginalValue || (normalizedValue === '' && (normalizedOriginalValue === null || normalizedOriginalValue === undefined))) {
+                    newChanges.delete(cellKey);
+                } else {
+                    newChanges.set(cellKey, value);
+                }
+                // ログ出力
+                console.log('[部屋タイプ編集] setEditChanges後', Array.from(newChanges.entries()));
+                return newChanges;
+            });
+            // 追加: 編集内容を明示的にログ
+            console.log('[部屋タイプ編集] editChangesに記録:', { cellKey, value });
+            return;
+        }
+        // 通常の部屋タブ
         const room = detailedRoomData[roomIndex];
         if (!room) return;
-
         const cellKey = `${room.id}-${field}`;
         const originalValue = room[field];
-
         setEditChanges(prev => {
             const newChanges = new Map(prev);
             // 日付の場合はISO文字列に変換して比較
             const normalizedValue = ROOM_FIELD_CONFIG[field]?.type === 'date' && value ? new Date(value).toISOString().split('T')[0] : value;
             const normalizedOriginalValue = ROOM_FIELD_CONFIG[field]?.type === 'date' && originalValue ? new Date(originalValue).toISOString().split('T')[0] : originalValue;
-
-
             if (normalizedValue === normalizedOriginalValue || (normalizedValue === '' && (normalizedOriginalValue === null || normalizedOriginalValue === undefined))) {
                 // 元の値と同じ場合は変更を削除
                 newChanges.delete(cellKey);
@@ -1347,7 +1428,7 @@ const PropertyPage = () => {
             }
             return newChanges;
         });
-    }, [detailedRoomData]);
+    }, [detailedRoomData, selectedEditCell]);
 
     const handleResetChanges = useCallback(() => {
         setEditChanges(new Map());
@@ -2748,8 +2829,16 @@ const PropertyPage = () => {
                                                 const roomId = room[1];
                                                 const roomName = room[2];
                                                 const isOperationEnabled = room[4] !== 'false';
-                                                // room配列の内容をログ出力
-                                                console.log(`rowIndex=${rowIndex}`, room);
+                                                // 部屋タイプIDや物件情報取得
+                                                const detailedRoom = detailedRoomData.find(r => r.id === roomId);
+                                                // roomTypeIdはroomTypeDetail.id優先、なければlead_room_type_id
+                                                let roomTypeId = null;
+                                                if (detailedRoom && detailedRoom.roomTypeDetail) {
+                                                    roomTypeId = detailedRoom.roomTypeDetail.id || detailedRoom.roomTypeDetail.room_type_id;
+                                                }
+                                                if (!roomTypeId && detailedRoom && detailedRoom.lead_room_type_id) {
+                                                    roomTypeId = detailedRoom.lead_room_type_id;
+                                                }
                                                 return (
                                                     <TableRow key={rowIndex}>
                                                         <TableCell>
@@ -2761,39 +2850,61 @@ const PropertyPage = () => {
                                                                 />
                                                             </CheckboxWrapper>
                                                         </TableCell>
-                                                        <TableCell>
-                                                            <StatusBadge status={room[0]}>
-                                                                {room[0]}
-                                                            </StatusBadge>
-                                                        </TableCell>
-                                                        <TableCell>{roomId}</TableCell>                                        <TableCell>
-                                                            {(() => {
-                                                                const formatStatus = getRoomNameFormatStatus(
-                                                                    roomName,
-                                                                    property?.name,
-                                                                    room[3] // 部屋番号
-                                                                );
+                                                        {/* 各カラムをROOM_TABLE_FIELD_ORDER順に描画 */}
+                                                        {ROOM_TABLE_FIELD_ORDER.map((field, colIdx) => {
+                                                            // 値の取得
+                                                            let value = detailedRoom ? detailedRoom[field] : room[colIdx];
+                                                            // 部屋タイプ系フィールドはroomTypeDetailから値を取得
+                                                            if (detailedRoom && ROOM_TYPE_FIELD_CONFIG[field] && detailedRoom.roomTypeDetail) {
+                                                                const fromKey = ROOM_TYPE_FIELD_CONFIG[field].fromRoomType;
+                                                                if (fromKey) {
+                                                                    value = detailedRoom.roomTypeDetail[fromKey];
+                                                                }
+                                                            }
+                                                            let previewKey = `${roomId}-${field}`;
+                                                            let previewValue = editChanges.get(previewKey);
+                                                            // 部屋タイプ情報の編集プレビュー
+                                                            let roomTypeKey = null;
+                                                            if (!previewValue && roomTypeId && ROOM_TYPE_FIELD_CONFIG[field]) {
+                                                                roomTypeKey = `${roomTypeId}-${field}`;
+                                                                previewValue = editChanges.get(roomTypeKey);
+                                                            }
+                                                            // 物件情報の編集プレビュー
+                                                            if (!previewValue && PROPERTY_FIELD_CONFIG[field]) {
+                                                                const propertyKey = `property-${field}`;
+                                                                previewValue = editChanges.get(propertyKey);
+                                                                // 物件情報はvalueもpropertyから取得
+                                                                if (property && PROPERTY_FIELD_CONFIG[field]?.fromProperty) {
+                                                                    value = property[PROPERTY_FIELD_CONFIG[field].fromProperty];
+                                                                }
+                                                            }
+                                                            // デバッグ用ログ出力
+                                                            console.log('[cell debug]', {
+                                                                roomId,
+                                                                roomTypeId,
+                                                                field,
+                                                                roomTypeKey,
+                                                                previewKey,
+                                                                editChanges: Array.from(editChanges.entries())
+                                                            });
+                                                            // プレビュー表示
+                                                            if (previewValue !== undefined && previewValue !== null && previewValue !== value) {
                                                                 return (
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                        <RoomNameButton onClick={() => handleOpenRoomDrawer(roomId)}>
-                                                                            {roomName}
-                                                                        </RoomNameButton>
-                                                                        {!formatStatus.isCorrect && (
-                                                                            <span style={{
-                                                                                color: '#ff6b6b',
-                                                                                fontSize: '12px',
-                                                                                display: 'flex',
-                                                                                alignItems: 'center',
-                                                                                gap: '4px'
-                                                                            }}>
-                                                                                ⚠️ 推奨: {formatStatus.expected}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
+                                                                    <TableCell key={colIdx} style={{ background: '#fffbe6' }}>
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                                            <span style={{ color: '#d9534f', textDecoration: 'line-through' }}>{String(value)}</span>
+                                                                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>{String(previewValue)}</span>
+                                                                            <span style={{ fontSize: '10px', color: '#ff9800', marginLeft: 2 }}>変更</span>
+                                                                        </div>
+                                                                    </TableCell>
                                                                 );
-                                                            })()}
-                                                        </TableCell>
-                                                        <TableCell>{room[3]}</TableCell>
+                                                            } else {
+                                                                // 通常表示
+                                                                return (
+                                                                    <TableCell key={colIdx}>{String(value ?? '')}</TableCell>
+                                                                );
+                                                            }
+                                                        })}
                                                         <TableCell>
                                                             <ActionButtons>
                                                                 <IconButton
@@ -3064,99 +3175,115 @@ const PropertyPage = () => {
                                     <ReadOnlyTable>
                                         <thead>
                                             <tr>
-                                                {Object.entries(ROOM_FIELD_CONFIG)
-                                                    .map(([field, config], index) => {
-                                                        // 8列目（部屋名）のみを固定
-                                                        const isFixedColumn = index === 7;
-                                                        const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-                                                        // 部屋タイプカラムかどうか
-                                                        // 部屋タイプカラムかどうか
-                                                        const isRoomType = !!config.fromRoomType;
-                                                        // 物件情報カラムかどうか
-                                                        const isProperty = !!config.fromProperty;
-                                                        return (
-                                                            <ReadOnlyTableHeader
-                                                                key={field}
-                                                                className={fixedClass}
-                                                                data-field={field}
-                                                                $roomtype={isRoomType ? 'roomType' : isProperty ? 'property' : 'room'}
-                                                            >
-                                                                <div>
-                                                                    {config.label}
-                                                                    {config.required && <span style={{ color: 'red' }}> *</span>}
-                                                                    {!config.editable && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
-                                                                </div>
-                                                            </ReadOnlyTableHeader>
-                                                        );
-                                                    })}
+                                                {ROOM_TABLE_FIELD_ORDER.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
+                                                    const config = ROOM_FIELD_CONFIG[field];
+                                                    // 8列目（部屋名）のみを固定
+                                                    const isFixedColumn = index === 7;
+                                                    const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                    const isRoomType = !!config.fromRoomType;
+                                                    const isProperty = !!config.fromProperty;
+                                                    return (
+                                                        <ReadOnlyTableHeader
+                                                            key={field}
+                                                            className={fixedClass}
+                                                            data-field={field}
+                                                            $roomtype={isRoomType ? 'roomType' : isProperty ? 'property' : 'room'}
+                                                        >
+                                                            <div>
+                                                                {config.label}
+                                                                {config.required && <span style={{ color: 'red' }}> *</span>}
+                                                                {!config.editable && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
+                                                            </div>
+                                                        </ReadOnlyTableHeader>
+                                                    );
+                                                })}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredDetailedRoomData.map((room) => (
                                                 <tr key={room.id}>
-                                                    {Object.entries(ROOM_FIELD_CONFIG)
-                                                        .map(([field, config], index) => {
-                                                            const cellKey = `${room.id}-${field}`;
-                                                            const hasChange = editChanges.has(cellKey);
-                                                            let originalValue;
-                                                            // 部屋タイプ詳細項目の場合はroom.roomTypeDetailから取得
-                                                            if (config.fromRoomType) {
-                                                                let v = room.roomTypeDetail ? room.roomTypeDetail[config.fromRoomType] : '';
-                                                                // オブジェクト型の場合はvalueプロパティを表示
-                                                                if (v && typeof v === 'object' && 'value' in v) {
-                                                                    originalValue = v.value;
-                                                                } else {
-                                                                    originalValue = v;
-                                                                }
-                                                            }
-                                                            // 物件情報の場合はpropertyステートから取得
-                                                            else if (config.fromProperty) {
-                                                                let v = property ? property[config.fromProperty] : '';
-                                                                // オブジェクト型の場合はvalueプロパティを表示
-                                                                if (v && typeof v === 'object' && 'value' in v) {
-                                                                    originalValue = v.value;
-                                                                } else {
-                                                                    originalValue = v;
-                                                                }
+                                                    {ROOM_TABLE_FIELD_ORDER.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
+                                                        const config = ROOM_FIELD_CONFIG[field];
+                                                        // 部屋タイプ項目の場合はfromRoomType名でcellKeyを作成
+                                                        let cellKey;
+                                                        if (config.fromRoomType) {
+                                                            const idValue = room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id;
+                                                            cellKey = `${idValue}-${config.fromRoomType}`;
+                                                        } else {
+                                                            cellKey = `${room.id}-${field}`;
+                                                        }
+                                                        const hasChange = editChanges.has(cellKey);
+                                                        let originalValue;
+                                                        // 部屋タイプ詳細項目の場合はroom.roomTypeDetailから取得
+                                                        if (config.fromRoomType) {
+                                                            let v = room.roomTypeDetail ? room.roomTypeDetail[config.fromRoomType] : '';
+                                                            if (v && typeof v === 'object' && 'value' in v) {
+                                                                originalValue = v.value;
                                                             } else {
-                                                                originalValue = formatRoomValue(field, room[field]);
+                                                                originalValue = v;
                                                             }
-                                                            const isEditable = config.editable;
-                                                            // 8列目（部屋名）のみを固定
-                                                            const isFixedColumn = index === 7;
-                                                            const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-                                                            const cellClass = [
-                                                                fixedClass,
-                                                                hasChange ? 'changed' : '',
-                                                                config.fromProperty ? 'property-cell' : ''
-                                                            ].filter(Boolean).join(' ');
-                                                            // 部屋タイプカラムの場合はtab: 'roomType', id: room.roomTypeDetail?.id
-                                                            const tabType = config.fromRoomType ? "roomType" : "room";
-                                                            const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
-                                                            return (
-                                                                <ReadOnlyTableCell
-                                                                    key={field}
-                                                                    className={cellClass}
-                                                                    onClick={() => isEditable && handleReadOnlyCellClick(tabType, idValue, field)}
-                                                                    style={{
-                                                                        cursor: isEditable ? 'pointer' : 'default',
-                                                                        backgroundColor: !isEditable ? '#f8f9fa' : undefined
-                                                                    }}
-                                                                >
-                                                                    {originalValue}
-                                                                    {hasChange && (
-                                                                        <>
-                                                                            <ChangePreview>変更</ChangePreview>
-                                                                            <PreviewValue>
-                                                                                <OriginalValue>{originalValue}</OriginalValue>
-                                                                                <Arrow>→</Arrow>
-                                                                                <NewValueEdit>{editChanges.get(cellKey)}</NewValueEdit>
-                                                                            </PreviewValue>
-                                                                        </>
-                                                                    )}
-                                                                </ReadOnlyTableCell>
-                                                            );
-                                                        })}
+                                                        }
+                                                        // 物件情報の場合はpropertyステートから取得
+                                                        else if (config.fromProperty) {
+                                                            let v = property ? property[config.fromProperty] : '';
+                                                            if (v && typeof v === 'object' && 'value' in v) {
+                                                                originalValue = v.value;
+                                                            } else {
+                                                                originalValue = v;
+                                                            }
+                                                        } else {
+                                                            originalValue = formatRoomValue(field, room[field]);
+                                                        }
+                                                        const isEditable = config.editable;
+                                                        const isFixedColumn = index === 7;
+                                                        const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                        const cellClass = [
+                                                            fixedClass,
+                                                            hasChange ? 'changed' : '',
+                                                            config.fromProperty ? 'property-cell' : ''
+                                                        ].filter(Boolean).join(' ');
+                                                        const tabType = config.fromRoomType ? "roomType" : "room";
+                                                        const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
+                                                        // 追加: プレビュー判定時のログ
+                                                        let previewKey = null;
+                                                        if (config.fromRoomType) {
+                                                            previewKey = `${idValue}-${field}`;
+                                                            if (editChanges.has(previewKey)) {
+                                                                console.log('[閲覧テーブル] プレビュー表示', {
+                                                                    previewKey,
+                                                                    previewValue: editChanges.get(previewKey),
+                                                                    originalValue,
+                                                                    field,
+                                                                    idValue
+                                                                });
+                                                            }
+                                                        }
+                                                        // 再レンダリング確認用ログ
+                                                        console.log('[ReadOnlyTableCell render]', { roomId: room.id, field, cellKey, hasChange, originalValue });
+                                                        return (
+                                                            <ReadOnlyTableCell
+                                                                key={field}
+                                                                className={cellClass}
+                                                                onClick={() => isEditable && handleReadOnlyCellClick(tabType, idValue, field)}
+                                                                style={{
+                                                                    cursor: isEditable ? 'pointer' : 'default',
+                                                                    backgroundColor: !isEditable ? '#f8f9fa' : undefined
+                                                                }}
+                                                            >
+                                                                {originalValue}
+                                                                {hasChange && (
+                                                                    <>
+                                                                        <ChangePreview>変更</ChangePreview>
+                                                                        <PreviewValue>
+                                                                            <OriginalValue>{originalValue}</OriginalValue>
+                                                                            <Arrow>→</Arrow>
+                                                                            <NewValueEdit>{editChanges.get(cellKey)}</NewValueEdit>
+                                                                        </PreviewValue>
+                                                                    </>
+                                                                )}
+                                                            </ReadOnlyTableCell>
+                                                        );
+                                                    })}
                                                 </tr>
                                             ))}
                                         </tbody>
