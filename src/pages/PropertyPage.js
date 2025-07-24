@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { apiService } from '../services/apiService';
 import RoomDrawer from '../components/RoomDrawer';
 import RoomTypeDrawer from '../components/RoomTypeDrawer';
+
 import { validatePropertyName } from '../utils/validationUtils';
 
 // 選択肢の定数定義
@@ -1007,6 +1008,8 @@ const PropertyPage = () => {
         setEditSubTab(tab);
         setSelectedEditCell(null);
     }
+
+
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -3339,204 +3342,7 @@ const PropertyPage = () => {
                                     </div>
                                 </TableSectionHeader>
                                 <div style={{ overflowX: 'auto' }}>
-                                    {editSubTab === 'room' && (
-                                        <EditableTable $yellowtheme={true}>
-                                            <thead>
-                                                <tr>
-                                                    {Object.entries(ROOM_INFO_FIELD_CONFIG).map(([field, config]) => (
-                                                        <EditableTableHeader key={field} data-field={field} $yellowtheme={true}>
-                                                            {config.label}
-                                                            {config.required && <span style={{ color: 'red' }}> *</span>}
-                                                        </EditableTableHeader>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {[...detailedRoomData].sort((a, b) => {
-                                                    const nameA = (a.name || '').toLowerCase();
-                                                    const nameB = (b.name || '').toLowerCase();
-                                                    if (nameA < nameB) return -1;
-                                                    if (nameA > nameB) return 1;
-                                                    return 0;
-                                                }).map((room) => (
-                                                    <tr key={room.id}>
-                                                        {Object.entries(ROOM_INFO_FIELD_CONFIG).map(([field, config]) => {
-                                                            const cellKey = `${room.id}-${field}`;
-                                                            const isFocused = selectedEditCell &&
-                                                                selectedEditCell.tab === "room" &&
-                                                                selectedEditCell.id === room.id &&
-                                                                selectedEditCell.field === field;
-                                                            const currentValue = editChanges.get(cellKey) || formatRoomValue(field, room[field]);
-                                                            const isEditable = config.editable;
-                                                            return (
-                                                                <EditableTableCell
-                                                                    key={field}
-                                                                    className={isFocused ? 'focused' : ''}
-                                                                    $yellowtheme={true}
-                                                                    style={{ backgroundColor: !isEditable ? '#f8f9fa' : undefined }}
-                                                                >
-                                                                    {isEditable ? (
-                                                                        config.type === 'select' ? (
-                                                                            <select
-                                                                                value={currentValue}
-                                                                                onChange={(e) => handleEditCellChange(detailedRoomData.findIndex(r => r.id === room.id), field, e.target.value)}
-                                                                                onFocus={() => setSelectedEditCell({ tab: "room", id: room.id, field })}
-                                                                                ref={isFocused ? (el) => el && el.focus() : null}
-                                                                                style={{ width: '100%', border: 'none', background: 'transparent', padding: '4px', fontSize: '13px' }}
-                                                                            >
-                                                                                <option value="">選択してください</option>
-                                                                                {config.options.map(option => (
-                                                                                    <option key={option} value={option}>{option}</option>
-                                                                                ))}
-                                                                            </select>
-                                                                        ) : (
-                                                                            <EditableInput
-                                                                                type={config.type}
-                                                                                value={config.type === 'date' && currentValue ? new Date(currentValue).toISOString().split('T')[0] : currentValue}
-                                                                                onChange={(e) => handleEditCellChange(detailedRoomData.findIndex(r => r.id === room.id), field, e.target.value)}
-                                                                                onFocus={() => setSelectedEditCell({ tab: "room", id: room.id, field })}
-                                                                                ref={isFocused ? (el) => el && el.focus() : null}
-                                                                            />
-                                                                        )
-                                                                    ) : (
-                                                                        <div style={{ padding: '4px', color: '#666' }}>{currentValue}</div>
-                                                                    )}
-                                                                </EditableTableCell>
-                                                            );
-                                                        })}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </EditableTable>
-                                    )}
-                                    {editSubTab === 'roomType' && (
-                                        <EditableTable $greentheme={true}>
-                                            <thead>
-                                                <tr>
-                                                    {Object.entries(ROOM_TYPE_FIELD_CONFIG).map(([field, config]) => (
-                                                        <EditableTableHeader key={field} data-field={field} $greentheme={true}>
-                                                            {config.label}
-                                                            {config.required && <span style={{ color: 'red' }}> *</span>}
-                                                        </EditableTableHeader>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {/* 部屋タイプ情報タブ：roomTypeDetailの重複を除外し、nameで昇順ソート */}
-                                                {(() => {
-                                                    const uniqueRoomTypes = [];
-                                                    const seenIds = new Set();
-                                                    detailedRoomData.forEach((room) => {
-                                                        const rt = room.roomTypeDetail;
-                                                        if (!rt) return;
-                                                        const typeId = rt.room_type_id || rt.id;
-                                                        if (!typeId || seenIds.has(typeId)) return;
-                                                        seenIds.add(typeId);
-                                                        uniqueRoomTypes.push({ roomTypeDetail: rt, id: typeId });
-                                                    });
-                                                    uniqueRoomTypes.sort((a, b) => {
-                                                        const nameA = (a.roomTypeDetail.name || '').toLowerCase();
-                                                        const nameB = (b.roomTypeDetail.name || '').toLowerCase();
-                                                        if (nameA < nameB) return -1;
-                                                        if (nameA > nameB) return 1;
-                                                        return 0;
-                                                    });
-                                                    return uniqueRoomTypes.map((item) => (
-                                                        <tr key={item.id}>
-                                                            {Object.entries(ROOM_TYPE_FIELD_CONFIG).map(([field, config]) => {
-                                                                const cellKey = `${item.id}-${field}`;
-                                                                const isFocused = selectedEditCell &&
-                                                                    selectedEditCell.tab === "roomType" &&
-                                                                    selectedEditCell.id === item.id &&
-                                                                    selectedEditCell.field === field;
-                                                                let currentValue;
-                                                                let v = item.roomTypeDetail ? item.roomTypeDetail[config.fromRoomType] : '';
-                                                                if (v && typeof v === 'object' && 'value' in v) {
-                                                                    currentValue = v.value;
-                                                                } else {
-                                                                    currentValue = v;
-                                                                }
-                                                                if (editChanges.has(cellKey)) {
-                                                                    currentValue = editChanges.get(cellKey);
-                                                                }
-                                                                const isEditable = config.editable;
-                                                                return (
-                                                                    <EditableTableCell
-                                                                        key={field}
-                                                                        className={isFocused ? 'focused' : ''}
-                                                                        $greentheme={true}
-                                                                        style={{ backgroundColor: !isEditable ? '#f8f9fa' : undefined }}
-                                                                    >
-                                                                        {isEditable ? (
-                                                                            config.type === 'select' ? (
-                                                                                <select
-                                                                                    value={currentValue}
-                                                                                    onChange={(e) => handleEditCellChange(-1, field, e.target.value)}
-                                                                                    onFocus={() => setSelectedEditCell({ tab: "roomType", id: item.id, field })}
-                                                                                    ref={isFocused ? (el) => el && el.focus() : null}
-                                                                                    style={{ width: '100%', border: 'none', background: 'transparent', padding: '4px', fontSize: '13px' }}
-                                                                                >
-                                                                                    <option value="">選択してください</option>
-                                                                                    {config.options.map(option => (
-                                                                                        <option key={option} value={option}>{option}</option>
-                                                                                    ))}
-                                                                                </select>
-                                                                            ) : (
-                                                                                <EditableInput
-                                                                                    type={config.type}
-                                                                                    value={config.type === 'date' && currentValue ? new Date(currentValue).toISOString().split('T')[0] : currentValue}
-                                                                                    onChange={(e) => handleEditCellChange(-1, field, e.target.value)}
-                                                                                    onFocus={() => setSelectedEditCell({ tab: "roomType", id: item.id, field })}
-                                                                                    ref={isFocused ? (el) => el && el.focus() : null}
-                                                                                />
-                                                                            )
-                                                                        ) : (
-                                                                            <div style={{ padding: '4px', color: '#666' }}>{currentValue}</div>
-                                                                        )}
-                                                                    </EditableTableCell>
-                                                                );
-                                                            })}
-                                                        </tr>
-                                                    ));
-                                                })()}
-                                            </tbody>
-                                        </EditableTable>
-                                    )}
-                                    {editSubTab === 'property' && (
-                                        <EditableTable>
-                                            <thead>
-                                                <tr>
-                                                    {Object.entries(PROPERTY_FIELD_CONFIG).map(([field, config]) => (
-                                                        <EditableTableHeader key={field} data-field={field}>
-                                                            {config.label}
-                                                            {config.required && <span style={{ color: 'red' }}> *</span>}
-                                                        </EditableTableHeader>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    {Object.entries(PROPERTY_FIELD_CONFIG).map(([field, config]) => {
-                                                        const isEditable = config.editable;
-                                                        const value = property[config.fromProperty] ?? property[field] ?? '';
-                                                        return (
-                                                            <EditableTableCell key={field} style={{ backgroundColor: !isEditable ? '#f8f9fa' : undefined }}>
-                                                                {isEditable ? (
-                                                                    <EditableInput
-                                                                        type={config.type}
-                                                                        value={value}
-                                                                        onChange={(e) => setEditData(prev => ({ ...prev, [field]: e.target.value }))}
-                                                                    />
-                                                                ) : (
-                                                                    <div style={{ padding: '4px', color: '#666' }}>{value}</div>
-                                                                )}
-                                                            </EditableTableCell>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            </tbody>
-                                        </EditableTable>
-                                    )}
+
                                 </div>
                             </TableSection>
 
