@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
+
 import RoomDrawer from '../components/RoomDrawer';
 import RoomTypeDrawer from '../components/RoomTypeDrawer';
+import RoomInfoEditableTable from '../components/RoomInfoEditableTable';
 
 import { validatePropertyName } from '../utils/validationUtils';
 
@@ -1034,85 +1036,63 @@ const PropertyPage = () => {
     // データ編集タブ用の状態
     // { tab: "room" | "roomType", id: string, field: string }
     const [selectedEditCell, setSelectedEditCell] = useState(null);
+    // フォーカス対象セル（部屋ID・フィールド名）
+    const [focusedCell, setFocusedCell] = useState(null);
+    useEffect(() => {
+        if (focusedCell) {
+            console.log('[PropertyPage] focusedCell changed:', focusedCell);
+        }
+    }, [focusedCell]);
+    // 部屋関連カラム一覧（fromRoomTypeやfromPropertyを除外）
+    const ROOM_RELATED_FIELDS = Object.keys(ROOM_INFO_FIELD_CONFIG);
     const [editChanges, setEditChanges] = useState(new Map());
     const [detailedRoomData, setDetailedRoomData] = useState([]);
     const [detailedRoomDataLoading, setDetailedRoomDataLoading] = useState(false);
-
-    // 履歴関連の状態
-    const [historyData, setHistoryData] = useState([]);
-    const [historyLoading, setHistoryLoading] = useState(false);
-    const [historyError, setHistoryError] = useState(null);
-
-    // ドロワー関連の状態
+    // ドロワー・部屋ID
+    const [selectedRoomId, setSelectedRoomId] = useState(roomIdFromUrl || null);
     const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
-    const [selectedRoomId, setSelectedRoomId] = useState(roomIdFromUrl);
-
-    // 部屋タイプドロワー関連の状態
+    // 部屋タイプドロワー
+    const [selectedRoomTypeId, setSelectedRoomTypeId] = useState(roomTypeIdFromUrl || null);
     const [roomTypeDrawerOpen, setRoomTypeDrawerOpen] = useState(!!roomTypeIdFromUrl);
-    const [selectedRoomTypeId, setSelectedRoomTypeId] = useState(roomTypeIdFromUrl);
-
-    // 部屋一覧の検索・ページネーション・選択機能
+    // 部屋タイプリスト
+    const [roomTypes, setRoomTypes] = useState([]);
+    const [roomTypesLoading, setRoomTypesLoading] = useState(false);
+    const [roomTypesError, setRoomTypesError] = useState(null);
+    // 検索・ページネーション・選択
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRooms, setSelectedRooms] = useState(new Set());
     const [selectAll, setSelectAll] = useState(false);
-
-    // 部屋タイプ関連の状態
-    const [roomTypes, setRoomTypes] = useState([]);
-    const [roomTypesLoading, setRoomTypesLoading] = useState(false);
-    const [roomTypesError, setRoomTypesError] = useState(null);
-    const [roomTypeSearchTerm, setRoomTypeSearchTerm] = useState('');
-    const [selectedRoomTypes, setSelectedRoomTypes] = useState(new Set());
-    const [roomTypeSelectAll, setRoomTypeSelectAll] = useState(false);
+    // 部屋タイプページネーション・検索
     const [roomTypeCurrentPage, setRoomTypeCurrentPage] = useState(1);
     const [roomTypeItemsPerPage] = useState(10);
+    const [roomTypeSearchTerm, setRoomTypeSearchTerm] = useState('');
+    const [roomTypeSelectAll, setRoomTypeSelectAll] = useState(false);
+    const [selectedRoomTypes, setSelectedRoomTypes] = useState(new Set());
+    // 履歴
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState(null);
+    const [historyData, setHistoryData] = useState([]);
+    // 一覧ページネーション
+    const [itemsPerPage] = useState(10);
 
-    // ...existing code...
-
-    const itemsPerPage = 10;
-
-    // ドロワーを開く関数
+    // RoomDrawer/RoomTypeDrawerのopen/closeハンドラ
     const handleOpenRoomDrawer = useCallback((roomId) => {
         setSelectedRoomId(roomId);
         setDrawerOpen(true);
-        // URLにroomIdパラメータを追加
-        const newParams = new URLSearchParams(location.search);
-        newParams.set('roomId', roomId);
-        navigate(`${location.pathname}?${newParams.toString()}`, { replace: true });
-    }, [navigate, location.pathname, location.search]);
-
-    // ドロワーを閉じる関数
+    }, []);
     const handleCloseRoomDrawer = useCallback(() => {
         setDrawerOpen(false);
         setSelectedRoomId(null);
-        // URLからroomIdパラメータを削除
-        const newParams = new URLSearchParams(location.search);
-        newParams.delete('roomId');
-        const newSearch = newParams.toString();
-        navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ''}`, { replace: true });
-    }, [navigate, location.pathname, location.search]);
-
-    // 部屋タイプドロワーを開く関数
+    }, []);
     const handleOpenRoomTypeDrawer = useCallback((roomTypeId) => {
         setSelectedRoomTypeId(roomTypeId);
         setRoomTypeDrawerOpen(true);
-        // URLにroomTypeIdパラメータを追加
-        const newParams = new URLSearchParams(location.search);
-        newParams.set('roomTypeId', roomTypeId);
-        navigate(`${location.pathname}?${newParams.toString()}`, { replace: true });
-    }, [navigate, location.pathname, location.search]);
-
-    // 部屋タイプドロワーを閉じる関数
+    }, []);
     const handleCloseRoomTypeDrawer = useCallback(() => {
         setRoomTypeDrawerOpen(false);
         setSelectedRoomTypeId(null);
-        // URLからroomTypeIdパラメータを削除
-        const newParams = new URLSearchParams(location.search);
-        newParams.delete('roomTypeId');
-        const newSearch = newParams.toString();
-        navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ''}`, { replace: true });
-    }, [navigate, location.pathname, location.search]);
-
+    }, []);
     // URLの変更を監視してドロワー状態を同期
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
@@ -1347,6 +1327,11 @@ const PropertyPage = () => {
         const cell = { tab, id, field };
         console.log('selectedEditCell:', cell);
         setSelectedEditCell(cell);
+        // 編集用テーブルのセルフォーカスも同期
+        if (tab === 'room') {
+            setFocusedCell({ rowId: id, field });
+            console.log('[PropertyPage] setFocusedCell:', { rowId: id, field });
+        }
     }, []);
     useEffect(() => {
         if (selectedEditCell && editSubTab !== selectedEditCell.tab) {
@@ -3261,8 +3246,6 @@ const PropertyPage = () => {
                                                                 });
                                                             }
                                                         }
-                                                        // 再レンダリング確認用ログ
-                                                        console.log('[ReadOnlyTableCell render]', { roomId: room.id, field, cellKey, hasChange, originalValue });
                                                         return (
                                                             <ReadOnlyTableCell
                                                                 key={field}
@@ -3343,6 +3326,48 @@ const PropertyPage = () => {
                                 </TableSectionHeader>
                                 <div style={{ overflowX: 'auto' }}>
 
+                                    {/* 部屋情報サブタブ: 編集テーブル */}
+                                    {editSubTab === 'room' && (
+                                        detailedRoomData.length > 0 ? (
+                                            <RoomInfoEditableTable
+                                                detailedRoomData={detailedRoomData}
+                                                columns={[
+                                                    { field: 'id', headerName: '部屋ID', width: 80, editable: false, type: 'number' },
+                                                    { field: 'core_id', headerName: 'core部屋ID', width: 120, editable: false },
+                                                    { field: 'name', headerName: '部屋名', flex: 1, editable: false },
+                                                    { field: 'status', headerName: '進捗', width: 100, editable: true, type: 'singleSelect', valueOptions: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'] },
+                                                    { field: 'lead_property_id', headerName: '物件ID', width: 100, editable: false },
+                                                    { field: 'lead_room_type_id', headerName: '部屋タイプID', width: 120, editable: false },
+                                                    { field: 'create_date', headerName: '部屋登録日', width: 120, editable: false, type: 'date' },
+                                                    { field: 'key_handover_scheduled_date', headerName: '鍵引き渡し予定日', width: 140, editable: true, type: 'date' },
+                                                    { field: 'possible_key_handover_scheduled_date_1', headerName: '鍵引き渡し予定日①', width: 140, editable: true, type: 'date' },
+                                                    { field: 'possible_key_handover_scheduled_date_2', headerName: '鍵引き渡し予定日②', width: 140, editable: true, type: 'date' },
+                                                    { field: 'possible_key_handover_scheduled_date_3', headerName: '鍵引き渡し予定日③', width: 140, editable: true, type: 'date' },
+                                                    { field: 'leaflet_distribution_date', headerName: 'チラシ配布日', width: 120, editable: true, type: 'date' },
+                                                    { field: 'notification_complete_date', headerName: '通知完了日', width: 120, editable: true, type: 'date' },
+                                                    { field: 'contract_collection_date', headerName: '契約書回収予定日', width: 140, editable: true, type: 'date' },
+                                                    { field: 'application_intended_date', headerName: '申請予定日', width: 120, editable: true, type: 'date' },
+                                                    { field: 'user_email', headerName: 'ユーザーEmail', width: 180, editable: false },
+                                                    { field: 'vacate_setup', headerName: '退去SU', width: 100, editable: true, type: 'singleSelect', valueOptions: ['', '一般賃貸中', '退去SU'] },
+                                                    { field: 'room_number', headerName: '部屋番号', width: 100, editable: false },
+                                                    {
+                                                        field: 'actions',
+                                                        headerName: '操作',
+                                                        type: 'actions',
+                                                        width: 90,
+                                                        getActions: (params) => [
+                                                            // ...既存のアクション
+                                                        ],
+                                                    },
+                                                ]}
+                                                focusedCell={focusedCell}
+                                            />
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                                編集可能な部屋データがありません
+                                            </div>
+                                        )
+                                    )}
                                 </div>
                             </TableSection>
 
