@@ -1048,6 +1048,23 @@ const PropertyPage = () => {
     const [editChanges, setEditChanges] = useState(new Map());
     const [detailedRoomData, setDetailedRoomData] = useState([]);
     const [detailedRoomDataLoading, setDetailedRoomDataLoading] = useState(false);
+    // 編集タブ用プレビューrows
+    const [editPreviewRows, setEditPreviewRows] = useState([]);
+    // 部屋名昇順で常にソートするset関数
+    const setEditPreviewRowsSorted = (rows) => {
+        if (!Array.isArray(rows)) {
+            setEditPreviewRows([]);
+            return;
+        }
+        const sorted = [...rows].sort((a, b) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
+        });
+        setEditPreviewRows(sorted);
+    };
     // ドロワー・部屋ID
     const [selectedRoomId, setSelectedRoomId] = useState(roomIdFromUrl || null);
     const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
@@ -3188,7 +3205,7 @@ const PropertyPage = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredDetailedRoomData.map((room) => (
+                                            {(editPreviewRows.length > 0 ? editPreviewRows : filteredDetailedRoomData).map((room) => (
                                                 <tr key={room.id}>
                                                     {ROOM_TABLE_FIELD_ORDER.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
                                                         const config = ROOM_FIELD_CONFIG[field];
@@ -3332,35 +3349,10 @@ const PropertyPage = () => {
                                             <RoomInfoEditableTable
                                                 detailedRoomData={detailedRoomData}
                                                 columns={[
-                                                    { field: 'id', headerName: '部屋ID', width: 80, editable: false, type: 'number' },
-                                                    { field: 'core_id', headerName: 'core部屋ID', width: 120, editable: false },
-                                                    { field: 'name', headerName: '部屋名', flex: 1, editable: false },
-                                                    { field: 'status', headerName: '進捗', width: 100, editable: true, type: 'singleSelect', valueOptions: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'] },
-                                                    { field: 'lead_property_id', headerName: '物件ID', width: 100, editable: false },
-                                                    { field: 'lead_room_type_id', headerName: '部屋タイプID', width: 120, editable: false },
-                                                    { field: 'create_date', headerName: '部屋登録日', width: 120, editable: false, type: 'date' },
-                                                    { field: 'key_handover_scheduled_date', headerName: '鍵引き渡し予定日', width: 140, editable: true, type: 'date' },
-                                                    { field: 'possible_key_handover_scheduled_date_1', headerName: '鍵引き渡し予定日①', width: 140, editable: true, type: 'date' },
-                                                    { field: 'possible_key_handover_scheduled_date_2', headerName: '鍵引き渡し予定日②', width: 140, editable: true, type: 'date' },
-                                                    { field: 'possible_key_handover_scheduled_date_3', headerName: '鍵引き渡し予定日③', width: 140, editable: true, type: 'date' },
-                                                    { field: 'leaflet_distribution_date', headerName: 'チラシ配布日', width: 120, editable: true, type: 'date' },
-                                                    { field: 'notification_complete_date', headerName: '通知完了日', width: 120, editable: true, type: 'date' },
-                                                    { field: 'contract_collection_date', headerName: '契約書回収予定日', width: 140, editable: true, type: 'date' },
-                                                    { field: 'application_intended_date', headerName: '申請予定日', width: 120, editable: true, type: 'date' },
-                                                    { field: 'user_email', headerName: 'ユーザーEmail', width: 180, editable: false },
-                                                    { field: 'vacate_setup', headerName: '退去SU', width: 100, editable: true, type: 'singleSelect', valueOptions: ['', '一般賃貸中', '退去SU'] },
-                                                    { field: 'room_number', headerName: '部屋番号', width: 100, editable: false },
-                                                    {
-                                                        field: 'actions',
-                                                        headerName: '操作',
-                                                        type: 'actions',
-                                                        width: 90,
-                                                        getActions: (params) => [
-                                                            // ...既存のアクション
-                                                        ],
-                                                    },
+                                                    // ...columns定義...
                                                 ]}
                                                 focusedCell={focusedCell}
+                                                onRowsChange={setEditPreviewRowsSorted}
                                             />
                                         ) : (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>

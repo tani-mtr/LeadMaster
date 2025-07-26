@@ -4,17 +4,21 @@ import { Button, Typography, Box } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell }) {
+export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell, onRowsChange }) {
     // データは親から受け取る
     const [rows, setRows] = useState(detailedRoomData);
     const apiRef = useGridApiRef();
     const [rowIdCounter, setRowIdCounter] = useState(detailedRoomData.length + 1);
+
 
     const handleRowEdit = (params) => {
         const updatedRows = rows.map((row) =>
             row.id === params.id ? { ...row, ...params } : row
         );
         setRows(updatedRows);
+        if (typeof onRowsChange === 'function') {
+            onRowsChange(updatedRows);
+        }
     };
 
     const handleProcessRowUpdate = (newRow) => {
@@ -23,7 +27,13 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
     };
 
     const handleDelete = (id) => () => {
-        setRows((prev) => prev.filter((row) => row.id !== id));
+        setRows((prev) => {
+            const updated = prev.filter((row) => row.id !== id);
+            if (typeof onRowsChange === 'function') {
+                onRowsChange(updated);
+            }
+            return updated;
+        });
     };
 
     const handleDuplicate = (id) => () => {
@@ -36,6 +46,9 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
             const newRow = { ...rowToDuplicate, id: newId };
             const newRows = [...prev];
             newRows.splice(idx + 1, 0, newRow);
+            if (typeof onRowsChange === 'function') {
+                onRowsChange(newRows);
+            }
             return newRows;
         });
     };
@@ -43,10 +56,16 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
     const handleAddRow = () => {
         const newId = rowIdCounter;
         setRowIdCounter((c) => c + 1);
-        setRows((prev) => [
-            ...prev,
-            { id: newId, name: `Room ${String.fromCharCode(65 + prev.length)}` }
-        ]);
+        setRows((prev) => {
+            const newRows = [
+                ...prev,
+                { id: newId, name: `Room ${String.fromCharCode(65 + prev.length)}` }
+            ];
+            if (typeof onRowsChange === 'function') {
+                onRowsChange(newRows);
+            }
+            return newRows;
+        });
     };
 
     // PropertyPageのROOM_INFO_FIELD_CONFIG/ROOM_TABLE_FIELD_ORDERより部屋関連カラムのみ追加
