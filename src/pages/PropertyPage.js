@@ -9,6 +9,32 @@ import RoomInfoEditableTable from '../components/RoomInfoEditableTable';
 
 import { validatePropertyName } from '../utils/validationUtils';
 
+// 物件情報カラムのみのcolumns生成関数
+function getPropertyInfoColumnsForEditableTable() {
+    // PROPERTY_FIELD_CONFIGのキー一覧
+    const propertyKeys = Object.keys(PROPERTY_FIELD_CONFIG);
+    // ROOM_TABLE_FIELD_ORDERの順で並べる
+    const orderedKeys = ROOM_TABLE_FIELD_ORDER.filter((key) => propertyKeys.includes(key));
+    // columns配列生成
+    return orderedKeys.map((field) => {
+        const conf = PROPERTY_FIELD_CONFIG[field];
+        let col = {
+            field,
+            headerName: conf.label,
+            editable: !!conf.editable,
+            width: 140,
+        };
+        // 型付与
+        if (conf.type === 'date') col.type = 'date';
+        if (conf.type === 'number') col.type = 'number';
+        if (conf.type === 'select') {
+            col.type = 'singleSelect';
+            col.valueOptions = conf.options || [];
+        }
+        return col;
+    });
+}
+
 // 選択肢の定数定義
 const SELECT_OPTIONS = {
     is_trade: ['', '売買'],
@@ -1009,6 +1035,7 @@ const PropertyPage = () => {
     const handleEditSubTabChange = (tab) => {
         setEditSubTab(tab);
         setSelectedEditCell(null);
+        setFocusedCell(null);
     }
 
 
@@ -1381,17 +1408,35 @@ const PropertyPage = () => {
         const cell = { tab, id, field };
         console.log('selectedEditCell:', cell);
         setSelectedEditCell(cell);
-        // 編集用テーブルのセルフォーカスも同期
-        if (tab === 'room') {
-            setFocusedCell({ rowId: id, field });
-            console.log('[PropertyPage] setFocusedCell:', { rowId: id, field });
-        }
+        // read-only table からは setFocusedCell を呼ばない（編集テーブルのみで呼ぶ）
     }, []);
     useEffect(() => {
         if (selectedEditCell && editSubTab !== selectedEditCell.tab) {
             setEditSubTab(selectedEditCell.tab);
         }
-    }, [selectedEditCell]); // editSubTab依存を外すことで、タブ操作時はhandleEditSubTabChangeで上書き
+    }, [selectedEditCell]);
+
+    // selectedEditCellの内容をfocusedCellに反映（編集テーブルで自動フォーカス・編集モードに入る）
+    useEffect(() => {
+        if (!selectedEditCell) return;
+        // サブタブが切り替わった直後は編集テーブルのrowsがまだ切り替わっていない場合があるので、少し遅延させる
+        const timer = setTimeout(() => {
+            // room, property, roomType でrowIdの決定方法を分岐
+            let rowId = null;
+            if (selectedEditCell.tab === 'room') {
+                rowId = selectedEditCell.id;
+            } else if (selectedEditCell.tab === 'property') {
+                // propertyはrowsが1件のみ、idはproperty.id
+                rowId = property?.id || (editTabRows.property && editTabRows.property[0]?.id);
+            } else if (selectedEditCell.tab === 'roomType') {
+                rowId = selectedEditCell.id;
+            }
+            if (rowId && selectedEditCell.field) {
+                setFocusedCell({ rowId, field: selectedEditCell.field });
+            }
+        }, 100); // 100ms遅延
+        return () => clearTimeout(timer);
+    }, [selectedEditCell, editSubTab, property, editTabRows]);
 
     const handleEditCellChange = useCallback((roomIndex, field, value) => {
         // 部屋タイプ情報タブの場合（roomIndex === -1）
@@ -3341,17 +3386,61 @@ const PropertyPage = () => {
                                 </TableSectionHeader>
                                 <div style={{ overflowX: 'auto' }}>
 
-                                    {/* 部屋情報サブタブ: 編集テーブル */}
+                                    {/* サブタブ: 編集テーブル */}
                                     {editSubTab === 'room' && (
                                         detailedRoomData.length > 0 ? (
                                             <RoomInfoEditableTable
                                                 detailedRoomData={editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData}
                                                 focusedCell={focusedCell}
                                                 onRowsChange={rows => setEditTabRows(prev => ({ ...prev, room: rows }))}
+                                                onCellEditStop={() => setSelectedEditCell(null)}
                                             />
                                         ) : (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                                                 編集可能な部屋データがありません
+                                            </div>
+                                        )
+                                    )}
+                                    {editSubTab === 'property' && (
+                                        property ? (
+                                            (() => {
+                                                // columnsのfield名に合わせてpropertyをマッピング
+                                                const propCols = getPropertyInfoColumnsForEditableTable();
+                                                const mapPropertyToRow = (propertyObj) => {
+                                                    const row = {};
+                                                    propCols.forEach(col => {
+                                                        const conf = PROPERTY_FIELD_CONFIG[col.field];
+                                                        if (conf && conf.fromProperty) {
+                                                            row[col.field] = propertyObj[conf.fromProperty];
+                                                        } else {
+                                                            row[col.field] = propertyObj[col.field];
+                                                        }
+                                                    });
+                                                    // id列は必須
+                                                    if (!row.id && propertyObj.id) row.id = propertyObj.id;
+                                                    return row;
+                                                };
+                                                const mappedRows = (editTabRows.property && Array.isArray(editTabRows.property) && editTabRows.property.length > 0)
+                                                    ? editTabRows.property
+                                                    : [mapPropertyToRow(property)];
+                                                console.log('[PropertyPage] RoomInfoEditableTableへ渡す mapped detailedRoomData:', mappedRows);
+                                                console.log('[PropertyPage] RoomInfoEditableTableへ渡す columns:', propCols);
+                                                return (
+                                                    <RoomInfoEditableTable
+                                                        detailedRoomData={mappedRows}
+                                                        columns={propCols}
+                                                        focusedCell={focusedCell}
+                                                        onRowsChange={rows => {
+                                                            // rowsは必ず1要素配列で管理
+                                                            setEditTabRows(prev => ({ ...prev, property: Array.isArray(rows) ? rows.slice(0, 1) : [] }));
+                                                        }}
+                                                        onCellEditStop={() => setSelectedEditCell(null)}
+                                                    />
+                                                );
+                                            })()
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                                編集可能な物件データがありません
                                             </div>
                                         )
                                     )}

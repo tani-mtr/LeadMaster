@@ -4,7 +4,12 @@ import { Button, Typography, Box } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell, onRowsChange }) {
+export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell, onRowsChange, onCellEditStop }) {
+    // 編集完了時のコールバック
+    const handleCellEditStop = (...args) => {
+        if (onCellEditStop) onCellEditStop(...args);
+    };
+    // データ受け取り直後のログ
     // データは親から受け取る
     const [rows, setRows] = useState(detailedRoomData);
     const apiRef = useGridApiRef();
@@ -127,6 +132,7 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
                     label="削除"
                     onClick={handleDelete(params.id)}
                     showInMenu={false}
+                    onCellEditStop={handleCellEditStop}
                 />
             ],
         },
@@ -141,10 +147,11 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
         }
         return col;
     });
-    // デバッグ用: columnsの内容を出力
+    // DataGrid描画直前のデータを出力
     if (typeof window !== 'undefined') {
         // eslint-disable-next-line no-console
-        console.log('[RoomInfoEditableTable] patchedColumns:', patchedColumns);
+        console.log('[RoomInfoEditableTable] DataGrid描画直前 columns:', patchedColumns);
+        console.log('[RoomInfoEditableTable] DataGrid描画直前 rows:', rows);
     }
 
     // セルフォーカス＆編集モード副作用
@@ -183,6 +190,7 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
                     localeText={GRID_DEFAULT_LOCALE_TEXT}
                     sx={{ backgroundColor: '#FFFDE7' }}
                     apiRef={apiRef}
+                    onCellEditStop={handleCellEditStop}
                 />
             </Box>
         </Box>
