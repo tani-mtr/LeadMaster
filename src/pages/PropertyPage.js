@@ -22,7 +22,8 @@ function getPropertyInfoColumnsForEditableTable() {
             field,
             headerName: conf.label,
             editable: !!conf.editable,
-            width: 140,
+            minWidth: 120,
+            flex: 1,
         };
         // 型付与
         if (conf.type === 'date') col.type = 'date';
@@ -3389,17 +3390,84 @@ const PropertyPage = () => {
                                     {/* サブタブ: 編集テーブル */}
                                     {editSubTab === 'room' && (
                                         detailedRoomData.length > 0 ? (
-                                            <RoomInfoEditableTable
-                                                detailedRoomData={editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData}
-                                                focusedCell={focusedCell}
-                                                onRowsChange={rows => setEditTabRows(prev => ({ ...prev, room: rows }))}
-                                                onCellEditStop={() => setSelectedEditCell(null)}
-                                            />
+                                            (() => {
+                                                // columns生成: RoomInfoEditableTableのデフォルトcolumnsからactions列を除外
+                                                const defaultColumns = require('../components/RoomInfoEditableTable').defaultColumns || [];
+                                                // fallback: actions列を除外する関数
+                                                const getColumnsWithoutActions = (columns) => columns.filter(col => col.field !== 'actions');
+                                                // columnsPropが用意されていれば使う
+                                                let columns = [];
+                                                if (defaultColumns.length > 0) {
+                                                    columns = getColumnsWithoutActions(defaultColumns);
+                                                } else {
+                                                    // fallback: detailedRoomDataの最初のrowからfieldsを推測
+                                                    const row = (editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room[0] : detailedRoomData[0]) || {};
+                                                    columns = Object.keys(row).filter(f => f !== 'actions').map(f => ({ field: f, headerName: f, flex: 1 }));
+                                                }
+                                                return (
+                                                    <RoomInfoEditableTable
+                                                        detailedRoomData={editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData}
+                                                        columns={columns}
+                                                        focusedCell={focusedCell}
+                                                        onRowsChange={rows => setEditTabRows(prev => ({ ...prev, room: rows }))}
+                                                        onCellEditStop={() => setSelectedEditCell(null)}
+                                                    />
+                                                );
+                                            })()
                                         ) : (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                                                 編集可能な部屋データがありません
                                             </div>
                                         )
+                                    )}
+                                    {editSubTab === 'roomType' && (
+                                        (() => {
+                                            // ROOM_TABLE_FIELD_ORDERからroomType系フィールドのみ抽出
+                                            const roomTypeFields = ROOM_TABLE_FIELD_ORDER.filter(f => f.startsWith('roomType_') && ROOM_TYPE_FIELD_CONFIG[f]);
+                                            const columns = roomTypeFields.map(field => {
+                                                const conf = ROOM_TYPE_FIELD_CONFIG[field];
+                                                let col = {
+                                                    field,
+                                                    headerName: conf.label,
+                                                    editable: !!conf.editable,
+                                                    minWidth: 120,
+                                                    flex: 1,
+                                                };
+                                                if (conf.type === 'date') col.type = 'date';
+                                                if (conf.type === 'number') col.type = 'number';
+                                                if (conf.type === 'select') {
+                                                    col.type = 'singleSelect';
+                                                    col.valueOptions = conf.options || [];
+                                                }
+                                                return col;
+                                            });
+                                            // 部屋タイプごとに1行ずつ生成（全roomTypesをベースに）
+                                            const rows = (editTabRows.roomType && editTabRows.roomType.length > 0)
+                                                ? editTabRows.roomType
+                                                : roomTypes.map(rt => {
+                                                    const typeId = rt.room_type_id || rt.id;
+                                                    const row = { id: typeId };
+                                                    roomTypeFields.forEach(field => {
+                                                        const conf = ROOM_TYPE_FIELD_CONFIG[field];
+                                                        row[field] = rt[conf.fromRoomType] ?? '';
+                                                    });
+                                                    return row;
+                                                });
+                                            return rows.length > 0 ? (
+                                                <RoomInfoEditableTable
+                                                    detailedRoomData={rows}
+                                                    columns={columns}
+                                                    focusedCell={focusedCell}
+                                                    onRowsChange={rows => setEditTabRows(prev => ({ ...prev, roomType: rows }))}
+                                                    onCellEditStop={() => setSelectedEditCell(null)}
+                                                    tableColor={'#e6f9e6'}
+                                                />
+                                            ) : (
+                                                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                                    編集可能な部屋タイプデータがありません
+                                                </div>
+                                            );
+                                        })()
                                     )}
                                     {editSubTab === 'property' && (
                                         property ? (
@@ -3435,6 +3503,7 @@ const PropertyPage = () => {
                                                             setEditTabRows(prev => ({ ...prev, property: Array.isArray(rows) ? rows.slice(0, 1) : [] }));
                                                         }}
                                                         onCellEditStop={() => setSelectedEditCell(null)}
+                                                        tableColor={'#e3f2fd'}
                                                     />
                                                 );
                                             })()

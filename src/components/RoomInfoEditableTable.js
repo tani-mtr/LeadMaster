@@ -4,7 +4,28 @@ import { Button, Typography, Box } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell, onRowsChange, onCellEditStop }) {
+export const defaultColumns = [
+    { field: 'id', headerName: '部屋ID', minWidth: 80, editable: false, type: 'number' },
+    { field: 'core_id', headerName: 'core部屋ID', minWidth: 120, flex: 1, editable: false },
+    { field: 'name', headerName: '部屋名', minWidth: 120, flex: 1, editable: false },
+    { field: 'status', headerName: '進捗', minWidth: 100, flex: 1, editable: true, type: 'singleSelect', valueOptions: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'] },
+    { field: 'lead_property_id', headerName: '物件ID', minWidth: 100, flex: 1, editable: false },
+    { field: 'lead_room_type_id', headerName: '部屋タイプID', minWidth: 120, flex: 1, editable: false },
+    { field: 'create_date', headerName: '部屋登録日', minWidth: 120, flex: 1, editable: false, type: 'date' },
+    { field: 'key_handover_scheduled_date', headerName: '鍵引き渡し予定日', minWidth: 140, flex: 1, editable: true, type: 'date' },
+    { field: 'possible_key_handover_scheduled_date_1', headerName: '鍵引き渡し予定日①', minWidth: 140, flex: 1, editable: true, type: 'date' },
+    { field: 'possible_key_handover_scheduled_date_2', headerName: '鍵引き渡し予定日②', minWidth: 140, flex: 1, editable: true, type: 'date' },
+    { field: 'possible_key_handover_scheduled_date_3', headerName: '鍵引き渡し予定日③', minWidth: 140, flex: 1, editable: true, type: 'date' },
+    { field: 'leaflet_distribution_date', headerName: 'チラシ配布日', minWidth: 120, flex: 1, editable: true, type: 'date' },
+    { field: 'notification_complete_date', headerName: '通知完了日', minWidth: 120, flex: 1, editable: true, type: 'date' },
+    { field: 'contract_collection_date', headerName: '契約書回収予定日', minWidth: 140, flex: 1, editable: true, type: 'date' },
+    { field: 'application_intended_date', headerName: '申請予定日', minWidth: 120, flex: 1, editable: true, type: 'date' },
+    { field: 'user_email', headerName: 'ユーザーEmail', minWidth: 180, flex: 1, editable: false },
+    { field: 'vacate_setup', headerName: '退去SU', minWidth: 100, flex: 1, editable: true, type: 'singleSelect', valueOptions: ['', '一般賃貸中', '退去SU'] },
+    { field: 'room_number', headerName: '部屋番号', minWidth: 100, flex: 1, editable: false }
+];
+
+export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell, onRowsChange, onCellEditStop, tableColor }) {
     // 編集完了時のコールバック
     const handleCellEditStop = (...args) => {
         if (onCellEditStop) onCellEditStop(...args);
@@ -97,29 +118,29 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
 
 
     const columns = [
-        { field: 'id', headerName: '部屋ID', width: 80, editable: false, type: 'number' },
-        { field: 'core_id', headerName: 'core部屋ID', width: 120, editable: false },
-        { field: 'name', headerName: '部屋名', flex: 1, editable: false },
-        { field: 'status', headerName: '進捗', width: 100, editable: true, type: 'singleSelect', valueOptions: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'] },
-        { field: 'lead_property_id', headerName: '物件ID', width: 100, editable: false },
-        { field: 'lead_room_type_id', headerName: '部屋タイプID', width: 120, editable: false },
-        { field: 'create_date', headerName: '部屋登録日', width: 120, editable: false, type: 'date', valueGetter: dateValueGetter },
-        { field: 'key_handover_scheduled_date', headerName: '鍵引き渡し予定日', width: 140, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'possible_key_handover_scheduled_date_1', headerName: '鍵引き渡し予定日①', width: 140, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'possible_key_handover_scheduled_date_2', headerName: '鍵引き渡し予定日②', width: 140, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'possible_key_handover_scheduled_date_3', headerName: '鍵引き渡し予定日③', width: 140, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'leaflet_distribution_date', headerName: 'チラシ配布日', width: 120, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'notification_complete_date', headerName: '通知完了日', width: 120, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'contract_collection_date', headerName: '契約書回収予定日', width: 140, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'application_intended_date', headerName: '申請予定日', width: 120, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'user_email', headerName: 'ユーザーEmail', width: 180, editable: false },
-        { field: 'vacate_setup', headerName: '退去SU', width: 100, editable: true, type: 'singleSelect', valueOptions: ['', '一般賃貸中', '退去SU'] },
-        { field: 'room_number', headerName: '部屋番号', width: 100, editable: false },
+        { field: 'id', headerName: '部屋ID', minWidth: 80, editable: false, type: 'number' },
+        { field: 'core_id', headerName: 'core部屋ID', minWidth: 120, flex: 1, editable: false },
+        { field: 'name', headerName: '部屋名', minWidth: 120, flex: 1, editable: false },
+        { field: 'status', headerName: '進捗', minWidth: 100, flex: 1, editable: true, type: 'singleSelect', valueOptions: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'] },
+        { field: 'lead_property_id', headerName: '物件ID', minWidth: 100, flex: 1, editable: false },
+        { field: 'lead_room_type_id', headerName: '部屋タイプID', minWidth: 120, flex: 1, editable: false },
+        { field: 'create_date', headerName: '部屋登録日', minWidth: 120, flex: 1, editable: false, type: 'date', valueGetter: dateValueGetter },
+        { field: 'key_handover_scheduled_date', headerName: '鍵引き渡し予定日', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'possible_key_handover_scheduled_date_1', headerName: '鍵引き渡し予定日①', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'possible_key_handover_scheduled_date_2', headerName: '鍵引き渡し予定日②', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'possible_key_handover_scheduled_date_3', headerName: '鍵引き渡し予定日③', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'leaflet_distribution_date', headerName: 'チラシ配布日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'notification_complete_date', headerName: '通知完了日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'contract_collection_date', headerName: '契約書回収予定日', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'application_intended_date', headerName: '申請予定日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'user_email', headerName: 'ユーザーEmail', minWidth: 180, flex: 1, editable: false },
+        { field: 'vacate_setup', headerName: '退去SU', minWidth: 100, flex: 1, editable: true, type: 'singleSelect', valueOptions: ['', '一般賃貸中', '退去SU'] },
+        { field: 'room_number', headerName: '部屋番号', minWidth: 100, flex: 1, editable: false },
         {
             field: 'actions',
             headerName: '操作',
             type: 'actions',
-            width: 90,
+            minWidth: 90,
             getActions: (params) => [
                 <GridActionsCellItem
                     icon={<ContentCopyIcon fontSize="small" />}
@@ -139,13 +160,38 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
     ];
 
     // columnsPropが未定義や空配列の場合はデフォルトcolumnsを使う
+    // 受け取ったcolumnsPropにもflex:1とminWidthを付与（ID/操作列以外）
     const baseColumns = (columnsProp && columnsProp.length > 0) ? columnsProp : columns;
-    // date型にはvalueGetterを必ず付与
+    // 各カラムの最大内容長からwidthを動的に決定
+    const getMaxContentLength = (field, headerName) => {
+        const headerLen = headerName ? String(headerName).length : 0;
+        const maxCellLen = rows.reduce((max, row) => {
+            const val = row[field];
+            if (val == null) return max;
+            return Math.max(max, String(val).length);
+        }, 0);
+        return Math.max(headerLen, maxCellLen);
+    };
     const patchedColumns = baseColumns.map((col) => {
-        if (col.type === 'date' && !col.valueGetter) {
-            return { ...col, valueGetter: dateValueGetter };
+        let newCol = { ...col };
+        // date型にはvalueGetterを必ず付与
+        if (newCol.type === 'date' && !newCol.valueGetter) {
+            newCol.valueGetter = dateValueGetter;
         }
-        return col;
+        // IDや操作列以外は内容長に応じてwidthを決定
+        if (!['id', 'actions'].includes(newCol.field)) {
+            const maxLen = getMaxContentLength(newCol.field, newCol.headerName);
+            // 1文字あたり12px+余白40pxで計算
+            newCol.width = Math.max(80, Math.min(600, maxLen * 12 + 40));
+            delete newCol.flex;
+            delete newCol.minWidth;
+        } else {
+            // idやactionsは固定幅
+            newCol.width = newCol.width || 80;
+            delete newCol.flex;
+            delete newCol.minWidth;
+        }
+        return newCol;
     });
     // DataGrid描画直前のデータを出力
     if (typeof window !== 'undefined') {
@@ -178,7 +224,7 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
     }, [focusedCell, apiRef]);
 
     return (
-        <Box sx={{ p: 2, width: '100%', fontFamily: 'monospace', backgroundColor: '#FFFDE7', borderRadius: 2 }}>
+        <Box sx={{ p: 2, width: '100%', fontFamily: 'monospace', backgroundColor: tableColor || '#FFFDE7', borderRadius: 2 }}>
             <Box sx={{ height: 500, width: '100%' }}>
                 <DataGrid
                     rows={rows}
@@ -188,7 +234,7 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
                     processRowUpdate={handleProcessRowUpdate}
                     experimentalFeatures={{ newEditingApi: true }}
                     localeText={GRID_DEFAULT_LOCALE_TEXT}
-                    sx={{ backgroundColor: '#FFFDE7' }}
+                    sx={{ backgroundColor: tableColor || '#FFFDE7' }}
                     apiRef={apiRef}
                     onCellEditStop={handleCellEditStop}
                 />
