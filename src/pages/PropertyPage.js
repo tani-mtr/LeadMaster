@@ -1047,24 +1047,61 @@ const PropertyPage = () => {
     const ROOM_RELATED_FIELDS = Object.keys(ROOM_INFO_FIELD_CONFIG);
     const [editChanges, setEditChanges] = useState(new Map());
     const [detailedRoomData, setDetailedRoomData] = useState([]);
-    const [detailedRoomDataLoading, setDetailedRoomDataLoading] = useState(false);
-    // 編集タブ用プレビューrows
-    const [editPreviewRows, setEditPreviewRows] = useState([]);
-    // 部屋名昇順で常にソートするset関数
-    const setEditPreviewRowsSorted = (rows) => {
-        if (!Array.isArray(rows)) {
-            setEditPreviewRows([]);
-            return;
-        }
-        const sorted = [...rows].sort((a, b) => {
-            const nameA = (a.name || '').toLowerCase();
-            const nameB = (b.name || '').toLowerCase();
-            if (nameA < nameB) return -1;
-            if (nameA > nameB) return 1;
-            return 0;
+    // 編集タブ用: 編集後のrowsを保持
+    // サブタブごとに編集内容を保持
+    const [editTabRows, setEditTabRows] = useState({}); // { room: [...], roomType: [...], property: [...] }
+
+    // 差分判定: 元データと編集後rowsを比較し、変更セルを特定
+    function getChangedCells(originalRows, editedRows) {
+        const changed = {};
+        const origMap = {};
+        originalRows.forEach(row => { origMap[row.id] = row; });
+        editedRows.forEach(row => {
+            const orig = origMap[row.id];
+            if (!orig) return;
+            Object.keys(row).forEach(field => {
+                if (row[field] !== orig[field]) {
+                    if (!changed[row.id]) changed[row.id] = {};
+                    changed[row.id][field] = true;
+                }
+            });
         });
-        setEditPreviewRows(sorted);
-    };
+        return changed;
+    }
+
+    // 編集タブでのみ: プレビュー用rowsと差分
+    // サブタブごとに編集内容を保持
+    const isEditTab = activeTab === 'edit';
+    // 現在のサブタブの編集内容
+    const currentEditRows = editTabRows[editSubTab] || null;
+    // プレビュー内容をサブタブ切り替えで維持するためのstate
+    const [previewRows, setPreviewRows] = useState([]);
+
+    // 編集内容やデータが変わったときのみプレビューを更新（サブタブ切り替え時は更新しない）
+    // 編集内容やAPIデータが更新されたときだけプレビューを上書きし、サブタブ切り替えでは消さない
+    useEffect(() => {
+        if (isEditTab) {
+            // 編集内容があればそれを、なければAPIデータ
+            const rows = editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData;
+            if (rows && rows.length > 0) {
+                setPreviewRows([...rows].sort((a, b) => {
+                    const nameA = (a.name || '').toString();
+                    const nameB = (b.name || '').toString();
+                    return nameA.localeCompare(nameB, 'ja', { numeric: true, sensitivity: 'base' });
+                }));
+            } else {
+                setPreviewRows([]);
+            }
+        } else {
+            setPreviewRows([]);
+        }
+    }, [isEditTab, detailedRoomData, editTabRows.room]);
+    // プレビュー内容とAPI取得直後のデータで差分判定
+    const changedCells = useMemo(() => {
+        if (!isEditTab || !detailedRoomData || !previewRows) return {};
+        return getChangedCells(detailedRoomData, previewRows);
+    }, [isEditTab, detailedRoomData, previewRows]);
+    const [detailedRoomDataLoading, setDetailedRoomDataLoading] = useState(false);
     // ドロワー・部屋ID
     const [selectedRoomId, setSelectedRoomId] = useState(roomIdFromUrl || null);
     const [drawerOpen, setDrawerOpen] = useState(!!roomIdFromUrl);
@@ -2084,18 +2121,20 @@ const PropertyPage = () => {
 
     // ...existing code...
 
-    // 詳細部屋データは部屋名昇順で全件表示
+    // 詳細部屋データは部屋名昇順で全件表示（activeTab === 'edit' のときは必ず昇順）
     const filteredDetailedRoomData = useMemo(() => {
         if (!detailedRoomData) return [];
-        // 部屋名（name）で昇順ソート
-        return [...detailedRoomData].sort((a, b) => {
-            const nameA = (a.name || '').toLowerCase();
-            const nameB = (b.name || '').toLowerCase();
-            if (nameA < nameB) return -1;
-            if (nameA > nameB) return 1;
-            return 0;
-        });
-    }, [detailedRoomData]);
+        // activeTab === 'edit' のときは常に部屋名昇順
+        if (activeTab === 'edit') {
+            return [...detailedRoomData].sort((a, b) => {
+                const nameA = (a.name || '').toString();
+                const nameB = (b.name || '').toString();
+                return nameA.localeCompare(nameB, 'ja', { numeric: true, sensitivity: 'base' });
+            });
+        }
+        // それ以外はそのまま返す（必要なら他タブ用のソートを追加）
+        return detailedRoomData;
+    }, [detailedRoomData, activeTab]);
 
 
     if (loading) {
@@ -3205,85 +3244,44 @@ const PropertyPage = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {(editPreviewRows.length > 0 ? editPreviewRows : filteredDetailedRoomData).map((room) => (
+                                            {previewRows.map((room) => (
                                                 <tr key={room.id}>
                                                     {ROOM_TABLE_FIELD_ORDER.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
                                                         const config = ROOM_FIELD_CONFIG[field];
-                                                        // 部屋タイプ項目の場合はfromRoomType名でcellKeyを作成
-                                                        let cellKey;
-                                                        if (config.fromRoomType) {
-                                                            const idValue = room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id;
-                                                            cellKey = `${idValue}-${config.fromRoomType}`;
-                                                        } else {
-                                                            cellKey = `${room.id}-${field}`;
-                                                        }
-                                                        const hasChange = editChanges.has(cellKey);
-                                                        let originalValue;
-                                                        // 部屋タイプ詳細項目の場合はroom.roomTypeDetailから取得
-                                                        if (config.fromRoomType) {
-                                                            let v = room.roomTypeDetail ? room.roomTypeDetail[config.fromRoomType] : '';
-                                                            if (v && typeof v === 'object' && 'value' in v) {
-                                                                originalValue = v.value;
-                                                            } else {
-                                                                originalValue = v;
-                                                            }
-                                                        }
-                                                        // 物件情報の場合はpropertyステートから取得
-                                                        else if (config.fromProperty) {
-                                                            let v = property ? property[config.fromProperty] : '';
-                                                            if (v && typeof v === 'object' && 'value' in v) {
-                                                                originalValue = v.value;
-                                                            } else {
-                                                                originalValue = v;
-                                                            }
-                                                        } else {
-                                                            originalValue = formatRoomValue(field, room[field]);
-                                                        }
-                                                        const isEditable = config.editable;
                                                         const isFixedColumn = index === 7;
                                                         const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-                                                        const cellClass = [
-                                                            fixedClass,
-                                                            hasChange ? 'changed' : '',
-                                                            config.fromProperty ? 'property-cell' : ''
-                                                        ].filter(Boolean).join(' ');
                                                         const tabType = config.fromRoomType ? "roomType" : "room";
                                                         const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
-                                                        // 追加: プレビュー判定時のログ
-                                                        let previewKey = null;
-                                                        if (config.fromRoomType) {
-                                                            previewKey = `${idValue}-${field}`;
-                                                            if (editChanges.has(previewKey)) {
-                                                                console.log('[閲覧テーブル] プレビュー表示', {
-                                                                    previewKey,
-                                                                    previewValue: editChanges.get(previewKey),
-                                                                    originalValue,
-                                                                    field,
-                                                                    idValue
-                                                                });
-                                                            }
+                                                        // 差分判定
+                                                        const isChanged = changedCells[room.id]?.[field];
+                                                        const cellClass = [
+                                                            fixedClass,
+                                                            isChanged ? 'changed' : '',
+                                                            config.fromProperty ? 'property-cell' : ''
+                                                        ].filter(Boolean).join(' ');
+                                                        // 値取得
+                                                        let value = room[field];
+                                                        if (config.fromRoomType && room.roomTypeDetail) {
+                                                            value = room.roomTypeDetail[config.fromRoomType];
+                                                        } else if (config.fromProperty && property) {
+                                                            value = property[config.fromProperty];
+                                                        }
+                                                        // object({value: ...})ならvalueのみ表示、それ以外はそのまま
+                                                        let displayValue = value;
+                                                        if (displayValue && typeof displayValue === 'object' && 'value' in displayValue) {
+                                                            displayValue = displayValue.value;
                                                         }
                                                         return (
                                                             <ReadOnlyTableCell
                                                                 key={field}
                                                                 className={cellClass}
-                                                                onClick={() => isEditable && handleReadOnlyCellClick(tabType, idValue, field)}
+                                                                onClick={() => config.editable && handleReadOnlyCellClick(tabType, idValue, field)}
                                                                 style={{
-                                                                    cursor: isEditable ? 'pointer' : 'default',
-                                                                    backgroundColor: !isEditable ? '#f8f9fa' : undefined
+                                                                    cursor: config.editable ? 'pointer' : 'default',
+                                                                    backgroundColor: !config.editable ? '#f8f9fa' : undefined
                                                                 }}
                                                             >
-                                                                {originalValue}
-                                                                {hasChange && (
-                                                                    <>
-                                                                        <ChangePreview>変更</ChangePreview>
-                                                                        <PreviewValue>
-                                                                            <OriginalValue>{originalValue}</OriginalValue>
-                                                                            <Arrow>→</Arrow>
-                                                                            <NewValueEdit>{editChanges.get(cellKey)}</NewValueEdit>
-                                                                        </PreviewValue>
-                                                                    </>
-                                                                )}
+                                                                {displayValue}
                                                             </ReadOnlyTableCell>
                                                         );
                                                     })}
@@ -3347,12 +3345,9 @@ const PropertyPage = () => {
                                     {editSubTab === 'room' && (
                                         detailedRoomData.length > 0 ? (
                                             <RoomInfoEditableTable
-                                                detailedRoomData={detailedRoomData}
-                                                columns={[
-                                                    // ...columns定義...
-                                                ]}
+                                                detailedRoomData={editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData}
                                                 focusedCell={focusedCell}
-                                                onRowsChange={setEditPreviewRowsSorted}
+                                                onRowsChange={rows => setEditTabRows(prev => ({ ...prev, room: rows }))}
                                             />
                                         ) : (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>

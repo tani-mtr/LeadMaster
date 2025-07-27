@@ -16,25 +16,26 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
             row.id === params.id ? { ...row, ...params } : row
         );
         setRows(updatedRows);
-        if (typeof onRowsChange === 'function') {
+        if (onRowsChange) {
             onRowsChange(updatedRows);
         }
     };
+
 
     const handleProcessRowUpdate = (newRow) => {
         handleRowEdit(newRow);
         return newRow;
     };
 
+
     const handleDelete = (id) => () => {
-        setRows((prev) => {
-            const updated = prev.filter((row) => row.id !== id);
-            if (typeof onRowsChange === 'function') {
-                onRowsChange(updated);
-            }
-            return updated;
-        });
+        const updatedRows = rows.filter((row) => row.id !== id);
+        setRows(updatedRows);
+        if (onRowsChange) {
+            onRowsChange(updatedRows);
+        }
     };
+
 
     const handleDuplicate = (id) => () => {
         const rowToDuplicate = rows.find((row) => row.id === id);
@@ -46,12 +47,13 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
             const newRow = { ...rowToDuplicate, id: newId };
             const newRows = [...prev];
             newRows.splice(idx + 1, 0, newRow);
-            if (typeof onRowsChange === 'function') {
+            if (onRowsChange) {
                 onRowsChange(newRows);
             }
             return newRows;
         });
     };
+
 
     const handleAddRow = () => {
         const newId = rowIdCounter;
@@ -61,7 +63,7 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
                 ...prev,
                 { id: newId, name: `Room ${String.fromCharCode(65 + prev.length)}` }
             ];
-            if (typeof onRowsChange === 'function') {
+            if (onRowsChange) {
                 onRowsChange(newRows);
             }
             return newRows;
