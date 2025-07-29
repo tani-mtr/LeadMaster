@@ -75,34 +75,34 @@ const ROOM_INFO_FIELD_CONFIG = {
 
 // 物件情報用フィールド
 const PROPERTY_FIELD_CONFIG = {
-    property_name: { label: '物件名', type: 'text', editable: false, fromProperty: 'name' },
     property_id: { label: '物件ID', type: 'text', editable: false, fromProperty: 'id' },
-    property_tag: { label: 'タグ', type: 'text', editable: false, fromProperty: 'tag' },
-    property_is_trade: { label: '売買', type: 'text', editable: false, fromProperty: 'is_trade' },
-    property_is_lease: { label: '借上', type: 'text', editable: false, fromProperty: 'is_lease' },
-    property_lead_from: { label: 'lead元', type: 'text', editable: false, fromProperty: 'lead_from' },
-    property_is_fund: { label: 'ファンド物件', type: 'text', editable: false, fromProperty: 'is_fund' },
-    property_lead_channel: { label: 'Leadチャネル', type: 'text', editable: false, fromProperty: 'lead_channel' },
-    property_trade_form: { label: '取引形態', type: 'text', editable: false, fromProperty: 'trade_form' },
-    property_lead_from_representative: { label: '先方担当', type: 'text', editable: false, fromProperty: 'lead_from_representative' },
-    property_lead_from_representative_phone: { label: '担当者tel', type: 'text', editable: false, fromProperty: 'lead_from_representative_phone' },
-    property_lead_from_representative_email: { label: '担当者mail', type: 'text', editable: false, fromProperty: 'lead_from_representative_email' },
-    property_folder: { label: '建物フォルダ', type: 'text', editable: false, fromProperty: 'folder' },
+    property_name: { label: '物件名', type: 'text', editable: true, fromProperty: 'name' },
+    property_tag: { label: 'タグ', type: 'text', editable: true, fromProperty: 'tag' },
+    property_is_trade: { label: '売買', type: 'text', editable: true, fromProperty: 'is_trade' },
+    property_is_lease: { label: '借上', type: 'text', editable: true, fromProperty: 'is_lease' },
+    property_lead_from: { label: 'lead元', type: 'text', editable: true, fromProperty: 'lead_from' },
+    property_is_fund: { label: 'ファンド物件', type: 'text', editable: true, fromProperty: 'is_fund' },
+    property_lead_channel: { label: 'Leadチャネル', type: 'text', editable: true, fromProperty: 'lead_channel' },
+    property_trade_form: { label: '取引形態', type: 'text', editable: true, fromProperty: 'trade_form' },
+    property_lead_from_representative: { label: '先方担当', type: 'text', editable: true, fromProperty: 'lead_from_representative' },
+    property_lead_from_representative_phone: { label: '担当者tel', type: 'text', editable: true, fromProperty: 'lead_from_representative_phone' },
+    property_lead_from_representative_email: { label: '担当者mail', type: 'text', editable: true, fromProperty: 'lead_from_representative_email' },
+    property_folder: { label: '建物フォルダ', type: 'text', editable: true, fromProperty: 'folder' },
     property_serial_number: { label: 'シリアルナンバー', type: 'text', editable: false, fromProperty: 'serial_number' },
-    property_mt_representative: { label: 'MT担当', type: 'text', editable: false, fromProperty: 'mt_representative' },
+    property_note: { label: '備考', type: 'text', editable: true, fromProperty: 'note' },
+    property_mt_representative: { label: 'MT担当', type: 'text', editable: true, fromProperty: 'mt_representative' },
     property_create_date: { label: '建物登録日', type: 'text', editable: false, fromProperty: 'create_date' },
-    property_information_acquisition_date: { label: '情報取得日', type: 'date', editable: false, fromProperty: 'information_acquisition_date' },
-    property_latest_inventory_confirmation_date: { label: '最終在庫確認日', type: 'date', editable: false, fromProperty: 'latest_inventory_confirmation_date' },
-    property_num_of_occupied_rooms: { label: '入居中室数', type: 'number', editable: false, fromProperty: 'num_of_occupied_rooms' },
-    property_num_of_vacant_rooms: { label: '空室数', type: 'number', editable: false, fromProperty: 'num_of_vacant_rooms' },
-    property_num_of_rooms_without_furniture: { label: '家具なし部屋数', type: 'number', editable: false, fromProperty: 'num_of_rooms_without_furniture' },
-    property_minpaku_feasibility: { label: '民泊可否', type: 'text', editable: false, fromProperty: 'minpaku_feasibility' },
-    property_sp_feasibility: { label: 'SP可否', type: 'text', editable: false, fromProperty: 'sp_feasibility' },
-    property_done_property_viewing: { label: '内見', type: 'text', editable: false, fromProperty: 'done_property_viewing' },
-    property_torikago: { label: '鳥籠', type: 'text', editable: false, fromProperty: 'torikago' },
-    property_key_handling_date: { label: '鍵引き渡し日', type: 'date', editable: false, fromProperty: 'key_handling_date' },
-    property_done_antisocial_check: { label: '反社チェック有無', type: 'text', editable: false, fromProperty: 'done_antisocial_check' },
-    property_note: { label: '備考', type: 'text', editable: false, fromProperty: 'note' },
+    property_information_acquisition_date: { label: '情報取得日', type: 'date', editable: true, fromProperty: 'information_acquisition_date' },
+    property_latest_inventory_confirmation_date: { label: '最終在庫確認日', type: 'date', editable: true, fromProperty: 'latest_inventory_confirmation_date' },
+    property_num_of_occupied_rooms: { label: '入居中室数', type: 'number', editable: true, fromProperty: 'num_of_occupied_rooms' },
+    property_num_of_vacant_rooms: { label: '空室数', type: 'number', editable: true, fromProperty: 'num_of_vacant_rooms' },
+    property_num_of_rooms_without_furniture: { label: '家具なし部屋数', type: 'number', editable: true, fromProperty: 'num_of_rooms_without_furniture' },
+    property_minpaku_feasibility: { label: '民泊可否', type: 'text', editable: true, fromProperty: 'minpaku_feasibility' },
+    property_sp_feasibility: { label: 'SP可否', type: 'text', editable: true, fromProperty: 'sp_feasibility' },
+    property_done_property_viewing: { label: '内見', type: 'text', editable: true, fromProperty: 'done_property_viewing' },
+    property_torikago: { label: '鳥籠', type: 'text', editable: true, fromProperty: 'torikago' },
+    property_key_handling_date: { label: '鍵引き渡し日', type: 'date', editable: true, fromProperty: 'key_handling_date' },
+    property_done_antisocial_check: { label: '反社チェック有無', type: 'text', editable: true, fromProperty: 'done_antisocial_check' },
 };
 
 // 部屋タイプ情報用フィールド
@@ -816,11 +816,7 @@ const ReadOnlyTableCell = styled.td`
   white-space: nowrap; /* 追加: 改行を防ぐ */
   overflow: hidden; /* 追加: はみ出したテキストを隠す */
   text-overflow: ellipsis; /* 追加: はみ出したテキストを「...」で表示 */
-  
-  /* 物件情報セルの背景色 */
-  &.property-cell {
-    background-color: #fff0f0;
-  }
+
   
   &:hover {
     background: #e3f2fd;
@@ -993,18 +989,14 @@ const EditableInput = styled.input`
     outline: none;
     background: white;
     border: 1px solid #2196f3;
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #ff5722;
+    color: white;
+    font-size: 10px;
+    padding: 2px 4px;
     border-radius: 3px;
-  }
-`;
-const ChangePreview = styled.div`
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  background: #ff5722;
-  color: white;
-  font-size: 10px;
-  padding: 2px 4px;
-  border-radius: 3px;
   z-index: 1;
 `;
 const PreviewValue = styled.div`
