@@ -827,7 +827,7 @@ const ReadOnlyTableCell = styled.td`
   }
   
   &.changed {
-    background: linear-gradient(135deg, #fdf0c5ff 0%, #ffffff 100%);
+    background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
   }
   
   /* 8列目（部屋名）のみを固定 */
@@ -846,7 +846,7 @@ const ReadOnlyTableCell = styled.td`
   
   /* 変更があった場合の背景色を固定列でも適用 */
   &.fixed-column.changed {
-    background: linear-gradient(135deg, #fdf0c5ff 0%, #ffffff 100%);
+    background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
   }
   
   &.fixed-column:hover {
@@ -2358,7 +2358,8 @@ const PropertyPage = () => {
                                         value={editData.is_trade || ''}
                                         onChange={(e) => handleInputChange('is_trade', e.target.value)}
                                         style={{
-                                            backgroundColor: editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) ? '#ffebaa' : 'white'
+                                            backgroundColor: editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) ? '#fff3cd' : 'white',
+                                            borderColor: editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) ? '#ffc107' : '#ddd'
                                         }}
                                     >
                                         {editData.is_trade && !SELECT_OPTIONS.is_trade.includes(editData.is_trade) && (
@@ -3030,6 +3031,15 @@ const PropertyPage = () => {
                                                             });
                                                             // プレビュー表示
                                                             if (previewValue !== undefined && previewValue !== null && previewValue !== value) {
+                                                                return (
+                                                                    <TableCell key={colIdx} style={{ background: '#fffbe6' }}>
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                                            <span style={{ color: '#d9534f', textDecoration: 'line-through' }}>{String(value)}</span>
+                                                                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>{String(previewValue)}</span>
+                                                                            <span style={{ fontSize: '10px', color: '#ff9800', marginLeft: 2 }}>変更</span>
+                                                                        </div>
+                                                                    </TableCell>
+                                                                );
                                                             } else {
                                                                 // 通常表示
                                                                 return (
@@ -3374,8 +3384,7 @@ const PropertyPage = () => {
                                                         let isChanged = changedCells[room.id]?.[field];
                                                         if (config.fromProperty) {
                                                             const originalValue = property ? property[config.fromProperty] : undefined;
-                                                            const editedValue = propertyEdit[field] !== undefined ? propertyEdit[field]
-                                                                : (propertyEdit[config.fromProperty] !== undefined ? propertyEdit[config.fromProperty] : undefined);
+                                                            const editedValue = propertyEdit[field] !== undefined ? propertyEdit[field] : propertyEdit[config.fromProperty];
                                                             isChanged = editedValue !== undefined && editedValue !== originalValue;
                                                         }
                                                         const cellClass = [
@@ -3384,19 +3393,28 @@ const PropertyPage = () => {
                                                             config.fromProperty ? 'property-cell' : ''
                                                         ].filter(Boolean).join(' ');
                                                         if (isChanged && previewValue !== undefined && previewValue !== displayValue) {
-                                                        return (
-                                                            <ReadOnlyTableCell
-                                                                key={field}
-                                                                className={cellClass}
-                                                                onClick={() => config.editable && handleReadOnlyCellClick(tabType, idValue, field)}
-                                                                style={{
-                                                                    cursor: config.editable ? 'pointer' : 'default',
-                                                                    backgroundColor: !config.editable ? '#f8f9fa' : undefined
-                                                                }}
-                                                            >
-                                                                {displayValue}
-                                                            </ReadOnlyTableCell>
-                                                        );
+                                                            return (
+                                                                <ReadOnlyTableCell key={field} className={cellClass}>
+                                                                    <div>
+                                                                        <span style={{ color: '#d9534f', textDecoration: 'line-through' }}>{String(displayValue)}</span>
+                                                                        <span style={{ color: '#28a745', fontWeight: 'bold' }}>{String(previewValue)}</span>
+                                                                    </div>
+                                                                </ReadOnlyTableCell>
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <ReadOnlyTableCell
+                                                                    key={field}
+                                                                    className={cellClass}
+                                                                    onClick={() => config.editable && handleReadOnlyCellClick(tabType, idValue, field)}
+                                                                    style={{
+                                                                        cursor: config.editable ? 'pointer' : 'default',
+                                                                        backgroundColor: !config.editable ? '#f8f9fa' : undefined
+                                                                    }}
+                                                                >
+                                                                    {displayValue}
+                                                                </ReadOnlyTableCell>
+                                                            );
                                                         }
                                                     })}
                                                 </tr>
