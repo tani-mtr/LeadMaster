@@ -39,9 +39,11 @@ function getPropertyInfoColumnsForEditableTable() {
 // 選択肢の定数定義
 const SELECT_OPTIONS = {
     is_trade: ['', '売買'],
-    is_lease: ['', '通常借上'],
+    is_lease: ['', '借上', '1', '通常借上'],
+    contract_type: ['', '普通借家', '定期借家'],
+    existing_or_new: ['', '既存', '新規'],
     lead_channel: ['', 'ダイレクト', 'レインズ'],
-    minpaku_feasibility: ['', '可', '不可', '確認中', '可能', '旅館業'],
+    minpaku_feasibility: ['', '可', '不可', '確認中', '可能', '旅館業', '確認中'],
     sp_feasibility: ['', 'SP不要', 'SP必要', '確認中'],
     done_property_viewing: ['', '未内見', '竣工待ち', '内見済み', '内見可能', '内見済', '済', '竣工前'],
     done_antisocial_check: ['', '有', '無', '済'],
@@ -78,11 +80,13 @@ const PROPERTY_FIELD_CONFIG = {
     property_id: { label: '物件ID', type: 'text', editable: false, fromProperty: 'id' },
     property_name: { label: '物件名', type: 'text', editable: true, fromProperty: 'name' },
     property_tag: { label: 'タグ', type: 'text', editable: true, fromProperty: 'tag' },
-    property_is_trade: { label: '売買', type: 'text', editable: true, fromProperty: 'is_trade' },
-    property_is_lease: { label: '借上', type: 'text', editable: true, fromProperty: 'is_lease' },
+    property_is_trade: { label: '売買', type: 'select', editable: true, fromProperty: 'is_trade', options: SELECT_OPTIONS.is_trade },
+    property_is_lease: { label: '借上', type: 'select', editable: true, fromProperty: 'is_lease', options: SELECT_OPTIONS.is_lease },
+    property_contract_type: { label: '契約種別', type: 'select', editable: true, fromProperty: 'contract_type', options: SELECT_OPTIONS.contract_type },
+    property_existing_or_new: { label: '既存/新規', type: 'select', editable: true, fromProperty: 'existing_or_new', options: SELECT_OPTIONS.existing_or_new },
     property_lead_from: { label: 'lead元', type: 'text', editable: true, fromProperty: 'lead_from' },
     property_is_fund: { label: 'ファンド物件', type: 'text', editable: true, fromProperty: 'is_fund' },
-    property_lead_channel: { label: 'Leadチャネル', type: 'text', editable: true, fromProperty: 'lead_channel' },
+    property_lead_channel: { label: 'Leadチャネル', type: 'select', editable: true, fromProperty: 'lead_channel', options: SELECT_OPTIONS.lead_channel },
     property_trade_form: { label: '取引形態', type: 'text', editable: true, fromProperty: 'trade_form' },
     property_lead_from_representative: { label: '先方担当', type: 'text', editable: true, fromProperty: 'lead_from_representative' },
     property_lead_from_representative_phone: { label: '担当者tel', type: 'text', editable: true, fromProperty: 'lead_from_representative_phone' },
@@ -97,12 +101,12 @@ const PROPERTY_FIELD_CONFIG = {
     property_num_of_occupied_rooms: { label: '入居中室数', type: 'number', editable: true, fromProperty: 'num_of_occupied_rooms' },
     property_num_of_vacant_rooms: { label: '空室数', type: 'number', editable: true, fromProperty: 'num_of_vacant_rooms' },
     property_num_of_rooms_without_furniture: { label: '家具なし部屋数', type: 'number', editable: true, fromProperty: 'num_of_rooms_without_furniture' },
-    property_minpaku_feasibility: { label: '民泊可否', type: 'text', editable: true, fromProperty: 'minpaku_feasibility' },
-    property_sp_feasibility: { label: 'SP可否', type: 'text', editable: true, fromProperty: 'sp_feasibility' },
-    property_done_property_viewing: { label: '内見', type: 'text', editable: true, fromProperty: 'done_property_viewing' },
+    property_minpaku_feasibility: { label: '民泊可否', type: 'select', editable: true, fromProperty: 'minpaku_feasibility', options: SELECT_OPTIONS.minpaku_feasibility },
+    property_sp_feasibility: { label: 'SP可否', type: 'select', editable: true, fromProperty: 'sp_feasibility', options: SELECT_OPTIONS.sp_feasibility },
+    property_done_property_viewing: { label: '内見', type: 'select', editable: true, fromProperty: 'done_property_viewing', options: SELECT_OPTIONS.done_property_viewing },
     property_torikago: { label: '鳥籠', type: 'text', editable: true, fromProperty: 'torikago' },
     property_key_handling_date: { label: '鍵引き渡し日', type: 'date', editable: true, fromProperty: 'key_handling_date' },
-    property_done_antisocial_check: { label: '反社チェック有無', type: 'text', editable: true, fromProperty: 'done_antisocial_check' },
+    property_done_antisocial_check: { label: '反社チェック有無', type: 'select', editable: true, fromProperty: 'done_antisocial_check', options: SELECT_OPTIONS.done_antisocial_check },
 };
 
 // 部屋タイプ情報用フィールド
@@ -1414,22 +1418,64 @@ const PropertyPage = () => {
         if (!selectedEditCell) return;
         // サブタブが切り替わった直後は編集テーブルのrowsがまだ切り替わっていない場合があるので、少し遅延させる
         const timer = setTimeout(() => {
-            // room, property, roomType でrowIdの決定方法を分岐
             let rowId = null;
+            let rows = [];
             if (selectedEditCell.tab === 'room') {
                 rowId = selectedEditCell.id;
+                rows = editTabRows.room || detailedRoomData;
             } else if (selectedEditCell.tab === 'property') {
-                // propertyはrowsが1件のみ、idはproperty.id
                 rowId = property?.id || (editTabRows.property && editTabRows.property[0]?.id);
+                // propertyはrowsが空の場合でもpropertyデータから1行生成
+                if (editTabRows.property && editTabRows.property.length > 0) {
+                    rows = editTabRows.property;
+                } else if (property) {
+                    // columnsのfield名に合わせてpropertyをマッピング
+                    const propCols = getPropertyInfoColumnsForEditableTable();
+                    const row = {};
+                    propCols.forEach(col => {
+                        const conf = PROPERTY_FIELD_CONFIG[col.field];
+                        if (conf && conf.fromProperty) {
+                            row[col.field] = property[conf.fromProperty];
+                        } else {
+                            row[col.field] = property[col.field];
+                        }
+                    });
+                    row.id = property.id;
+                    rows = [row];
+                } else {
+                    rows = [];
+                }
             } else if (selectedEditCell.tab === 'roomType') {
                 rowId = selectedEditCell.id;
+                rows = editTabRows.roomType || [];
             }
-            if (rowId && selectedEditCell.field) {
+            // rowsにrowIdが存在し、columnsにfieldが存在する場合のみfocusedCellに渡す
+            const exists = rows.some(row => row && row.id === rowId);
+            // columns取得（RoomInfoEditableTableに渡すcolumnsと同じロジック）
+            let columns = [];
+            if (selectedEditCell.tab === 'room') {
+                const row = (editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room[0] : detailedRoomData[0]) || {};
+                columns = Object.keys(row).filter(f => f !== 'actions').map(f => ({ field: f }));
+            } else if (selectedEditCell.tab === 'property') {
+                if (rows.length > 0) {
+                    columns = Object.keys(rows[0]).map(f => ({ field: f }));
+                } else {
+                    columns = [];
+                }
+            } else if (selectedEditCell.tab === 'roomType') {
+                columns = (editTabRows.roomType && editTabRows.roomType.length > 0 && Array.isArray(editTabRows.roomType))
+                    ? Object.keys(editTabRows.roomType[0] || {}).map(f => ({ field: f }))
+                    : [];
+            }
+            const fieldExists = columns.some(col => col.field === selectedEditCell.field);
+            if (rowId && selectedEditCell.field && exists && fieldExists) {
                 setFocusedCell({ rowId, field: selectedEditCell.field });
+            } else {
+                setFocusedCell(null);
             }
         }, 100); // 100ms遅延
         return () => clearTimeout(timer);
-    }, [selectedEditCell, editSubTab, property, editTabRows]);
+    }, [selectedEditCell, editSubTab, property, editTabRows, detailedRoomData]);
 
     const handleEditCellChange = useCallback((roomIndex, field, value) => {
         // 部屋タイプ情報タブの場合（roomIndex === -1）
@@ -3288,7 +3334,7 @@ const PropertyPage = () => {
                                                         const config = ROOM_FIELD_CONFIG[field];
                                                         const isFixedColumn = index === 7;
                                                         const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-                                                        const tabType = config.fromRoomType ? "roomType" : "room";
+                                                        const tabType = config.fromProperty ? "property" : (config.fromRoomType ? "roomType" : "room");
                                                         const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
                                                         // 差分判定
                                                         const isChanged = changedCells[room.id]?.[field];
