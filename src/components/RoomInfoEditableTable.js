@@ -32,23 +32,46 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
     };
     // データ受け取り直後のログ
     // データは親から受け取る
-    const [rows, setRows] = useState(detailedRoomData);
+    const [rows, setRows] = useState(() => {
+        console.log('[RoomInfoEditableTable] 初期 detailedRoomData:', detailedRoomData);
+        return detailedRoomData;
+    });
     const apiRef = useGridApiRef();
     const [rowIdCounter, setRowIdCounter] = useState(detailedRoomData.length + 1);
 
 
     const handleRowEdit = (params) => {
+        console.log('[RoomInfoEditableTable] handleRowEdit params:', params);
         const updatedRows = rows.map((row) =>
             row.id === params.id ? { ...row, ...params } : row
         );
-        setRows(updatedRows);
+        // date型フィールドを{value: 'YYYY-MM-DD'}形式に変換
+        const dateFields = patchedColumns.filter(col => col.type === 'date').map(col => col.field);
+        const normalizedRows = updatedRows.map(row => {
+            const newRow = { ...row };
+            dateFields.forEach(field => {
+                if (newRow[field] instanceof Date) {
+                    const y = newRow[field].getFullYear();
+                    const m = String(newRow[field].getMonth() + 1).padStart(2, '0');
+                    const d = String(newRow[field].getDate()).padStart(2, '0');
+                    newRow[field] = { value: `${y}-${m}-${d}` };
+                } else if (typeof newRow[field] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(newRow[field])) {
+                    newRow[field] = { value: newRow[field] };
+                }
+            });
+            return newRow;
+        });
+        console.log('[RoomInfoEditableTable] updatedRows:', normalizedRows);
+        setRows(normalizedRows);
         if (onRowsChange) {
-            onRowsChange(updatedRows);
+            console.log('[RoomInfoEditableTable] onRowsChange呼び出し:', normalizedRows);
+            onRowsChange(normalizedRows);
         }
     };
 
 
     const handleProcessRowUpdate = (newRow) => {
+        console.log('[RoomInfoEditableTable] handleProcessRowUpdate newRow:', newRow);
         handleRowEdit(newRow);
         return newRow;
     };
@@ -214,11 +237,30 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
         }, 0);
     }, [focusedCell, apiRef]);
 
+    // rowsのdate型カラムを文字列化
+    const dateFields = patchedColumns.filter(col => col.type === 'date').map(col => col.field);
+    const toLocalYMD = (dateObj) => {
+        if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '';
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+    const displayRows = rows.map(row => {
+        const newRow = { ...row };
+        dateFields.forEach(field => {
+            if (newRow[field] instanceof Date) {
+                newRow[field] = toLocalYMD(newRow[field]);
+            }
+        });
+        return newRow;
+    });
+    console.log('[RoomInfoEditableTable] displayRows:', displayRows);
     return (
         <Box sx={{ p: 2, width: '100%', fontFamily: 'monospace', backgroundColor: tableColor || '#FFFDE7', borderRadius: 2 }}>
             <Box sx={{ height: 500, width: '100%' }}>
                 <DataGrid
-                    rows={rows}
+                    rows={displayRows}
                     columns={patchedColumns}
                     pageSize={100}
                     disableRowSelectionOnClick
