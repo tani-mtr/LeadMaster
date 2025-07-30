@@ -194,31 +194,22 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
         return newCol;
     });
     // DataGrid描画直前のデータを出力
-    if (typeof window !== 'undefined') {
-        // eslint-disable-next-line no-console
-        console.log('[RoomInfoEditableTable] DataGrid描画直前 columns:', patchedColumns);
-        console.log('[RoomInfoEditableTable] DataGrid描画直前 rows:', rows);
-    }
+    // ...existing code...
 
     // セルフォーカス＆編集モード副作用
     useEffect(() => {
         if (!focusedCell) return;
         if (!apiRef.current) {
-            console.log('[RoomInfoEditableTable] apiRef.current is not ready');
             return;
         }
         if (typeof apiRef.current.setCellFocus !== 'function') {
-            console.log('[RoomInfoEditableTable] setCellFocus is not a function');
             return;
         }
         if (typeof apiRef.current.startCellEditMode !== 'function') {
-            console.log('[RoomInfoEditableTable] startCellEditMode is not a function');
             return;
         }
-        console.log('[RoomInfoEditableTable] setCellFocus', focusedCell);
         apiRef.current.setCellFocus(focusedCell.rowId, focusedCell.field);
         setTimeout(() => {
-            console.log('[RoomInfoEditableTable] startCellEditMode', focusedCell);
             apiRef.current.startCellEditMode({ id: focusedCell.rowId, field: focusedCell.field });
         }, 0);
     }, [focusedCell, apiRef]);

@@ -1119,19 +1119,63 @@ const PropertyPage = () => {
             setPreviewRows([]);
             return;
         }
-        // サブタブ状態に関係なく、常に全部屋分のプレビューを表示
-        const rows = editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData;
+        // すべての編集内容をマージしてプレビュー表示
+        let rows = [...detailedRoomData];
+        console.log('[Preview生成] detailedRoomData:', detailedRoomData);
+        // room編集
+        if (editTabRows.room && editTabRows.room.length > 0) {
+            console.log('[Preview生成] editTabRows.room:', editTabRows.room);
+            rows = editTabRows.room;
+        }
+        // roomType編集（roomTypeDetailにマージ）
+        if (editTabRows.roomType && editTabRows.roomType.length > 0) {
+            console.log('[Preview生成] editTabRows.roomType:', editTabRows.roomType);
+            const roomTypeEditMap = new Map(editTabRows.roomType.map(row => [row.id, row]));
+            rows = rows.map(row => {
+                if (row.roomTypeDetail) {
+                    const typeId = row.roomTypeDetail.room_type_id || row.roomTypeDetail.id;
+                    const editRow = roomTypeEditMap.get(typeId);
+                    console.log('[Preview生成] roomTypeDetail typeId:', typeId, 'roomTypeDetail:', row.roomTypeDetail);
+                    console.log('[Preview生成] editRow:', editRow);
+                    if (editRow) {
+                        // 編集rowのkeyをroomTypeDetailのkeyに変換してマージ
+                        const convertedEditRow = {};
+                        Object.keys(editRow).forEach(key => {
+                            // ROOM_TYPE_FIELD_CONFIGからfromRoomTypeを取得
+                            const conf = ROOM_TYPE_FIELD_CONFIG[key];
+                            const targetKey = conf && conf.fromRoomType ? conf.fromRoomType : key;
+                            convertedEditRow[targetKey] = editRow[key];
+                            console.log(`[Preview生成] マージ: key=${key} → targetKey=${targetKey} 元値=${row.roomTypeDetail[targetKey]} 編集値=${editRow[key]}`);
+                        });
+                        const mergedDetail = { ...row.roomTypeDetail, ...convertedEditRow };
+                        console.log('[Preview生成] マージ後 roomTypeDetail:', mergedDetail);
+                        return {
+                            ...row,
+                            roomTypeDetail: mergedDetail
+                        };
+                    }
+                }
+                return row;
+            });
+        }
+        // property編集（全rowに反映）
+        if (editTabRows.property && editTabRows.property.length > 0) {
+            console.log('[Preview生成] editTabRows.property:', editTabRows.property);
+            const propertyRow = editTabRows.property[0];
+            rows = rows.map(row => ({ ...row, ...propertyRow }));
+        }
         if (rows && rows.length > 0) {
-            setPreviewRows([...rows].sort((a, b) => {
+            const sortedRows = [...rows].sort((a, b) => {
                 const nameA = (a.name || '').toString();
                 const nameB = (b.name || '').toString();
                 return nameA.localeCompare(nameB, 'ja', { numeric: true, sensitivity: 'base' });
-            }));
+            });
+            console.log('[Preview生成] setPreviewRows:', sortedRows);
+            setPreviewRows(sortedRows);
         } else {
             setPreviewRows([]);
         }
-    }, [isEditTab, editSubTab, detailedRoomData, editTabRows.room, editTabRows.property, editTabRows.roomType, property]);
-    // プレビュー内容とAPI取得直後のデータで差分判定
+    }, [isEditTab, editSubTab, detailedRoomData, editTabRows.room, editTabRows.property, editTabRows.roomType, property]);    // プレビュー内容とAPI取得直後のデータで差分判定
     const changedCells = useMemo(() => {
         if (!isEditTab || !detailedRoomData || !previewRows) return {};
         // 物件情報カラムの差分も渡す
@@ -3352,9 +3396,17 @@ const PropertyPage = () => {
                                                         const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
                                                         // 値取得
                                                         let value = room[field];
-                                                        // 部屋タイプ情報
-                                                        if (config.fromRoomType && room.roomTypeDetail) {
-                                                            value = room.roomTypeDetail[config.fromRoomType];
+                                                        // 部屋タイプ情報（編集内容をマージ）
+                                                        if (config.fromRoomType) {
+                                                            let roomTypeDetail = room.roomTypeDetail || {};
+                                                            // 編集内容があればマージ
+                                                            if (editTabRows.roomType && editTabRows.roomType.length > 0) {
+                                                                const editedType = editTabRows.roomType.find(rt => rt.id === (roomTypeDetail.room_type_id || roomTypeDetail.id));
+                                                                if (editedType) {
+                                                                    roomTypeDetail = { ...roomTypeDetail, ...editedType };
+                                                                }
+                                                            }
+                                                            value = roomTypeDetail[config.fromRoomType];
                                                         }
                                                         // 物件情報カラムはeditTabRows.propertyの編集内容を優先
                                                         let propertyEdit = {};
@@ -3495,7 +3547,9 @@ const PropertyPage = () => {
                                                         detailedRoomData={editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData}
                                                         columns={columns}
                                                         focusedCell={focusedCell}
-                                                        onRowsChange={rows => setEditTabRows(prev => ({ ...prev, room: rows }))}
+                                                        onRowsChange={rows => {
+                                                            setEditTabRows(prev => ({ ...prev, roomType: rows }));
+                                                        }}
                                                         onCellEditStop={() => setSelectedEditCell(null)}
                                                     />
                                                 );
@@ -3577,8 +3631,6 @@ const PropertyPage = () => {
                                                 const mappedRows = (editTabRows.property && Array.isArray(editTabRows.property) && editTabRows.property.length > 0)
                                                     ? editTabRows.property
                                                     : [mapPropertyToRow(property)];
-                                                console.log('[PropertyPage] RoomInfoEditableTableへ渡す mapped detailedRoomData:', mappedRows);
-                                                console.log('[PropertyPage] RoomInfoEditableTableへ渡す columns:', propCols);
                                                 return (
                                                     <RoomInfoEditableTable
                                                         detailedRoomData={mappedRows}
