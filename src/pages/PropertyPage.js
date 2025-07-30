@@ -1131,7 +1131,7 @@ const PropertyPage = () => {
         if (editTabRows.roomType && editTabRows.roomType.length > 0) {
             console.log('[Preview生成] editTabRows.roomType:', editTabRows.roomType);
             const roomTypeEditMap = new Map(editTabRows.roomType.map(row => [row.id, row]));
-            rows = rows.map(row => {
+            rows = (editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData).map(row => {
                 if (row.roomTypeDetail) {
                     const typeId = row.roomTypeDetail.room_type_id || row.roomTypeDetail.id;
                     const editRow = roomTypeEditMap.get(typeId);
@@ -3077,7 +3077,7 @@ const PropertyPage = () => {
                                                             if (previewValue !== undefined && previewValue !== null && previewValue !== value) {
                                                                 return (
                                                                     <TableCell key={colIdx} style={{ background: '#fffbe6' }}>
-                                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                                        <div>
                                                                             <span style={{ color: '#d9534f', textDecoration: 'line-through' }}>{String(value)}</span>
                                                                             <span style={{ color: '#28a745', fontWeight: 'bold' }}>{String(previewValue)}</span>
                                                                             <span style={{ fontSize: '10px', color: '#ff9800', marginLeft: 2 }}>変更</span>
@@ -3396,10 +3396,8 @@ const PropertyPage = () => {
                                                         const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
                                                         // 値取得
                                                         let value = room[field];
-                                                        // 部屋タイプ情報（編集内容をマージ）
                                                         if (config.fromRoomType) {
                                                             let roomTypeDetail = room.roomTypeDetail || {};
-                                                            // 編集内容があればマージ
                                                             if (editTabRows.roomType && editTabRows.roomType.length > 0) {
                                                                 const editedType = editTabRows.roomType.find(rt => rt.id === (roomTypeDetail.room_type_id || roomTypeDetail.id));
                                                                 if (editedType) {
@@ -3408,7 +3406,6 @@ const PropertyPage = () => {
                                                             }
                                                             value = roomTypeDetail[config.fromRoomType];
                                                         }
-                                                        // 物件情報カラムはeditTabRows.propertyの編集内容を優先
                                                         let propertyEdit = {};
                                                         if (config.fromProperty) {
                                                             propertyEdit = (editTabRows.property && editTabRows.property[0]) || {};
@@ -3420,19 +3417,10 @@ const PropertyPage = () => {
                                                                 value = property ? property[config.fromProperty] : undefined;
                                                             }
                                                         }
-                                                        // object({value: ...})ならvalueのみ表示、それ以外はそのまま
                                                         let displayValue = value;
                                                         if (displayValue && typeof displayValue === 'object' && 'value' in displayValue) {
                                                             displayValue = displayValue.value;
                                                         }
-                                                        // プレビュー表示（部屋情報・物件情報ともに .changed クラスで統一）
-                                                        let previewValue = undefined;
-                                                        if (config.fromProperty) {
-                                                            previewValue = propertyEdit[field] !== undefined && propertyEdit[field] !== null
-                                                                ? propertyEdit[field]
-                                                                : (propertyEdit[config.fromProperty] !== undefined && propertyEdit[config.fromProperty] !== null ? propertyEdit[config.fromProperty] : undefined);
-                                                        }
-                                                        // 物件情報カラムの差分判定
                                                         let isChanged = changedCells[room.id]?.[field];
                                                         if (config.fromProperty) {
                                                             const originalValue = property ? property[config.fromProperty] : undefined;
@@ -3444,13 +3432,11 @@ const PropertyPage = () => {
                                                             isChanged ? 'changed' : '',
                                                             config.fromProperty ? 'property-cell' : ''
                                                         ].filter(Boolean).join(' ');
-                                                        if (isChanged && previewValue !== undefined && previewValue !== displayValue) {
+                                                        // プレビューセルは背景色のみ淡い黄色に
+                                                        if (isChanged) {
                                                             return (
-                                                                <ReadOnlyTableCell key={field} className={cellClass}>
-                                                                    <div>
-                                                                        <span style={{ color: '#d9534f', textDecoration: 'line-through' }}>{String(displayValue)}</span>
-                                                                        <span style={{ color: '#28a745', fontWeight: 'bold' }}>{String(previewValue)}</span>
-                                                                    </div>
+                                                                <ReadOnlyTableCell key={field} className={cellClass} style={{ background: '#fffbe6' }}>
+                                                                    {displayValue}
                                                                 </ReadOnlyTableCell>
                                                             );
                                                         } else {
@@ -3598,7 +3584,7 @@ const PropertyPage = () => {
                                                     detailedRoomData={rows}
                                                     columns={columns}
                                                     focusedCell={focusedCell}
-                                                    onRowsChange={rows => setEditTabRows(prev => ({ ...prev, room: rows }))}
+                                                    onRowsChange={rows => setEditTabRows(prev => ({ ...prev, roomType: rows }))}
                                                     onCellEditStop={() => setSelectedEditCell(null)}
                                                     tableColor={'#e6f9e6'}
                                                 />
