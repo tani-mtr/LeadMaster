@@ -1158,11 +1158,19 @@ const PropertyPage = () => {
                 return row;
             });
         }
-        // property編集（全rowに反映）
-        if (editTabRows.property && editTabRows.property.length > 0) {
+        // property編集（propertyサブタブ時のみ、property系フィールドのみマージ）
+        if (editTabRows.property && editTabRows.property.length > 0 && editSubTab === 'property') {
             console.log('[Preview生成] editTabRows.property:', editTabRows.property);
             const propertyRow = editTabRows.property[0];
-            rows = rows.map(row => ({ ...row, ...propertyRow }));
+            // property系フィールドのみ抽出
+            const propertyFields = Object.keys(propertyRow).filter(f => PROPERTY_FIELD_CONFIG[f]);
+            rows = rows.map(row => {
+                const newRow = { ...row };
+                propertyFields.forEach(f => {
+                    newRow[f] = propertyRow[f];
+                });
+                return newRow;
+            });
         }
         if (rows && rows.length > 0) {
             const sortedRows = [...rows].sort((a, b) => {
@@ -3074,22 +3082,10 @@ const PropertyPage = () => {
                                                                 editChanges: Array.from(editChanges.entries())
                                                             });
                                                             // プレビュー表示
-                                                            if (previewValue !== undefined && previewValue !== null && previewValue !== value) {
-                                                                return (
-                                                                    <TableCell key={colIdx} style={{ background: '#fffbe6' }}>
-                                                                        <div>
-                                                                            <span style={{ color: '#d9534f', textDecoration: 'line-through' }}>{String(value)}</span>
-                                                                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>{String(previewValue)}</span>
-                                                                            <span style={{ fontSize: '10px', color: '#ff9800', marginLeft: 2 }}>変更</span>
-                                                                        </div>
-                                                                    </TableCell>
-                                                                );
-                                                            } else {
-                                                                // 通常表示
-                                                                return (
-                                                                    <TableCell key={colIdx}>{String(value ?? '')}</TableCell>
-                                                                );
-                                                            }
+                                                            // プレビュー値が存在し、元の値と異なる場合も通常表示に統一
+                                                            return (
+                                                                <TableCell key={colIdx}>{String(previewValue !== undefined && previewValue !== null ? previewValue : value ?? '')}</TableCell>
+                                                            );
                                                         })}
                                                         <TableCell>
                                                             <ActionButtons>
@@ -3422,10 +3418,26 @@ const PropertyPage = () => {
                                                             displayValue = displayValue.value;
                                                         }
                                                         let isChanged = changedCells[room.id]?.[field];
+                                                        // propertyカラムの差分判定
+                                                        // propertyカラムの差分判定
                                                         if (config.fromProperty) {
                                                             const originalValue = property ? property[config.fromProperty] : undefined;
                                                             const editedValue = propertyEdit[field] !== undefined ? propertyEdit[field] : propertyEdit[config.fromProperty];
                                                             isChanged = editedValue !== undefined && editedValue !== originalValue;
+                                                        }
+                                                        // roomTypeカラムの差分判定
+                                                        if (config.fromRoomType) {
+                                                            // roomTypeDetailの元値と編集値を比較
+                                                            const roomTypeDetail = room.roomTypeDetail || {};
+                                                            const originalValue = detailedRoomData.find(r => r.id === room.id)?.roomTypeDetail?.[config.fromRoomType];
+                                                            const editedValue = roomTypeDetail[config.fromRoomType];
+                                                            // 両方未設定（undefined/null/空文字）の場合は変更扱いしない
+                                                            const isEmpty = v => v === undefined || v === null || v === '';
+                                                            if (isEmpty(originalValue) && isEmpty(editedValue)) {
+                                                                isChanged = false;
+                                                            } else {
+                                                                isChanged = (editedValue !== undefined && editedValue !== null && editedValue !== originalValue);
+                                                            }
                                                         }
                                                         const cellClass = [
                                                             fixedClass,
