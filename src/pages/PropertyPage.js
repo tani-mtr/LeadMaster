@@ -3548,7 +3548,7 @@ const PropertyPage = () => {
                                                         columns={columns}
                                                         focusedCell={focusedCell}
                                                         onRowsChange={rows => {
-                                                            setEditTabRows(prev => ({ ...prev, roomType: rows }));
+                                                            setEditTabRows(prev => ({ ...prev, room: rows }));
                                                         }}
                                                         onCellEditStop={() => setSelectedEditCell(null)}
                                                     />
@@ -3598,7 +3598,7 @@ const PropertyPage = () => {
                                                     detailedRoomData={rows}
                                                     columns={columns}
                                                     focusedCell={focusedCell}
-                                                    onRowsChange={rows => setEditTabRows(prev => ({ ...prev, roomType: rows }))}
+                                                    onRowsChange={rows => setEditTabRows(prev => ({ ...prev, room: rows }))}
                                                     onCellEditStop={() => setSelectedEditCell(null)}
                                                     tableColor={'#e6f9e6'}
                                                 />
