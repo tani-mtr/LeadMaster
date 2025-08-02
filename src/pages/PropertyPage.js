@@ -782,8 +782,18 @@ const ReadOnlyTableHeader = styled.th`
   &.fixed-column {
     z-index: 10;
   }
+  &.fixed-column-3 {
+    left: 0;
+    min-width: 180px;
+    width: 180px;
+  }
+  &.fixed-column-5 {
+    left: 180px;
+    min-width: 180px;
+    width: 180px;
+  }
   &.fixed-column-8 {
-    left: 0; /* 左端に固定 */
+    left: 360px;
     min-width: 120px;
     width: 120px;
   }
@@ -838,8 +848,18 @@ const ReadOnlyTableCell = styled.td`
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* 影を追加して区切りを明確に */
   }
   
+  &.fixed-column-3 {
+    left: 0;
+    min-width: 180px;
+    width: 180px;
+  }
+  &.fixed-column-5 {
+    left: 180px;
+    min-width: 180px;
+    width: 180px;
+  }
   &.fixed-column-8 {
-    left: 0; /* 左端に固定 */
+    left: 360px;
     min-width: 120px;
     width: 120px;
   }
@@ -3438,8 +3458,8 @@ const PropertyPage = () => {
                                                     }
                                                     return fields.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
                                                         const config = ROOM_FIELD_CONFIG[field];
-                                                        // 8列目（部屋名）のみを固定
-                                                        const isFixedColumn = index === 7;
+                                                        // 物件名・部屋タイプ名・部屋名の3列を固定
+                                                        const isFixedColumn = index === 2 || index === 4 || index === 7;
                                                         const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
                                                         const isRoomType = !!config.fromRoomType;
                                                         const isProperty = !!config.fromProperty;
@@ -3478,7 +3498,7 @@ const PropertyPage = () => {
                                                         }
                                                         return fields.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
                                                             const config = ROOM_FIELD_CONFIG[field];
-                                                            const isFixedColumn = index === 7;
+                                                            const isFixedColumn = index === 2 || index === 4 || index === 7;
                                                             const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
                                                             const tabType = config.fromProperty ? "property" : (config.fromRoomType ? "roomType" : "room");
                                                             const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
