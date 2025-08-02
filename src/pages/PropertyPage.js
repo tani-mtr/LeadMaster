@@ -72,7 +72,7 @@ const ROOM_INFO_FIELD_CONFIG = {
     application_intended_date: { label: '申請予定日', type: 'date', editable: true },
     user_email: { label: 'ユーザーEmail', type: 'text', editable: false },
     vacate_setup: { label: '退去SU', type: 'select', editable: true, options: SELECT_OPTIONS.vacate_setup },
-    room_number: { label: '部屋番号', type: 'text', editable: false },
+    room_number: { label: '部屋番号', type: 'text', editable: true },
 };
 
 // 物件情報用フィールド
@@ -111,7 +111,7 @@ const PROPERTY_FIELD_CONFIG = {
 
 // 部屋タイプ情報用フィールド
 const ROOM_TYPE_FIELD_CONFIG = {
-    roomType_name: { label: '部屋タイプ名', type: 'text', editable: false, fromRoomType: 'name' },
+    roomType_name: { label: '部屋タイプ名', type: 'text', editable: true, fromRoomType: 'name' },
     roomType_minpaku_price: { label: '民泊単価', type: 'number', editable: true, fromRoomType: 'minpaku_price' },
     roomType_monthly_price: { label: 'マンスリー単価', type: 'number', editable: true, fromRoomType: 'monthly_price' },
     roomType_pax: { label: '収容人数', type: 'number', editable: true, fromRoomType: 'pax' },
@@ -1173,7 +1173,29 @@ const PropertyPage = () => {
             });
         }
         if (rows && rows.length > 0) {
-            const sortedRows = [...rows].sort((a, b) => {
+            // date型フィールドを文字列化
+            const dateFields = Object.keys(ROOM_FIELD_CONFIG).filter(f => ROOM_FIELD_CONFIG[f]?.type === 'date');
+            const toLocalYMD = (dateObj) => {
+                if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '';
+                const y = dateObj.getFullYear();
+                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const d = String(dateObj.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            };
+            const normalizedRows = rows.map(row => {
+                const newRow = { ...row };
+                dateFields.forEach(field => {
+                    if (newRow[field] instanceof Date) {
+                        newRow[field] = toLocalYMD(newRow[field]);
+                    }
+                    // roomTypeDetail内のdate型も変換
+                    if (newRow.roomTypeDetail && newRow.roomTypeDetail[field] instanceof Date) {
+                        newRow.roomTypeDetail[field] = toLocalYMD(newRow.roomTypeDetail[field]);
+                    }
+                });
+                return newRow;
+            });
+            const sortedRows = [...normalizedRows].sort((a, b) => {
                 const nameA = (a.name || '').toString();
                 const nameB = (b.name || '').toString();
                 return nameA.localeCompare(nameB, 'ja', { numeric: true, sensitivity: 'base' });
@@ -1572,8 +1594,28 @@ const PropertyPage = () => {
                 originalValue = (v && typeof v === 'object' && 'value' in v) ? v.value : v;
             }
             // 日付の場合はISO文字列に変換して比較
-            const normalizedValue = config?.type === 'date' && value ? new Date(value).toISOString().split('T')[0] : value;
-            const normalizedOriginalValue = config?.type === 'date' && originalValue ? new Date(originalValue).toISOString().split('T')[0] : originalValue;
+            let normalizedValue, normalizedOriginalValue;
+            if (config?.type === 'date') {
+                console.log('[部屋タイプ編集][date] value型:', typeof value, value);
+                console.log('[部屋タイプ編集][date] originalValue型:', typeof originalValue, originalValue);
+                try {
+                    normalizedValue = value ? new Date(value).toISOString().split('T')[0] : value;
+                } catch (e) {
+                    console.error('[部屋タイプ編集][date] value変換失敗:', value, e);
+                    normalizedValue = value;
+                }
+                try {
+                    normalizedOriginalValue = originalValue ? new Date(originalValue).toISOString().split('T')[0] : originalValue;
+                } catch (e) {
+                    console.error('[部屋タイプ編集][date] originalValue変換失敗:', originalValue, e);
+                    normalizedOriginalValue = originalValue;
+                }
+                console.log('[部屋タイプ編集][date] normalizedValue:', normalizedValue);
+                console.log('[部屋タイプ編集][date] normalizedOriginalValue:', normalizedOriginalValue);
+            } else {
+                normalizedValue = value;
+                normalizedOriginalValue = originalValue;
+            }
             // ログ出力
             console.log('[部屋タイプ編集] handleEditCellChange', {
                 roomTypeId,
@@ -1588,10 +1630,14 @@ const PropertyPage = () => {
             });
             setEditChanges(prev => {
                 const newChanges = new Map(prev);
+                let storeValue = value;
+                if (config?.type === 'date' && typeof value === 'string') {
+                    storeValue = { value };
+                }
                 if (normalizedValue === normalizedOriginalValue || (normalizedValue === '' && (normalizedOriginalValue === null || normalizedOriginalValue === undefined))) {
                     newChanges.delete(cellKey);
                 } else {
-                    newChanges.set(cellKey, value);
+                    newChanges.set(cellKey, storeValue);
                 }
                 // ログ出力
                 console.log('[部屋タイプ編集] setEditChanges後', Array.from(newChanges.entries()));
@@ -1606,18 +1652,41 @@ const PropertyPage = () => {
         if (!room) return;
         const cellKey = `${room.id}-${field}`;
         const originalValue = room[field];
+        let normalizedValue, normalizedOriginalValue;
+        if (ROOM_FIELD_CONFIG[field]?.type === 'date') {
+            console.log('[部屋編集][date] value型:', typeof value, value);
+            console.log('[部屋編集][date] originalValue型:', typeof originalValue, originalValue);
+            try {
+                normalizedValue = value ? new Date(value).toISOString().split('T')[0] : value;
+            } catch (e) {
+                console.error('[部屋編集][date] value変換失敗:', value, e);
+                normalizedValue = value;
+            }
+            try {
+                normalizedOriginalValue = originalValue ? new Date(originalValue).toISOString().split('T')[0] : originalValue;
+            } catch (e) {
+                console.error('[部屋編集][date] originalValue変換失敗:', originalValue, e);
+                normalizedOriginalValue = originalValue;
+            }
+            console.log('[部屋編集][date] normalizedValue:', normalizedValue);
+            console.log('[部屋編集][date] normalizedOriginalValue:', normalizedOriginalValue);
+        } else {
+            normalizedValue = value;
+            normalizedOriginalValue = originalValue;
+        }
         setEditChanges(prev => {
             const newChanges = new Map(prev);
-            // 日付の場合はISO文字列に変換して比較
-            const normalizedValue = ROOM_FIELD_CONFIG[field]?.type === 'date' && value ? new Date(value).toISOString().split('T')[0] : value;
-            const normalizedOriginalValue = ROOM_FIELD_CONFIG[field]?.type === 'date' && originalValue ? new Date(originalValue).toISOString().split('T')[0] : originalValue;
+            let storeValue = value;
+            if (ROOM_FIELD_CONFIG[field]?.type === 'date' && typeof value === 'string') {
+                storeValue = { value };
+            }
             if (normalizedValue === normalizedOriginalValue || (normalizedValue === '' && (normalizedOriginalValue === null || normalizedOriginalValue === undefined))) {
-                // 元の値と同じ場合は変更を削除
                 newChanges.delete(cellKey);
             } else {
-                // 変更がある場合は追加
-                newChanges.set(cellKey, value);
+                newChanges.set(cellKey, storeValue);
             }
+            // ログ出力
+            console.log('[部屋編集] setEditChanges後', Array.from(newChanges.entries()));
             return newChanges;
         });
     }, [detailedRoomData, selectedEditCell]);
@@ -3357,116 +3426,128 @@ const PropertyPage = () => {
                                     <ReadOnlyTable>
                                         <thead>
                                             <tr>
-                                                {ROOM_TABLE_FIELD_ORDER.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
-                                                    const config = ROOM_FIELD_CONFIG[field];
-                                                    // 8列目（部屋名）のみを固定
-                                                    const isFixedColumn = index === 7;
-                                                    const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-                                                    const isRoomType = !!config.fromRoomType;
-                                                    const isProperty = !!config.fromProperty;
-                                                    return (
-                                                        <ReadOnlyTableHeader
-                                                            key={field}
-                                                            className={fixedClass}
-                                                            data-field={field}
-                                                            $roomtype={isRoomType ? 'roomType' : isProperty ? 'property' : 'room'}
-                                                        >
-                                                            <div>
-                                                                {config.label}
-                                                                {config.required && <span style={{ color: 'red' }}> *</span>}
-                                                                {!config.editable && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
-                                                            </div>
-                                                        </ReadOnlyTableHeader>
-                                                    );
-                                                })}
+                                                {(() => {
+                                                    // 部屋名の右隣に部屋番号を挿入
+                                                    const fields = [...ROOM_TABLE_FIELD_ORDER];
+                                                    const nameIdx = fields.indexOf('name');
+                                                    fields.splice(fields.indexOf('room_number'), 1); // 一度除外
+                                                    if (nameIdx !== -1) {
+                                                        fields.splice(nameIdx + 1, 0, 'room_number');
+                                                    } else {
+                                                        fields.push('room_number');
+                                                    }
+                                                    return fields.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
+                                                        const config = ROOM_FIELD_CONFIG[field];
+                                                        // 8列目（部屋名）のみを固定
+                                                        const isFixedColumn = index === 7;
+                                                        const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                        const isRoomType = !!config.fromRoomType;
+                                                        const isProperty = !!config.fromProperty;
+                                                        return (
+                                                            <ReadOnlyTableHeader
+                                                                key={field}
+                                                                className={fixedClass}
+                                                                data-field={field}
+                                                                $roomtype={isRoomType ? 'roomType' : isProperty ? 'property' : 'room'}
+                                                            >
+                                                                <div>
+                                                                    {config.label}
+                                                                    {config.required && <span style={{ color: 'red' }}> *</span>}
+                                                                    {/* 部屋番号は編集可能 */}
+                                                                    {field === 'room_number'}
+                                                                    {!config.editable && field !== 'room_number' && <span style={{ color: '#666', fontSize: '10px' }}> (読取専用)</span>}
+                                                                </div>
+                                                            </ReadOnlyTableHeader>
+                                                        );
+                                                    });
+                                                })()}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {previewRows.map((room) => (
                                                 <tr key={room.id}>
-                                                    {ROOM_TABLE_FIELD_ORDER.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
-                                                        const config = ROOM_FIELD_CONFIG[field];
-                                                        const isFixedColumn = index === 7;
-                                                        const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
-                                                        const tabType = config.fromProperty ? "property" : (config.fromRoomType ? "roomType" : "room");
-                                                        const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
-                                                        // 値取得
-                                                        let value = room[field];
-                                                        if (config.fromRoomType) {
-                                                            let roomTypeDetail = room.roomTypeDetail || {};
-                                                            if (editTabRows.roomType && editTabRows.roomType.length > 0) {
-                                                                const editedType = editTabRows.roomType.find(rt => rt.id === (roomTypeDetail.room_type_id || roomTypeDetail.id));
-                                                                if (editedType) {
-                                                                    roomTypeDetail = { ...roomTypeDetail, ...editedType };
+                                                    {(() => {
+                                                        // 部屋名の右隣に部屋番号を挿入
+                                                        const fields = [...ROOM_TABLE_FIELD_ORDER];
+                                                        const nameIdx = fields.indexOf('name');
+                                                        fields.splice(fields.indexOf('room_number'), 1); // 一度除外
+                                                        if (nameIdx !== -1) {
+                                                            fields.splice(nameIdx + 1, 0, 'room_number');
+                                                        } else {
+                                                            fields.push('room_number');
+                                                        }
+                                                        return fields.filter(field => ROOM_FIELD_CONFIG[field]).map((field, index) => {
+                                                            const config = ROOM_FIELD_CONFIG[field];
+                                                            const isFixedColumn = index === 7;
+                                                            const fixedClass = isFixedColumn ? `fixed-column fixed-column-${index + 1}` : '';
+                                                            const tabType = config.fromProperty ? "property" : (config.fromRoomType ? "roomType" : "room");
+                                                            const idValue = config.fromRoomType ? (room.roomTypeDetail?.room_type_id || room.roomTypeDetail?.id) : room.id;
+                                                            // 値取得
+                                                            let value = room[field];
+                                                            if (config.fromRoomType) {
+                                                                let roomTypeDetail = room.roomTypeDetail || {};
+                                                                if (editTabRows.roomType && editTabRows.roomType.length > 0) {
+                                                                    const editedType = editTabRows.roomType.find(rt => rt.id === (roomTypeDetail.room_type_id || roomTypeDetail.id));
+                                                                    if (editedType) {
+                                                                        roomTypeDetail = { ...roomTypeDetail, ...editedType };
+                                                                    }
+                                                                }
+                                                                value = roomTypeDetail[config.fromRoomType];
+                                                            }
+                                                            let propertyEdit = {};
+                                                            if (config.fromProperty) {
+                                                                propertyEdit = (editTabRows.property && editTabRows.property[0]) || {};
+                                                                if (propertyEdit[field] !== undefined && propertyEdit[field] !== null) {
+                                                                    value = propertyEdit[field];
+                                                                } else if (propertyEdit[config.fromProperty] !== undefined && propertyEdit[config.fromProperty] !== null) {
+                                                                    value = propertyEdit[config.fromProperty];
+                                                                } else {
+                                                                    value = property ? property[config.fromProperty] : undefined;
                                                                 }
                                                             }
-                                                            value = roomTypeDetail[config.fromRoomType];
-                                                        }
-                                                        let propertyEdit = {};
-                                                        if (config.fromProperty) {
-                                                            propertyEdit = (editTabRows.property && editTabRows.property[0]) || {};
-                                                            if (propertyEdit[field] !== undefined && propertyEdit[field] !== null) {
-                                                                value = propertyEdit[field];
-                                                            } else if (propertyEdit[config.fromProperty] !== undefined && propertyEdit[config.fromProperty] !== null) {
-                                                                value = propertyEdit[config.fromProperty];
-                                                            } else {
-                                                                value = property ? property[config.fromProperty] : undefined;
+                                                            let displayValue = value;
+                                                            if (displayValue && typeof displayValue === 'object' && 'value' in displayValue) {
+                                                                displayValue = displayValue.value;
                                                             }
-                                                        }
-                                                        let displayValue = value;
-                                                        if (displayValue && typeof displayValue === 'object' && 'value' in displayValue) {
-                                                            displayValue = displayValue.value;
-                                                        }
-                                                        let isChanged = changedCells[room.id]?.[field];
-                                                        // propertyカラムの差分判定
-                                                        // propertyカラムの差分判定
-                                                        if (config.fromProperty) {
-                                                            const originalValue = property ? property[config.fromProperty] : undefined;
-                                                            const editedValue = propertyEdit[field] !== undefined ? propertyEdit[field] : propertyEdit[config.fromProperty];
-                                                            isChanged = editedValue !== undefined && editedValue !== originalValue;
-                                                        }
-                                                        // roomTypeカラムの差分判定
-                                                        if (config.fromRoomType) {
-                                                            // roomTypeDetailの元値と編集値を比較
-                                                            const roomTypeDetail = room.roomTypeDetail || {};
-                                                            const originalValue = detailedRoomData.find(r => r.id === room.id)?.roomTypeDetail?.[config.fromRoomType];
-                                                            const editedValue = roomTypeDetail[config.fromRoomType];
-                                                            // 両方未設定（undefined/null/空文字）の場合は変更扱いしない
-                                                            const isEmpty = v => v === undefined || v === null || v === '';
-                                                            if (isEmpty(originalValue) && isEmpty(editedValue)) {
-                                                                isChanged = false;
-                                                            } else {
-                                                                isChanged = (editedValue !== undefined && editedValue !== null && editedValue !== originalValue);
+                                                            let isChanged = changedCells[room.id]?.[field];
+                                                            // propertyカラムの差分判定
+                                                            if (config.fromProperty) {
+                                                                const originalValue = property ? property[config.fromProperty] : undefined;
+                                                                const editedValue = propertyEdit[field] !== undefined ? propertyEdit[field] : propertyEdit[config.fromProperty];
+                                                                isChanged = editedValue !== undefined && editedValue !== originalValue;
                                                             }
-                                                        }
-                                                        const cellClass = [
-                                                            fixedClass,
-                                                            isChanged ? 'changed' : '',
-                                                            config.fromProperty ? 'property-cell' : ''
-                                                        ].filter(Boolean).join(' ');
-                                                        // プレビューセルは背景色のみ淡い黄色に
-                                                        if (isChanged) {
-                                                            return (
-                                                                <ReadOnlyTableCell key={field} className={cellClass} style={{ background: '#fffbe6' }}>
-                                                                    {displayValue}
-                                                                </ReadOnlyTableCell>
-                                                            );
-                                                        } else {
+                                                            // roomTypeカラムの差分判定
+                                                            if (config.fromRoomType) {
+                                                                // roomTypeDetailの元値と編集値を比較
+                                                                const roomTypeDetail = room.roomTypeDetail || {};
+                                                                const roomTypeId = roomTypeDetail.room_type_id || roomTypeDetail.id;
+                                                                const fromRoomType = config.fromRoomType;
+                                                                // 編集値
+                                                                const editedValue = roomTypeDetail[fromRoomType];
+                                                                // 元値
+                                                                const originalValue = (detailedRoomData.find(r => {
+                                                                    const rt = r.roomTypeDetail || {};
+                                                                    return (rt.room_type_id || rt.id) === roomTypeId;
+                                                                })?.roomTypeDetail || {})[fromRoomType];
+                                                                // changedCellsのキーもroomTypeId-fromRoomType名で参照
+                                                                const cellKey = `${roomTypeId}-${fromRoomType}`;
+                                                                // 空欄（元値も編集値も空）の場合はchangedを付与しない
+                                                                const isBothEmpty = (editedValue === undefined || editedValue === null || editedValue === '') && (originalValue === undefined || originalValue === null || originalValue === '');
+                                                                isChanged = !isBothEmpty && ((editedValue !== undefined && editedValue !== originalValue) || (changedCells && changedCells[cellKey]));
+                                                            }
+                                                            // 部屋番号は編集可能
                                                             return (
                                                                 <ReadOnlyTableCell
                                                                     key={field}
-                                                                    className={cellClass}
+                                                                    className={fixedClass + (isChanged ? ' changed' : '')}
                                                                     onClick={() => config.editable && handleReadOnlyCellClick(tabType, idValue, field)}
-                                                                    style={{
-                                                                        cursor: config.editable ? 'pointer' : 'default',
-                                                                        backgroundColor: !config.editable ? '#f8f9fa' : undefined
-                                                                    }}
+                                                                    style={{ cursor: config.editable ? 'pointer' : 'default', backgroundColor: !config.editable ? '#f8f9fa' : undefined }}
                                                                 >
                                                                     {displayValue}
                                                                 </ReadOnlyTableCell>
                                                             );
-                                                        }
-                                                    })}
+                                                        });
+                                                    })()}
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -3527,19 +3608,29 @@ const PropertyPage = () => {
                                     {editSubTab === 'room' && (
                                         detailedRoomData.length > 0 ? (
                                             (() => {
-                                                // columns生成: RoomInfoEditableTableのデフォルトcolumnsからactions列を除外
-                                                const defaultColumns = require('../components/RoomInfoEditableTable').defaultColumns || [];
-                                                // fallback: actions列を除外する関数
-                                                const getColumnsWithoutActions = (columns) => columns.filter(col => col.field !== 'actions');
-                                                // columnsPropが用意されていれば使う
-                                                let columns = [];
-                                                if (defaultColumns.length > 0) {
-                                                    columns = getColumnsWithoutActions(defaultColumns);
-                                                } else {
-                                                    // fallback: detailedRoomDataの最初のrowからfieldsを推測
-                                                    const row = (editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room[0] : detailedRoomData[0]) || {};
-                                                    columns = Object.keys(row).filter(f => f !== 'actions').map(f => ({ field: f, headerName: f, flex: 1 }));
-                                                }
+                                                // editableな部屋カラムのみ抽出
+                                                // Room Numberを一番左に配置し、editableな部屋カラムを続ける
+                                                const roomFields = [
+                                                    'room_number',
+                                                    ...Object.keys(ROOM_INFO_FIELD_CONFIG).filter(f => f !== 'room_number' && ROOM_INFO_FIELD_CONFIG[f].editable)
+                                                ];
+                                                const columns = roomFields.map(field => {
+                                                    const conf = ROOM_INFO_FIELD_CONFIG[field];
+                                                    let col = {
+                                                        field,
+                                                        headerName: conf.label,
+                                                        editable: !!conf.editable,
+                                                        minWidth: 120,
+                                                        flex: 1,
+                                                    };
+                                                    if (conf.type === 'date') col.type = 'date';
+                                                    if (conf.type === 'number') col.type = 'number';
+                                                    if (conf.type === 'select') {
+                                                        col.type = 'singleSelect';
+                                                        col.valueOptions = conf.options || [];
+                                                    }
+                                                    return col;
+                                                });
                                                 return (
                                                     <RoomInfoEditableTable
                                                         detailedRoomData={editTabRows.room && editTabRows.room.length > 0 ? editTabRows.room : detailedRoomData}
@@ -3560,8 +3651,8 @@ const PropertyPage = () => {
                                     )}
                                     {editSubTab === 'roomType' && (
                                         (() => {
-                                            // ROOM_TABLE_FIELD_ORDERからroomType系フィールドのみ抽出
-                                            const roomTypeFields = ROOM_TABLE_FIELD_ORDER.filter(f => f.startsWith('roomType_') && ROOM_TYPE_FIELD_CONFIG[f]);
+                                            // editableな部屋タイプカラムのみ抽出
+                                            const roomTypeFields = Object.keys(ROOM_TYPE_FIELD_CONFIG).filter(f => ROOM_TYPE_FIELD_CONFIG[f].editable);
                                             const columns = roomTypeFields.map(field => {
                                                 const conf = ROOM_TYPE_FIELD_CONFIG[field];
                                                 let col = {
@@ -3610,8 +3701,25 @@ const PropertyPage = () => {
                                     {editSubTab === 'property' && (
                                         property ? (
                                             (() => {
-                                                // columnsのfield名に合わせてpropertyをマッピング
-                                                const propCols = getPropertyInfoColumnsForEditableTable();
+                                                // editableな物件カラムのみ抽出
+                                                const propertyFields = Object.keys(PROPERTY_FIELD_CONFIG).filter(f => PROPERTY_FIELD_CONFIG[f].editable);
+                                                const propCols = propertyFields.map(field => {
+                                                    const conf = PROPERTY_FIELD_CONFIG[field];
+                                                    let col = {
+                                                        field,
+                                                        headerName: conf.label,
+                                                        editable: !!conf.editable,
+                                                        minWidth: 120,
+                                                        flex: 1,
+                                                    };
+                                                    if (conf.type === 'date') col.type = 'date';
+                                                    if (conf.type === 'number') col.type = 'number';
+                                                    if (conf.type === 'select') {
+                                                        col.type = 'singleSelect';
+                                                        col.valueOptions = conf.options || [];
+                                                    }
+                                                    return col;
+                                                });
                                                 const mapPropertyToRow = (propertyObj) => {
                                                     const row = {};
                                                     propCols.forEach(col => {
