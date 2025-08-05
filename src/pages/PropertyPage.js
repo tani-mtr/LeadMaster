@@ -1511,6 +1511,11 @@ const PropertyPage = () => {
         }
     }, [selectedEditCell]);
 
+    // editSubTabが変更されたときにfocusedCellをクリアする
+    useEffect(() => {
+        setFocusedCell(null);
+    }, [editSubTab]);
+
     // selectedEditCellの内容をfocusedCellに反映（編集テーブルで自動フォーカス・編集モードに入る）
     useEffect(() => {
         if (!selectedEditCell) return;
@@ -1545,7 +1550,19 @@ const PropertyPage = () => {
                 }
             } else if (selectedEditCell.tab === 'roomType') {
                 rowId = selectedEditCell.id;
-                rows = editTabRows.roomType || [];
+                // Use the same logic as the actual Room Type editable table
+                rows = (editTabRows.roomType && editTabRows.roomType.length > 0)
+                    ? editTabRows.roomType
+                    : roomTypes.map(rt => {
+                        const typeId = rt.room_type_id || rt.id;
+                        const roomTypeFields = Object.keys(ROOM_TYPE_FIELD_CONFIG).filter(f => ROOM_TYPE_FIELD_CONFIG[f].editable);
+                        const row = { id: typeId };
+                        roomTypeFields.forEach(field => {
+                            const conf = ROOM_TYPE_FIELD_CONFIG[field];
+                            row[field] = rt[conf.fromRoomType] ?? '';
+                        });
+                        return row;
+                    });
             }
             // rowsにrowIdが存在し、columnsにfieldが存在する場合のみfocusedCellに渡す
             const exists = rows.some(row => row && row.id === rowId);
@@ -1561,10 +1578,11 @@ const PropertyPage = () => {
                     columns = [];
                 }
             } else if (selectedEditCell.tab === 'roomType') {
-                columns = (editTabRows.roomType && editTabRows.roomType.length > 0 && Array.isArray(editTabRows.roomType))
-                    ? Object.keys(editTabRows.roomType[0] || {}).map(f => ({ field: f }))
-                    : [];
+                // Use the same logic as the actual Room Type editable table
+                const roomTypeFields = Object.keys(ROOM_TYPE_FIELD_CONFIG).filter(f => ROOM_TYPE_FIELD_CONFIG[f].editable);
+                columns = roomTypeFields.map(field => ({ field }));
             }
+
             const fieldExists = columns.some(col => col.field === selectedEditCell.field);
             if (rowId && selectedEditCell.field && exists && fieldExists) {
                 setFocusedCell({ rowId, field: selectedEditCell.field });
@@ -1573,7 +1591,7 @@ const PropertyPage = () => {
             }
         }, 100); // 100ms遅延
         return () => clearTimeout(timer);
-    }, [selectedEditCell, editSubTab, property, editTabRows, detailedRoomData]);
+    }, [selectedEditCell, editSubTab, property, editTabRows, detailedRoomData, roomTypes]);
 
     const handleEditCellChange = useCallback((roomIndex, field, value) => {
         // 部屋タイプ情報タブの場合（roomIndex === -1）
