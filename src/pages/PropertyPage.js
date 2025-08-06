@@ -6,6 +6,7 @@ import { apiService } from '../services/apiService';
 import RoomDrawer from '../components/RoomDrawer';
 import RoomTypeDrawer from '../components/RoomTypeDrawer';
 import RoomInfoEditableTable from '../components/RoomInfoEditableTable';
+import ScrollToReadOnlyTableButton from '../components/ScrollToReadOnlyTableButton';
 
 import { validatePropertyName } from '../utils/validationUtils';
 
@@ -3516,7 +3517,7 @@ const PropertyPage = () => {
 
             {/* データ編集タブ */}
             {property.has_related_rooms && activeTab === 'edit' && (
-                <EditTabContainer>
+                <EditTabContainer style={{ position: 'relative' }}>
                     {detailedRoomDataLoading ? (
                         <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                             <div className="spinner" style={{ display: 'inline-block', width: '20px', height: '20px', border: '3px solid #f3f3f3', borderTop: '3px solid #007bff', borderRadius: '50%', animation: 'spin 1s linear infinite', marginRight: '10px' }}></div>
@@ -3525,17 +3526,20 @@ const PropertyPage = () => {
                     ) : detailedRoomData.length > 0 ? (
                         <>
                             {/* 上部の閲覧用テーブル */}
-                            <TableSection>
+                            <TableSection id="readOnlyTableSection">
                                 <TableSectionHeader>
                                     📊 全部屋データ閲覧テーブル（部屋ドロワー準拠）
                                 </TableSectionHeader>
-                                <div style={{
-                                    overflowX: 'auto',
-                                    maxHeight: '600px',
-                                    overflowY: 'auto',
-                                    position: 'relative'
-                                }}>
-                                    <ReadOnlyTable>
+                                <div
+                                    id="readOnlyTableContainer"
+                                    style={{
+                                        overflowX: 'auto',
+                                        maxHeight: '600px',
+                                        overflowY: 'auto',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <ReadOnlyTable id="readOnlyTable">
                                         <thead>
                                             <tr>
                                                 {(() => {
@@ -3663,7 +3667,12 @@ const PropertyPage = () => {
                                                 </tr>
                                             ))}
                                         </tbody>
+
                                     </ReadOnlyTable>
+                                    {/* ↑ボタン（上部テーブルが隠れた時のみ表示） */}
+                                    <ScrollToReadOnlyTableButton
+                                        targetId="readOnlyTableSection"
+                                    />
                                 </div>
                             </TableSection>
 

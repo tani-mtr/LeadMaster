@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
-import ContactButton from './components/ContactButton';
 import TopPage from './pages/TopPage';
 import DetailPage from './pages/DetailPage';
 import PropertyPage from './pages/PropertyPage';
@@ -72,7 +71,7 @@ function App() {
             </main>
 
             {/* Slack問い合わせボタン - 実際のSlack URLに置き換える必要があります */}
-            <ContactButton href="https://slack.com/your-channel-url" text="お問い合わせ" />
+            {/* <ContactButton href="https://slack.com/your-channel-url" text="お問い合わせ" /> */}
         </>
     );
 }
