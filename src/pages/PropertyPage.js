@@ -3534,8 +3534,8 @@ const PropertyPage = () => {
                                     id="readOnlyTableContainer"
                                     style={{
                                         overflowX: 'auto',
-                                        maxHeight: '600px',
-                                        overflowY: 'auto',
+                                        maxHeight: activeTab === 'edit' ? `${Math.min(previewRows.length, 50) * 40 + 60}px` : '600px',
+                                        overflowY: previewRows.length > 50 && activeTab === 'edit' ? 'auto' : 'visible',
                                         position: 'relative'
                                     }}
                                 >
@@ -3761,6 +3761,8 @@ const PropertyPage = () => {
                                                             setEditTabRows(prev => ({ ...prev, room: rows }));
                                                         }}
                                                         onCellEditStop={() => setSelectedEditCell(null)}
+                                                    // tableHeightは指定しないことでMUIの自動高さに任せる
+                                                    // tableHeightは指定しないことでMUIの自動高さに任せる
                                                     />
                                                 );
                                             })()

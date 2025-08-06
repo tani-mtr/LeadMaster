@@ -25,7 +25,7 @@ export const defaultColumns = [
     { field: 'room_number', headerName: '部屋番号', minWidth: 100, flex: 1, editable: false }
 ];
 
-export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell, onRowsChange, onCellEditStop, tableColor }) {
+export default function RoomInfoEditableTable({ detailedRoomData = [], columns: columnsProp, focusedCell, onRowsChange, onCellEditStop, tableColor, tableHeight }) {
     // 編集完了時のコールバック
     const handleCellEditStop = (...args) => {
         if (onCellEditStop) onCellEditStop(...args);
@@ -273,7 +273,7 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
     console.log('[RoomInfoEditableTable] displayRows:', displayRows);
     return (
         <Box sx={{ p: 2, width: '100%', fontFamily: 'monospace', backgroundColor: tableColor || '#FFFDE7', borderRadius: 2 }}>
-            <Box sx={{ height: 500, width: '100%' }}>
+            <Box sx={{ width: '100%' }}>
                 <DataGrid
                     rows={displayRows}
                     columns={patchedColumns}
