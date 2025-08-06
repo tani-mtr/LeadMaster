@@ -1042,6 +1042,11 @@ const PropertyPage = () => {
         setEditSubTab(tab);
         setSelectedEditCell(null);
         setFocusedCell(null);
+        // 部屋やドロワー関連の状態もリセット
+        setSelectedRoomId(null);
+        setSelectedRoomTypeId(null);
+        setDrawerOpen(false);
+        setRoomTypeDrawerOpen(false);
     }
 
 
@@ -1069,6 +1074,8 @@ const PropertyPage = () => {
     // データ編集タブ用の状態
     // { tab: "room" | "roomType", id: string, field: string }
     const [selectedEditCell, setSelectedEditCell] = useState(null);
+    // サブタブ切り替え時の一時保存用
+    const [pendingEditCell, setPendingEditCell] = useState(null);
     // フォーカス対象セル（部屋ID・フィールド名）
     const [focusedCell, setFocusedCell] = useState(null);
     useEffect(() => {
@@ -1501,8 +1508,13 @@ const PropertyPage = () => {
     // tab: "room" | "roomType", id: 部屋ID or 部屋タイプID, field: カラム名
     const handleReadOnlyCellClick = useCallback((tab, id, field) => {
         const cell = { tab, id, field };
-        console.log('selectedEditCell:', cell);
-        setSelectedEditCell(cell);
+        console.log('handleReadOnlyCellClick:', cell, 'current editSubTab:', editSubTab);
+        if (editSubTab !== tab) {
+            setEditSubTab(tab);
+            setPendingEditCell(cell);
+        } else {
+            setSelectedEditCell(cell);
+        }
         // read-only table からは setFocusedCell を呼ばない（編集テーブルのみで呼ぶ）
     }, []);
     useEffect(() => {
@@ -1514,7 +1526,57 @@ const PropertyPage = () => {
     // editSubTabが変更されたときにfocusedCellをクリアする
     useEffect(() => {
         setFocusedCell(null);
+        setSelectedEditCell(null);
     }, [editSubTab]);
+
+    // サブタブ切り替え後、rowsが揃ったタイミングでpendingEditCellをselectedEditCellに昇格
+    useEffect(() => {
+        if (!pendingEditCell) return;
+        // サブタブが一致しているか
+        if (editSubTab !== pendingEditCell.tab) return;
+        // rowsが揃っているか（room, property, roomTypeごとに判定）
+        let rows = [];
+        if (pendingEditCell.tab === 'room') {
+            rows = editTabRows.room || detailedRoomData;
+        } else if (pendingEditCell.tab === 'property') {
+            if (editTabRows.property && editTabRows.property.length > 0) {
+                rows = editTabRows.property;
+            } else if (property) {
+                // columnsのfield名に合わせてpropertyをマッピング
+                const propCols = getPropertyInfoColumnsForEditableTable();
+                const row = {};
+                propCols.forEach(col => {
+                    const conf = PROPERTY_FIELD_CONFIG[col.field];
+                    if (conf && conf.fromProperty) {
+                        row[col.field] = property[conf.fromProperty];
+                    } else {
+                        row[col.field] = property[col.field];
+                    }
+                });
+                row.id = property.id;
+                rows = [row];
+            }
+        } else if (pendingEditCell.tab === 'roomType') {
+            rows = (editTabRows.roomType && editTabRows.roomType.length > 0)
+                ? editTabRows.roomType
+                : roomTypes.map(rt => {
+                    const typeId = rt.room_type_id || rt.id;
+                    const roomTypeFields = Object.keys(ROOM_TYPE_FIELD_CONFIG).filter(f => ROOM_TYPE_FIELD_CONFIG[f].editable);
+                    const row = { id: typeId };
+                    roomTypeFields.forEach(field => {
+                        const conf = ROOM_TYPE_FIELD_CONFIG[field];
+                        row[field] = rt[conf.fromRoomType] ?? '';
+                    });
+                    return row;
+                });
+        }
+        // rowsにpendingEditCell.idが存在する場合のみ昇格
+        const exists = rows.some(row => row && row.id === pendingEditCell.id);
+        if (exists) {
+            setSelectedEditCell(pendingEditCell);
+            setPendingEditCell(null);
+        }
+    }, [pendingEditCell, editSubTab, editTabRows, detailedRoomData, property, roomTypes]);
 
     // selectedEditCellの内容をfocusedCellに反映（編集テーブルで自動フォーカス・編集モードに入る）
     useEffect(() => {
@@ -1588,6 +1650,7 @@ const PropertyPage = () => {
                 setFocusedCell({ rowId, field: selectedEditCell.field });
             } else {
                 setFocusedCell(null);
+                setSelectedEditCell(null);
             }
         }, 100); // 100ms遅延
         return () => clearTimeout(timer);

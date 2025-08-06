@@ -221,20 +221,35 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
 
     // セルフォーカス＆編集モード副作用
     useEffect(() => {
-        if (!focusedCell) return;
+        console.log('[RoomInfoEditableTable][useEffect] focusedCell:', focusedCell);
+        if (!focusedCell) {
+            console.log('[RoomInfoEditableTable][useEffect] focusedCell is null, skipping');
+            return;
+        }
+        // rowsに該当IDが存在するかチェック
+        const exists = rows.some(row => row && row.id === focusedCell.rowId);
+        if (!exists) {
+            console.log('[RoomInfoEditableTable][useEffect] rowId does not exist in rows, skipping:', focusedCell.rowId);
+            return;
+        }
         if (!apiRef.current) {
+            console.log('[RoomInfoEditableTable][useEffect] apiRef.current is null, skipping');
             return;
         }
         if (typeof apiRef.current.setCellFocus !== 'function') {
+            console.log('[RoomInfoEditableTable][useEffect] setCellFocus is not a function, skipping');
             return;
         }
         if (typeof apiRef.current.startCellEditMode !== 'function') {
+            console.log('[RoomInfoEditableTable][useEffect] startCellEditMode is not a function, skipping');
             return;
         }
+        console.log('[RoomInfoEditableTable][useEffect] setCellFocus:', focusedCell.rowId, focusedCell.field);
         apiRef.current.setCellFocus(focusedCell.rowId, focusedCell.field);
         setTimeout(() => {
+            console.log('[RoomInfoEditableTable][useEffect] startCellEditMode:', focusedCell.rowId, focusedCell.field);
             apiRef.current.startCellEditMode({ id: focusedCell.rowId, field: focusedCell.field });
-        }, 0);
+        }, 100);
     }, [focusedCell, apiRef]);
 
     // rowsのdate型カラムを文字列化
