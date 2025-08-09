@@ -1093,6 +1093,23 @@ const PropertyPage = () => {
     const [editTabRows, setEditTabRows] = useState({}); // { room: [...], roomType: [...], property: [...] }
 
     // 差分判定: 元データと編集後rowsを比較し、変更セルを特定
+    // 値を比較用に正規化する関数
+    function normalize(val) {
+        if (val == null) return '';
+        if (typeof val === 'object') {
+            if (val instanceof Date) {
+                // Date型はYYYY-MM-DDで比較
+                return val.toISOString().slice(0, 10);
+            }
+            if ('value' in val) {
+                return String(val.value);
+            }
+            // その他のオブジェクトはJSON化
+            return JSON.stringify(val);
+        }
+        return String(val);
+    }
+
     function getChangedCells(originalRows, editedRows, propertyOriginal = null, propertyEdited = null) {
         const changed = {};
         const origMap = {};
@@ -1101,24 +1118,31 @@ const PropertyPage = () => {
             const orig = origMap[row.id];
             if (!orig) return;
             Object.keys(row).forEach(field => {
-                if (row[field] !== orig[field]) {
+                const normRow = normalize(row[field]);
+                const normOrig = normalize(orig[field]);
+                if (normRow !== normOrig) {
                     if (!changed[row.id]) changed[row.id] = {};
                     changed[row.id][field] = true;
+                    console.log(`[getChangedCells] row.id=${row.id} field=${field} changed: ${normOrig} → ${normRow}`);
                 }
             });
         });
         // 物件情報カラムの差分判定
         if (propertyOriginal && propertyEdited) {
             Object.keys(propertyEdited).forEach(field => {
-                if (propertyEdited[field] !== propertyOriginal[field]) {
+                const normEdited = normalize(propertyEdited[field]);
+                const normOriginal = normalize(propertyOriginal[field]);
+                if (normEdited !== normOriginal) {
                     // 全部屋の物件カラムにchangedを付与
                     Object.keys(origMap).forEach(roomId => {
                         if (!changed[roomId]) changed[roomId] = {};
                         changed[roomId][field] = true;
+                        console.log(`[getChangedCells] property changed: roomId=${roomId} field=${field} ${normOriginal} → ${normEdited}`);
                     });
                 }
             });
         }
+        console.log('[getChangedCells] result:', changed);
         return changed;
     }
 
@@ -3630,7 +3654,12 @@ const PropertyPage = () => {
                                                             if (config.fromProperty) {
                                                                 const originalValue = property ? property[config.fromProperty] : undefined;
                                                                 const editedValue = propertyEdit[field] !== undefined ? propertyEdit[field] : propertyEdit[config.fromProperty];
-                                                                isChanged = editedValue !== undefined && editedValue !== originalValue;
+                                                                const normOriginal = normalize(originalValue);
+                                                                const normEdited = normalize(editedValue);
+                                                                isChanged = normEdited !== '' && normEdited !== normOriginal;
+                                                                if (isChanged) {
+                                                                    console.log(`[isChanged] property: id=${room.id} field=${field} normOriginal=${normOriginal} normEdited=${normEdited}`);
+                                                                }
                                                             }
                                                             // roomTypeカラムの差分判定
                                                             if (config.fromRoomType) {
@@ -3650,6 +3679,12 @@ const PropertyPage = () => {
                                                                 // 空欄（元値も編集値も空）の場合はchangedを付与しない
                                                                 const isBothEmpty = (editedValue === undefined || editedValue === null || editedValue === '') && (originalValue === undefined || originalValue === null || originalValue === '');
                                                                 isChanged = !isBothEmpty && ((editedValue !== undefined && editedValue !== originalValue) || (changedCells && changedCells[cellKey]));
+                                                                if (isChanged) {
+                                                                    console.log(`[isChanged] roomType: roomTypeId=${roomTypeId} field=${fromRoomType} original=${originalValue} edited=${editedValue} cellKey=${cellKey}`);
+                                                                }
+                                                            }
+                                                            if (isChanged) {
+                                                                console.log(`[isChanged] FINAL: id=${room.id} field=${field} displayValue=${displayValue}`);
                                                             }
                                                             // 部屋番号は編集可能
                                                             return (
@@ -3847,11 +3882,22 @@ const PropertyPage = () => {
                                                     const row = {};
                                                     propCols.forEach(col => {
                                                         const conf = PROPERTY_FIELD_CONFIG[col.field];
-                                                        if (conf && conf.fromProperty) {
-                                                            row[col.field] = propertyObj[conf.fromProperty];
-                                                        } else {
-                                                            row[col.field] = propertyObj[col.field];
+                                                        let value = conf && conf.fromProperty ? propertyObj[conf.fromProperty] : propertyObj[col.field];
+                                                        // 日付型カラムの場合はYYYY-MM-DD形式に統一
+                                                        if (conf && conf.type === 'date') {
+                                                            if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                                                                value = { value };
+                                                            } else if (value instanceof Date) {
+                                                                const y = value.getFullYear();
+                                                                const m = String(value.getMonth() + 1).padStart(2, '0');
+                                                                const d = String(value.getDate()).padStart(2, '0');
+                                                                value = { value: `${y}-${m}-${d}` };
+                                                            } else if (typeof value === 'string' && /^\d{4}\/\d{2}\/\d{2}$/.test(value)) {
+                                                                // "YYYY/MM/DD" → "YYYY-MM-DD" に変換
+                                                                value = { value: value.replace(/\//g, '-') };
+                                                            }
                                                         }
+                                                        row[col.field] = value;
                                                     });
                                                     // id列は必須
                                                     if (!row.id && propertyObj.id) row.id = propertyObj.id;
