@@ -36,6 +36,9 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
         console.log('[RoomInfoEditableTable] 初期 detailedRoomData:', detailedRoomData);
         return detailedRoomData;
     });
+    useEffect(() => {
+        console.log('[RoomInfoEditableTable] detailedRoomData prop更新:', detailedRoomData);
+    }, [detailedRoomData]);
     const apiRef = useGridApiRef();
     const [rowIdCounter, setRowIdCounter] = useState(detailedRoomData.length + 1);
 
@@ -45,23 +48,30 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
         const updatedRows = rows.map((row) =>
             row.id === params.id ? { ...row, ...params } : row
         );
-        // date型フィールドを{value: 'YYYY-MM-DD'}形式に変換
         const dateFields = patchedColumns.filter(col => col.type === 'date').map(col => col.field);
+        console.log('[RoomInfoEditableTable] patchedColumns dateFields:', dateFields);
         const normalizedRows = updatedRows.map(row => {
             const newRow = { ...row };
             dateFields.forEach(field => {
+                console.log(`[RoomInfoEditableTable] 正規化前 field=${field} value=`, newRow[field]);
                 if (newRow[field] instanceof Date) {
                     const y = newRow[field].getFullYear();
                     const m = String(newRow[field].getMonth() + 1).padStart(2, '0');
                     const d = String(newRow[field].getDate()).padStart(2, '0');
                     newRow[field] = { value: `${y}-${m}-${d}` };
+                    console.log(`[RoomInfoEditableTable] Date→{value:YYYY-MM-DD} field=${field} value=`, newRow[field]);
                 } else if (typeof newRow[field] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(newRow[field])) {
                     newRow[field] = { value: newRow[field] };
+                    console.log(`[RoomInfoEditableTable] string YYYY-MM-DD→{value:YYYY-MM-DD} field=${field} value=`, newRow[field]);
+                } else if (typeof newRow[field] === 'string' && /^\d{4}\/\d{2}\/\d{2}$/.test(newRow[field])) {
+                    // YYYY/MM/DD → YYYY-MM-DD
+                    newRow[field] = { value: newRow[field].replace(/\//g, '-') };
+                    console.log(`[RoomInfoEditableTable] string YYYY/MM/DD→{value:YYYY-MM-DD} field=${field} value=`, newRow[field]);
                 }
             });
             return newRow;
         });
-        console.log('[RoomInfoEditableTable] updatedRows:', normalizedRows);
+        console.log('[RoomInfoEditableTable] updatedRows after normalization:', normalizedRows);
         setRows(normalizedRows);
         if (onRowsChange) {
             console.log('[RoomInfoEditableTable] onRowsChange呼び出し:', normalizedRows);
@@ -140,6 +150,28 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
     };
 
 
+    // yyyy/MM/dd形式で表示するフォーマッタ
+    const dateValueFormatter = (params) => {
+        const v = params?.value;
+        console.log('[RoomInfoEditableTable] dateValueFormatter 入力:', v);
+        if (!v) return '';
+        let d;
+        if (v instanceof Date) {
+            d = v;
+        } else if (typeof v === 'object' && v.value) {
+            d = new Date(v.value);
+        } else {
+            d = new Date(v);
+        }
+        if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const result = `${y}/${m}/${day}`;
+        console.log('[RoomInfoEditableTable] dateValueFormatter 出力:', result);
+        return result;
+    };
+
     const columns = [
         { field: 'id', headerName: '部屋ID', minWidth: 80, editable: false, type: 'number' },
         { field: 'core_id', headerName: 'core部屋ID', minWidth: 120, flex: 1, editable: false },
@@ -147,15 +179,15 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
         { field: 'status', headerName: '進捗', minWidth: 100, flex: 1, editable: true, type: 'singleSelect', valueOptions: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'クローズ', '運営判断中', '試算入力待ち', '試算入力済み', '試算依頼済み', '他決', '見送り'] },
         { field: 'lead_property_id', headerName: '物件ID', minWidth: 100, flex: 1, editable: false },
         { field: 'lead_room_type_id', headerName: '部屋タイプID', minWidth: 120, flex: 1, editable: false },
-        { field: 'create_date', headerName: '部屋登録日', minWidth: 120, flex: 1, editable: false, type: 'date', valueGetter: dateValueGetter },
-        { field: 'key_handover_scheduled_date', headerName: '鍵引き渡し予定日', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'possible_key_handover_scheduled_date_1', headerName: '鍵引き渡し予定日①', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'possible_key_handover_scheduled_date_2', headerName: '鍵引き渡し予定日②', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'possible_key_handover_scheduled_date_3', headerName: '鍵引き渡し予定日③', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'leaflet_distribution_date', headerName: 'チラシ配布日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'notification_complete_date', headerName: '通知完了日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'contract_collection_date', headerName: '契約書回収予定日', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
-        { field: 'application_intended_date', headerName: '申請予定日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter },
+        { field: 'create_date', headerName: '部屋登録日', minWidth: 120, flex: 1, editable: false, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'key_handover_scheduled_date', headerName: '鍵引き渡し予定日', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'possible_key_handover_scheduled_date_1', headerName: '鍵引き渡し予定日①', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'possible_key_handover_scheduled_date_2', headerName: '鍵引き渡し予定日②', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'possible_key_handover_scheduled_date_3', headerName: '鍵引き渡し予定日③', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'leaflet_distribution_date', headerName: 'チラシ配布日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'notification_complete_date', headerName: '通知完了日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'contract_collection_date', headerName: '契約書回収予定日', minWidth: 140, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
+        { field: 'application_intended_date', headerName: '申請予定日', minWidth: 120, flex: 1, editable: true, type: 'date', valueGetter: dateValueGetter, valueFormatter: dateValueFormatter },
         { field: 'user_email', headerName: 'ユーザーEmail', minWidth: 180, flex: 1, editable: false },
         { field: 'vacate_setup', headerName: '退去SU', minWidth: 100, flex: 1, editable: true, type: 'singleSelect', valueOptions: ['', '一般賃貸中', '退去SU'] },
         { field: 'room_number', headerName: '部屋番号', minWidth: 100, flex: 1, editable: false },
@@ -259,12 +291,13 @@ export default function RoomInfoEditableTable({ detailedRoomData = [], columns: 
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
         const d = String(dateObj.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
+        return `${y}/${m}/${d}`;
     };
     const displayRows = rows.map(row => {
         const newRow = { ...row };
         dateFields.forEach(field => {
             if (newRow[field] instanceof Date) {
+                console.log(`[RoomInfoEditableTable] displayRows: Date→YYYY/MM/DD field=${field} value=`, newRow[field]);
                 newRow[field] = toLocalYMD(newRow[field]);
             }
         });
